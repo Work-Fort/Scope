@@ -14,7 +14,7 @@ type ChannelList struct {
 	cursor   int
 	width    int
 	height   int
-	unread   map[string]bool
+	unread   map[string]int
 }
 
 func NewChannelList() ChannelList {
@@ -25,7 +25,7 @@ func NewChannelList() ChannelList {
 			{Name: "ops", Public: true},
 			{Name: "random", Public: true},
 		},
-		unread: make(map[string]bool),
+		unread: make(map[string]int),
 	}
 }
 
@@ -60,8 +60,8 @@ func (cl *ChannelList) SetChannels(channels []ChannelInfo) {
 	}
 }
 
-func (cl *ChannelList) MarkUnread(channel string) {
-	cl.unread[channel] = true
+func (cl *ChannelList) IncrementUnread(channel string) {
+	cl.unread[channel]++
 }
 
 func (cl *ChannelList) ClearUnread(channel string) {
@@ -97,21 +97,23 @@ func (cl ChannelList) View() string {
 	}
 
 	unreadDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent).Render("● ")
+	countStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent)
 
 	var lines []string
 	for i, ch := range cl.channels {
 		prefix := "  "
-		name := fmt.Sprintf("# %s", ch.Name)
+		name := "#" + ch.Name
 
-		if cl.unread[ch.Name] && i != cl.cursor {
+		count := cl.unread[ch.Name]
+		if count > 0 && i != cl.cursor {
 			prefix = unreadDot
 		}
 
 		var line string
 		if i == cl.cursor {
 			line = prefix + selectedStyle.Render(name)
-		} else if cl.unread[ch.Name] {
-			line = prefix + unreadStyle.Render(name)
+		} else if count > 0 {
+			line = prefix + unreadStyle.Render(name) + " " + countStyle.Render(fmt.Sprintf("(%d)", count))
 		} else {
 			line = prefix + normalStyle.Render(name)
 		}

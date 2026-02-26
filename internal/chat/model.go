@@ -42,7 +42,9 @@ func NewModel(username string) ChatModel {
 	ib := NewInputBar()
 
 	// Mark some channels as having unreads for demo
-	cl.MarkUnread("engineering")
+	for i := 0; i < 5; i++ {
+		cl.IncrementUnread("engineering")
+	}
 
 	return ChatModel{
 		channels:        cl,

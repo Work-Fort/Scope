@@ -70,7 +70,7 @@ func (m *Modal) UpdateTextInput(msg interface{}) {
 }
 
 func (m Modal) View(totalW, totalH int) string {
-	modalW := 44
+	modalW := 54
 
 	titleStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Primary).
