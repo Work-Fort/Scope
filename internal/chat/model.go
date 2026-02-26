@@ -116,6 +116,14 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.input.Blur()
 		return m, nil
 
+	case "ctrl+up":
+		m.messages.ScrollUp(1)
+		return m, nil
+
+	case "ctrl+down":
+		m.messages.ScrollDown(1)
+		return m, nil
+
 	case "enter":
 		if m.activePane == PaneInput && m.input.Value() != "" {
 			// In Plan 2, this sends via WebSocket
