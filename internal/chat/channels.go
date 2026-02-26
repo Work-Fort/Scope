@@ -11,11 +11,12 @@ import (
 )
 
 type ChannelList struct {
-	channels []sharkfin.Channel
-	cursor   int
-	width    int
-	height   int
-	unread   map[string]int
+	channels     []sharkfin.Channel
+	cursor       int
+	scrollOffset int
+	width        int
+	height       int
+	unread       map[string]int
 }
 
 func NewChannelList() ChannelList {
@@ -32,12 +33,26 @@ func (cl *ChannelList) SetSize(w, h int) {
 func (cl *ChannelList) MoveUp() {
 	if cl.cursor > 0 {
 		cl.cursor--
+		cl.ensureCursorVisible()
 	}
 }
 
 func (cl *ChannelList) MoveDown() {
 	if cl.cursor < len(cl.channels)-1 {
 		cl.cursor++
+		cl.ensureCursorVisible()
+	}
+}
+
+func (cl *ChannelList) ensureCursorVisible() {
+	if cl.height <= 0 {
+		return
+	}
+	if cl.cursor < cl.scrollOffset {
+		cl.scrollOffset = cl.cursor
+	}
+	if cl.cursor >= cl.scrollOffset+cl.height {
+		cl.scrollOffset = cl.cursor - cl.height + 1
 	}
 }
 
@@ -64,8 +79,10 @@ func (cl *ChannelList) ClearUnread(channel string) {
 }
 
 func (cl *ChannelList) SelectIndex(i int) {
-	if i >= 0 && i < len(cl.channels) {
-		cl.cursor = i
+	idx := i + cl.scrollOffset
+	if idx >= 0 && idx < len(cl.channels) {
+		cl.cursor = idx
+		cl.ensureCursorVisible()
 	}
 }
 
@@ -94,8 +111,16 @@ func (cl ChannelList) View() string {
 	unreadDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent).Render("● ")
 	countStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent)
 
+	// Determine visible window
+	visEnd := cl.scrollOffset + cl.height
+	if visEnd > len(cl.channels) {
+		visEnd = len(cl.channels)
+	}
+	visible := cl.channels[cl.scrollOffset:visEnd]
+
 	var lines []string
-	for i, ch := range cl.channels {
+	for j, ch := range visible {
+		i := cl.scrollOffset + j
 		prefix := "  "
 		name := "#" + ch.Name
 
@@ -104,18 +129,26 @@ func (cl ChannelList) View() string {
 			prefix = unreadDot
 		}
 
+		// Truncate name before styling to avoid cutting ANSI codes
+		// prefix is 2 chars, leave room for suffix
+		maxNameW := innerW - 2
+		suffix := ""
+		if count > 0 && i != cl.cursor {
+			badge := fmt.Sprintf(" (%d)", count)
+			maxNameW -= len(badge)
+			suffix = badge
+		}
+		if len(name) > maxNameW {
+			name = name[:maxNameW-1] + "…"
+		}
+
 		var line string
 		if i == cl.cursor {
 			line = prefix + selectedStyle.Render(name)
 		} else if count > 0 {
-			line = prefix + unreadStyle.Render(name) + " " + countStyle.Render(fmt.Sprintf("(%d)", count))
+			line = prefix + unreadStyle.Render(name) + " " + countStyle.Render(suffix)
 		} else {
 			line = prefix + normalStyle.Render(name)
-		}
-
-		// Truncate if needed
-		if lipgloss.Width(line) > innerW {
-			line = line[:innerW]
 		}
 
 		lines = append(lines, line)
