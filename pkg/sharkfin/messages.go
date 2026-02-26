@@ -34,6 +34,7 @@ type RegisterRequest struct {
 type Channel struct {
 	Name   string `json:"name"`
 	Public bool   `json:"public"`
+	Member bool   `json:"member"`
 }
 
 // ChannelListResponse is the payload of a channel_list response.
