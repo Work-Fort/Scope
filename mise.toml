@@ -1,0 +1,43 @@
+[tools]
+go = "latest"
+
+[env]
+BINARY_NAME = "workfort"
+BUILD_DIR = "build"
+
+[tasks.build]
+description = "Build the workfort binary"
+sources = ["**/*.go", "go.mod", "go.sum"]
+outputs = ["{{env.BUILD_DIR}}/{{env.BINARY_NAME}}"]
+run = """
+mkdir -p ${BUILD_DIR}
+VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+go build -ldflags "-X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
+"""
+
+[tasks.test]
+description = "Run tests with race detection and coverage"
+run = """
+mkdir -p ${BUILD_DIR}
+go test -v -race -coverprofile=${BUILD_DIR}/coverage.out ./...
+"""
+
+[tasks.lint]
+description = "Run formatting check and vet"
+run = """
+UNFORMATTED=$(gofmt -l .)
+if [ -n "$UNFORMATTED" ]; then
+    echo "Files not formatted:"
+    echo "$UNFORMATTED"
+    exit 1
+fi
+go vet ./...
+"""
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "rm -rf ${BUILD_DIR}"
+
+[tasks.ci]
+description = "Run full CI pipeline"
+depends = ["lint", "test"]
