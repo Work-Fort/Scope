@@ -86,6 +86,7 @@ type UnreadRequest struct {
 
 // UnreadResponse is the payload of an unread_messages response.
 type UnreadResponse struct {
+	Channel  string    `json:"channel,omitempty"`
 	Messages []Message `json:"messages"`
 }
 

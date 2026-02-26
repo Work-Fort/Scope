@@ -11,12 +11,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// pendingRequest tracks the original request type and channel for correlating replies.
-type pendingRequest struct {
-	reqType string
-	channel string
-}
-
 // Client manages a WebSocket connection to a sharkfin daemon.
 type Client struct {
 	host        string
@@ -26,7 +20,7 @@ type Client struct {
 	closed      atomic.Bool
 	refSeq      atomic.Int64
 	mu          sync.Mutex
-	pendingRefs sync.Map // ref string → pendingRequest
+	pendingRefs sync.Map // ref string → request type string
 }
 
 // New creates a new sharkfin client for the given WebSocket URL.
@@ -185,18 +179,18 @@ func (c *Client) RequestChannels() {
 
 // RequestHistory requests paginated message history.
 func (c *Client) RequestHistory(channel string, before, limit int) {
-	c.sendWithChannel("history", HistoryRequest{
+	c.send("history", HistoryRequest{
 		Channel: channel,
 		Before:  before,
 		Limit:   limit,
-	}, channel)
+	})
 }
 
 // RequestUnread requests unread messages for a channel (advances read cursor).
 func (c *Client) RequestUnread(channel string) {
-	c.sendWithChannel("unread_messages", UnreadRequest{
+	c.send("unread_messages", UnreadRequest{
 		Channel: channel,
-	}, channel)
+	})
 }
 
 // RequestUsers requests the user list.
@@ -206,10 +200,10 @@ func (c *Client) RequestUsers() {
 
 // SendMessage sends a chat message to a channel.
 func (c *Client) SendMessage(channel, body string) {
-	c.sendWithChannel("send_message", SendMessageRequest{
+	c.send("send_message", SendMessageRequest{
 		Channel: channel,
 		Body:    body,
-	}, channel)
+	})
 }
 
 // CreateChannel creates a new channel.
@@ -230,12 +224,8 @@ func (c *Client) InviteUser(channel, username string) {
 }
 
 func (c *Client) send(msgType string, data any) {
-	c.sendWithChannel(msgType, data, "")
-}
-
-func (c *Client) sendWithChannel(msgType string, data any, channel string) {
 	ref := c.nextRef()
-	c.pendingRefs.Store(ref, pendingRequest{reqType: msgType, channel: channel})
+	c.pendingRefs.Store(ref, msgType)
 	raw, err := MarshalEnvelope(msgType, data, ref)
 	if err != nil {
 		log.Error("marshal", "type", msgType, "err", err)
@@ -315,9 +305,15 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 		log.Debug("reply with unknown ref", "ref", env.Ref)
 		return nil
 	}
-	req := val.(pendingRequest)
+	reqType := val.(string)
 
-	switch req.reqType {
+	// Check for error replies (ok: false) on data-bearing requests
+	if env.OK != nil && !*env.OK {
+		log.Debug("reply error", "reqType", reqType, "ref", env.Ref, "data", string(env.D))
+		return nil
+	}
+
+	switch reqType {
 	case "channel_list":
 		resp, err := ParseData[ChannelListResponse](env)
 		if err != nil {
@@ -332,7 +328,7 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 			log.Error("parse history reply", "err", err)
 			return nil
 		}
-		return HistoryMsg{Channel: req.channel, Messages: resp.Messages}
+		return HistoryMsg{Channel: resp.Channel, Messages: resp.Messages}
 
 	case "unread_messages":
 		resp, err := ParseData[UnreadResponse](env)
@@ -340,7 +336,11 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 			log.Error("parse unread_messages reply", "err", err)
 			return nil
 		}
-		return UnreadMsg{Channel: req.channel, Messages: resp.Messages}
+		ch := resp.Channel
+		if ch == "" && len(resp.Messages) > 0 {
+			ch = resp.Messages[0].Channel
+		}
+		return UnreadMsg{Channel: ch, Messages: resp.Messages}
 
 	case "user_list":
 		resp, err := ParseData[UserListResponse](env)
@@ -351,10 +351,7 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 		return UserListMsg{Users: resp.Users}
 
 	case "send_message":
-		if env.OK != nil && *env.OK {
-			return MessageSentMsg{}
-		}
-		return nil
+		return MessageSentMsg{}
 
 	case "channel_create":
 		if env.OK != nil && *env.OK {
@@ -366,7 +363,7 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 		return nil
 
 	default:
-		log.Debug("unhandled reply type", "reqType", req.reqType, "ref", env.Ref)
+		log.Debug("unhandled reply type", "reqType", reqType, "ref", env.Ref)
 		return nil
 	}
 }
