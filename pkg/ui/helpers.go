@@ -17,6 +17,7 @@ const (
 	HeaderHeight = 3
 	InputHeight  = 3
 	HelpHeight   = 3
+	PaneGap      = 1 // gap between sidebar and message pane
 	PaneTitleH   = 2 // title line + 1 blank line
 )
 
@@ -41,8 +42,8 @@ func CalculateChatLayout(termW, termH int) ChatLayout {
 		sidebarW = MaxSidebarW
 	}
 
-	// Account for borders: 2 chars per pane (left+right)
-	messageW := termW - sidebarW
+	// Account for borders and gap between panes
+	messageW := termW - sidebarW - PaneGap
 
 	// Vertical: header + content + help bar
 	contentH := termH - HeaderHeight - HelpHeight

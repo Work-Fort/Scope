@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
 
@@ -93,7 +95,7 @@ func (m *Modal) UpdateTextInput(msg interface{}) {
 func (m Modal) buttons() []modalButton {
 	switch m.Type {
 	case ModalChannelCreate:
-		visLabel := "public"
+		visLabel := "public "
 		if !m.public {
 			visLabel = "private"
 		}
@@ -130,7 +132,15 @@ func renderModalButtons(buttons []modalButton) string {
 		label := keyStyle.Render(b.key) + " " + descStyle.Render(b.label)
 		rendered = append(rendered, btnStyle.Render(label))
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
+	spacer := strings.Repeat(" ", ui.PaneGap)
+	var parts []string
+	for i, r := range rendered {
+		parts = append(parts, r)
+		if i < len(rendered)-1 {
+			parts = append(parts, spacer)
+		}
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 }
 
 // HitTest checks if screen coordinates (x, y) land on a modal button.
@@ -165,7 +175,7 @@ func (m *Modal) HitTest(screenX, screenY int) ModalAction {
 		if relX >= x && relX < x+w {
 			return b.action
 		}
-		x += w
+		x += w + ui.PaneGap
 	}
 	return ModalActionNone
 }

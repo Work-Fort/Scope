@@ -1,6 +1,23 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
+
+// joinWithGap joins rendered strings horizontally with a space gap between them.
+func joinWithGap(items []string, gap int) string {
+	spacer := strings.Repeat(" ", gap)
+	var parts []string
+	for i, item := range items {
+		parts = append(parts, item)
+		if i < len(items)-1 {
+			parts = append(parts, spacer)
+		}
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+}
 
 // KeyBinding represents a single key binding with its display info.
 type KeyBinding struct {
@@ -47,7 +64,7 @@ func (kbs KeyBindingSet) Render() string {
 		buttons = append(buttons, btnStyle.Render(label))
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, buttons...)
+	return joinWithGap(buttons, PaneGap)
 }
 
 // ButtonRegions returns the X start/end positions for each button in the rendered help bar.
@@ -77,7 +94,7 @@ func (kbs KeyBindingSet) ButtonRegions() []ButtonRegion {
 			XMin:  x,
 			XMax:  x + w,
 		})
-		x += w
+		x += w + PaneGap
 	}
 	return regions
 }

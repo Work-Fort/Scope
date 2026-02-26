@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbletea"
@@ -392,7 +393,8 @@ func (m ChatModel) View() string {
 	rightPane := lipgloss.JoinVertical(lipgloss.Left, msgPane, inputPane)
 
 	// Compose main layout
-	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, rightPane)
+	gap := strings.Repeat(" ", ui.PaneGap)
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, gap, rightPane)
 
 	// Header bar
 	headerStyle := lipgloss.NewStyle().
