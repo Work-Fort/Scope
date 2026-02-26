@@ -15,6 +15,8 @@ func InitViper() {
 
 	viper.SetDefault("use-tui", true)
 	viper.SetDefault("log-level", "debug")
+	viper.SetDefault("sharkfin-host", "ws://127.0.0.1:16000/ws")
+	viper.SetDefault("username", "")
 
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
@@ -50,6 +52,8 @@ func BindFlags(flags *pflag.FlagSet) error {
 	flagsToBind := []string{
 		"use-tui",
 		"log-level",
+		"sharkfin-host",
+		"username",
 	}
 
 	for _, flagName := range flagsToBind {

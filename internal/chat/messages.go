@@ -2,23 +2,19 @@ package chat
 
 import (
 	"fmt"
+	"slices"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
-// t is a shorthand for building placeholder timestamps.
-func t(hour, min int) time.Time {
-	return time.Date(2026, 2, 25, hour, min, 0, 0, time.Local)
-}
-
 type MessagePane struct {
 	channel    string
-	messages   map[string][]MessageInfo
+	messages   map[string][]sharkfin.Message
 	viewport   viewport.Model
 	width      int
 	height     int
@@ -28,52 +24,8 @@ type MessagePane struct {
 func NewMessagePane() MessagePane {
 	vp := viewport.New(0, 0)
 
-	// Seed placeholder messages
-	msgs := map[string][]MessageInfo{
-		"general": {
-			{ID: 1, From: "bob", Body: "Hey team, standup in 5", SentAt: t(10, 32)},
-			{ID: 2, From: "alice", Body: "On it", SentAt: t(10, 33)},
-			{ID: 3, From: "charlie", Body: "Finishing up a PR, be there in a sec", SentAt: t(10, 34)},
-			{ID: 4, From: "bob", Body: "No rush", SentAt: t(10, 34)},
-		},
-		"engineering": {
-			{ID: 5, From: "alice", Body: "Pushed the new auth middleware", SentAt: t(9, 15)},
-			{ID: 6, From: "charlie", Body: "Nice, I'll review after lunch", SentAt: t(9, 20)},
-		},
-		"ops": {
-			{ID: 7, From: "charlie", Body: "Deploy to staging went clean", SentAt: t(8, 45)},
-		},
-		"random": {
-			{ID: 8, From: "alice", Body: "Has anyone tried the new coffee machine?", SentAt: t(11, 0)},
-			{ID: 9, From: "bob", Body: "It's life-changing", SentAt: t(11, 2)},
-			{ID: 10, From: "charlie", Body: "The oat milk option is surprisingly good", SentAt: t(11, 3)},
-			{ID: 11, From: "alice", Body: "Right? I've had three cups already", SentAt: t(11, 5)},
-			{ID: 12, From: "bob", Body: "That explains the commit frequency today", SentAt: t(11, 6)},
-			{ID: 13, From: "charlie", Body: "Lol. Anyone up for lunch at the thai place?", SentAt: t(11, 30)},
-			{ID: 14, From: "alice", Body: "Yes! Pad see ew for me", SentAt: t(11, 31)},
-			{ID: 15, From: "bob", Body: "I'm in. Green curry", SentAt: t(11, 32)},
-			{ID: 16, From: "charlie", Body: "Cool, booking for 12:15", SentAt: t(11, 33)},
-			{ID: 17, From: "alice", Body: "Has anyone seen the new conference room names?", SentAt: t(13, 0)},
-			{ID: 18, From: "bob", Body: "Yeah, they're all named after Go stdlib packages", SentAt: t(13, 1)},
-			{ID: 19, From: "charlie", Body: "I had a meeting in 'net/http' this morning", SentAt: t(13, 2)},
-			{ID: 20, From: "alice", Body: "I'm in 'encoding/json' right now", SentAt: t(13, 3)},
-			{ID: 21, From: "bob", Body: "Please tell me there's a 'crypto/rand' room", SentAt: t(13, 4)},
-			{ID: 22, From: "charlie", Body: "There is. It's the one with no windows", SentAt: t(13, 5)},
-			{ID: 23, From: "alice", Body: "That's actually perfect", SentAt: t(13, 6)},
-			{ID: 24, From: "bob", Body: "The 'os/exec' room has a great view though", SentAt: t(13, 7)},
-			{ID: 25, From: "charlie", Body: "Anyone know if we're doing the team offsite in March?", SentAt: t(14, 0)},
-			{ID: 26, From: "alice", Body: "I heard it's happening but location TBD", SentAt: t(14, 2)},
-			{ID: 27, From: "bob", Body: "Last year's was great, hope we do something similar", SentAt: t(14, 3)},
-			{ID: 28, From: "charlie", Body: "Agreed. The hiking day was a highlight", SentAt: t(14, 5)},
-			{ID: 29, From: "alice", Body: "Alright back to work, this PR isn't going to review itself", SentAt: t(14, 10)},
-			{ID: 30, From: "bob", Body: "Speak for yourself, I'm training an AI to do mine", SentAt: t(14, 11)},
-			{ID: 31, From: "charlie", Body: "Famous last words", SentAt: t(14, 12)},
-		},
-	}
-
 	return MessagePane{
-		channel:    "general",
-		messages:   msgs,
+		messages:   make(map[string][]sharkfin.Message),
 		viewport:   vp,
 		autoScroll: true,
 	}
@@ -94,7 +46,7 @@ func (mp *MessagePane) SetChannel(name string) {
 	mp.viewport.GotoBottom()
 }
 
-func (mp *MessagePane) AppendMessage(channel string, msg MessageInfo) {
+func (mp *MessagePane) AppendMessage(channel string, msg sharkfin.Message) {
 	mp.messages[channel] = append(mp.messages[channel], msg)
 
 	if channel == mp.channel {
@@ -104,6 +56,72 @@ func (mp *MessagePane) AppendMessage(channel string, msg MessageInfo) {
 			mp.viewport.GotoBottom()
 		}
 	}
+}
+
+// MergeMessages adds messages not already present, maintaining sort order by ID.
+func (mp *MessagePane) MergeMessages(channel string, msgs []sharkfin.Message) {
+	if len(msgs) == 0 {
+		return
+	}
+
+	existing := mp.messages[channel]
+	seen := make(map[int]bool, len(existing))
+	for _, m := range existing {
+		seen[m.ID] = true
+	}
+	for _, m := range msgs {
+		if !seen[m.ID] {
+			existing = append(existing, m)
+		}
+	}
+	slices.SortFunc(existing, func(a, b sharkfin.Message) int {
+		return a.ID - b.ID
+	})
+	mp.messages[channel] = existing
+
+	if channel == mp.channel {
+		atBottom := mp.viewport.AtBottom()
+		mp.refreshContent()
+		if atBottom {
+			mp.viewport.GotoBottom()
+		}
+	}
+}
+
+// PrependHistory adds older messages to the front, preserving scroll position.
+func (mp *MessagePane) PrependHistory(channel string, msgs []sharkfin.Message) {
+	if len(msgs) == 0 {
+		return
+	}
+
+	existing := mp.messages[channel]
+	all := make([]sharkfin.Message, 0, len(msgs)+len(existing))
+	all = append(all, msgs...)
+	all = append(all, existing...)
+	mp.messages[channel] = all
+
+	if channel == mp.channel {
+		prevTotal := mp.viewport.TotalLineCount()
+		mp.refreshContent()
+		addedLines := mp.viewport.TotalLineCount() - prevTotal
+		if addedLines > 0 {
+			mp.viewport.SetYOffset(mp.viewport.YOffset + addedLines)
+		}
+	}
+}
+
+// OldestID returns the smallest message ID for the channel, or 0 if none.
+func (mp *MessagePane) OldestID(channel string) int {
+	msgs := mp.messages[channel]
+	if len(msgs) == 0 {
+		return 0
+	}
+	return msgs[0].ID
+}
+
+// AtTop returns true if the viewport is scrolled to the top.
+func (mp *MessagePane) AtTop() bool {
+	return mp.viewport.AtTop()
 }
 
 // Channel returns the currently displayed channel name.

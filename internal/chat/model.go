@@ -4,9 +4,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 
+	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
@@ -24,6 +26,7 @@ type ChatModel struct {
 	height   int
 	tooSmall bool
 
+	client   *sharkfin.Client
 	channels ChannelList
 	messages MessagePane
 	input    InputBar
@@ -32,32 +35,31 @@ type ChatModel struct {
 	activePane      Pane
 	selectedChannel string
 	username        string
+	users           []sharkfin.User
 
 	lastChannelScroll time.Time
+	loadingHistory    bool
 }
 
-// NewModel creates a ChatModel with placeholder data.
-func NewModel(username string) ChatModel {
+// NewModel creates a ChatModel wired to a sharkfin client.
+func NewModel(client *sharkfin.Client, username string) ChatModel {
 	cl := NewChannelList()
 	mp := NewMessagePane()
 	ib := NewInputBar()
 
-	// Mark some channels as having unreads for demo
-	for i := 0; i < 5; i++ {
-		cl.IncrementUnread("engineering")
-	}
-
 	return ChatModel{
-		channels:        cl,
-		messages:        mp,
-		input:           ib,
-		activePane:      PaneChannels,
-		selectedChannel: cl.Selected(),
-		username:        username,
+		client:     client,
+		channels:   cl,
+		messages:   mp,
+		input:      ib,
+		activePane: PaneChannels,
+		username:   username,
 	}
 }
 
 func (m ChatModel) Init() tea.Cmd {
+	m.client.RequestChannels()
+	m.client.RequestUsers()
 	return nil
 }
 
@@ -77,6 +79,74 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
+
+	// --- Sharkfin inbound messages ---
+
+	case sharkfin.ChannelListMsg:
+		log.Debug("channel_list", "count", len(msg.Channels))
+		m.channels.SetChannels(msg.Channels)
+		if len(msg.Channels) > 0 && m.selectedChannel == "" {
+			m.selectedChannel = msg.Channels[0].Name
+			m.messages.SetChannel(m.selectedChannel)
+			m.client.RequestHistory(m.selectedChannel, 0, 50)
+			m.client.RequestUnread(m.selectedChannel)
+		}
+		return m, nil
+
+	case sharkfin.HistoryMsg:
+		log.Debug("history", "channel", msg.Channel, "count", len(msg.Messages), "scrollback", m.loadingHistory)
+		if m.loadingHistory {
+			// Scrollback: prepend older messages, preserve scroll position
+			m.messages.PrependHistory(msg.Channel, msg.Messages)
+		} else {
+			// Initial load: merge and auto-scroll to bottom
+			m.messages.MergeMessages(msg.Channel, msg.Messages)
+		}
+		m.loadingHistory = false
+		return m, nil
+
+	case sharkfin.UnreadMsg:
+		log.Debug("unread", "channel", msg.Channel, "count", len(msg.Messages))
+		if len(msg.Messages) > 0 {
+			m.messages.MergeMessages(msg.Channel, msg.Messages)
+		}
+		return m, nil
+
+	case sharkfin.MessageNewMsg:
+		log.Debug("message.new", "channel", msg.Channel, "from", msg.From, "body", msg.Body, "active", m.selectedChannel)
+		newMsg := sharkfin.Message{
+			ID:       msg.ID,
+			Channel:  msg.Channel,
+			From:     msg.From,
+			Body:     msg.Body,
+			SentAt:   msg.SentAt,
+			ThreadID: msg.ThreadID,
+		}
+		m.messages.AppendMessage(msg.Channel, newMsg)
+		if msg.Channel != m.selectedChannel {
+			m.channels.IncrementUnread(msg.Channel)
+		}
+		return m, nil
+
+	case sharkfin.PresenceMsg:
+		for i := range m.users {
+			if m.users[i].Username == msg.Username {
+				m.users[i].Online = msg.Online
+				break
+			}
+		}
+		return m, nil
+
+	case sharkfin.UserListMsg:
+		m.users = msg.Users
+		return m, nil
+
+	case sharkfin.MessageSentMsg:
+		return m, nil
+
+	case sharkfin.DisconnectedMsg:
+		// TODO: show disconnect overlay
+		return m, nil
 	}
 
 	return m, nil
@@ -128,6 +198,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "ctrl+up":
 		m.messages.ScrollUp(1)
+		m.maybeLoadHistory()
 		return m, nil
 
 	case "ctrl+down":
@@ -136,10 +207,13 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		if m.activePane == PaneInput && m.input.Value() != "" {
-			// In Plan 2, this sends via WebSocket
-			m.messages.AppendMessage(m.selectedChannel, MessageInfo{
+			body := m.input.Value()
+			log.Debug("send_message", "channel", m.selectedChannel, "body", body)
+			m.client.SendMessage(m.selectedChannel, body)
+			// Append locally — server doesn't echo message.new to sender
+			m.messages.AppendMessage(m.selectedChannel, sharkfin.Message{
 				From:   m.username,
-				Body:   m.input.Value(),
+				Body:   body,
 				SentAt: time.Now(),
 			})
 			m.input.Reset()
@@ -171,7 +245,7 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		if m.modal.Value() != "" {
-			// In Plan 2, this sends via WebSocket
+			m.submitModal()
 			m.modal = nil
 		}
 		return m, nil
@@ -187,6 +261,15 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *ChatModel) submitModal() {
+	switch m.modal.Type {
+	case ModalChannelCreate:
+		m.client.CreateChannel(m.modal.Value(), m.modal.IsPublic(), nil)
+	case ModalUserInvite:
+		m.client.InviteUser(m.selectedChannel, m.modal.Value())
+	}
+}
+
 func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modal click handling
 	if m.modal != nil {
@@ -195,6 +278,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			switch action {
 			case ModalActionSubmit:
 				if m.modal.Value() != "" {
+					m.submitModal()
 					m.modal = nil
 				}
 			case ModalActionToggle:
@@ -221,6 +305,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			m.switchChannel()
 		} else {
 			m.messages.ScrollUp(3)
+			m.maybeLoadHistory()
 		}
 		return m, nil
 
@@ -326,6 +411,7 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		m.input.Blur()
 	case "ctrl+up":
 		m.messages.ScrollUp(3)
+		m.maybeLoadHistory()
 	case "ctrl+down":
 		m.messages.ScrollDown(3)
 	}
@@ -335,9 +421,30 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 func (m *ChatModel) switchChannel() {
 	selected := m.channels.Selected()
 	if selected != m.selectedChannel {
+		log.Debug("switch_channel", "from", m.selectedChannel, "to", selected)
 		m.selectedChannel = selected
 		m.channels.ClearUnread(selected)
 		m.messages.SetChannel(selected)
+		m.loadingHistory = false
+		// Load recent history if no messages cached for this channel
+		if m.messages.OldestID(selected) == 0 {
+			m.client.RequestHistory(selected, 0, 50)
+		}
+		m.client.RequestUnread(selected)
+	}
+}
+
+func (m *ChatModel) maybeLoadHistory() {
+	if m.loadingHistory {
+		return
+	}
+	if !m.messages.AtTop() {
+		return
+	}
+	oldest := m.messages.OldestID(m.selectedChannel)
+	if oldest > 0 {
+		m.client.RequestHistory(m.selectedChannel, oldest, 50)
+		m.loadingHistory = true
 	}
 }
 
@@ -371,7 +478,11 @@ func (m ChatModel) View() string {
 	sidebar := sidebarStyle.Render(sidebarTitle + "\n" + m.channels.View())
 
 	// Message pane
-	channelTitle := ui.RenderPaneTitle(" #"+m.selectedChannel+" ", m.activePane == PaneInput)
+	chanLabel := "#" + m.selectedChannel
+	if m.selectedChannel == "" {
+		chanLabel = "No channel"
+	}
+	channelTitle := ui.RenderPaneTitle(" "+chanLabel+" ", m.activePane == PaneInput)
 	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.InputHeight)
 	msgPane := msgStyle.Render(channelTitle + "\n" + m.messages.View())
 

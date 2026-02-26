@@ -5,8 +5,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	chatui "github.com/Work-Fort/WorkFort/internal/chat"
+	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 )
 
 var (
@@ -22,26 +24,44 @@ func NewChatCmd() *cobra.Command {
 		RunE:  runChat,
 	}
 
-	cmd.Flags().StringVar(&sharkfinHost, "sharkfin-host", "ws://127.0.0.1:16000/ws", "Sharkfin daemon WebSocket URL")
+	cmd.Flags().StringVar(&sharkfinHost, "sharkfin-host", "", "Sharkfin daemon WebSocket URL")
 	cmd.Flags().StringVar(&username, "username", "", "Username for chat")
-	cmd.MarkFlagRequired("username")
 
 	return cmd
 }
 
 func runChat(cmd *cobra.Command, args []string) error {
-	// Plan 2: connect to sharkfin here
-	// client := sharkfin.New(sharkfinHost)
-	// client.Connect()
-	// client.Identify(username)
+	host := sharkfinHost
+	if host == "" {
+		host = viper.GetString("sharkfin-host")
+	}
 
-	model := chatui.NewModel(username)
+	user := username
+	if user == "" {
+		user = viper.GetString("username")
+	}
+	if user == "" {
+		return fmt.Errorf("username is required (--username flag or WORKFORT_USERNAME env)")
+	}
+
+	// Connect to sharkfin
+	client := sharkfin.New(host)
+	_, err := client.Connect()
+	if err != nil {
+		return fmt.Errorf("connect to sharkfin: %w", err)
+	}
+	defer client.Close()
+
+	// Identify (auto-registers on first use)
+	if err := client.Identify(user); err != nil {
+		return fmt.Errorf("identify: %w", err)
+	}
+
+	model := chatui.NewModel(client, user)
 	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
-	// Plan 2: launch goroutines
-	// go client.ReadPump(p)
-	// go client.WritePump()
-	// defer client.Close()
+	go client.ReadPump(p)
+	go client.WritePump()
 
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("chat exited with error: %w", err)

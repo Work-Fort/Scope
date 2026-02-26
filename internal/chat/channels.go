@@ -6,11 +6,12 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
 type ChannelList struct {
-	channels []ChannelInfo
+	channels []sharkfin.Channel
 	cursor   int
 	width    int
 	height   int
@@ -19,12 +20,6 @@ type ChannelList struct {
 
 func NewChannelList() ChannelList {
 	return ChannelList{
-		channels: []ChannelInfo{
-			{Name: "general", Public: true},
-			{Name: "engineering", Public: true},
-			{Name: "ops", Public: true},
-			{Name: "random", Public: true},
-		},
 		unread: make(map[string]int),
 	}
 }
@@ -53,7 +48,7 @@ func (cl *ChannelList) Selected() string {
 	return cl.channels[cl.cursor].Name
 }
 
-func (cl *ChannelList) SetChannels(channels []ChannelInfo) {
+func (cl *ChannelList) SetChannels(channels []sharkfin.Channel) {
 	cl.channels = channels
 	if cl.cursor >= len(channels) {
 		cl.cursor = max(0, len(channels)-1)
