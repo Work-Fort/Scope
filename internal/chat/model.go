@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"time"
+
 	"github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -29,6 +31,8 @@ type ChatModel struct {
 	activePane      Pane
 	selectedChannel string
 	username        string
+
+	lastChannelScroll time.Time
 }
 
 // NewModel creates a ChatModel with placeholder data.
@@ -67,6 +71,9 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		return m.handleKey(msg)
+
+	case tea.MouseMsg:
+		return m.handleMouse(msg)
 	}
 
 	return m, nil
@@ -130,7 +137,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.messages.AppendMessage(m.selectedChannel, MessageInfo{
 				From:   m.username,
 				Body:   m.input.Value(),
-				SentAt: "now",
+				SentAt: time.Now(),
 			})
 			m.input.Reset()
 			return m, nil
@@ -174,6 +181,76 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	m.modal.UpdateTextInput(msg)
+	return m, nil
+}
+
+func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	// Ignore mouse when modal is open
+	if m.modal != nil {
+		return m, nil
+	}
+
+	layout := ui.CalculateChatLayout(m.width, m.height)
+
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		if msg.X < layout.SidebarW {
+			if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
+				return m, nil
+			}
+			m.lastChannelScroll = time.Now()
+			m.channels.MoveUp()
+			m.switchChannel()
+		} else {
+			m.messages.ScrollUp(3)
+		}
+		return m, nil
+
+	case tea.MouseButtonWheelDown:
+		if msg.X < layout.SidebarW {
+			if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
+				return m, nil
+			}
+			m.lastChannelScroll = time.Now()
+			m.channels.MoveDown()
+			m.switchChannel()
+		} else {
+			m.messages.ScrollDown(3)
+		}
+		return m, nil
+
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionPress {
+			return m, nil
+		}
+
+		if msg.X < layout.SidebarW {
+			// Click in sidebar: select channel
+			// Account for border (1) + title line (1)
+			row := msg.Y - 1 - 1
+			if row >= 0 {
+				m.channels.SelectIndex(row)
+				m.switchChannel()
+			}
+			return m, nil
+		}
+
+		// Click in right pane — check if input area
+		inputTop := layout.ContentH - ui.InputHeight
+		if msg.Y >= inputTop && msg.Y < layout.ContentH {
+			m.activePane = PaneInput
+			m.input.Focus()
+			return m, nil
+		}
+
+		// Click in messages area — focus input (natural chat behavior)
+		if msg.Y < inputTop {
+			m.activePane = PaneInput
+			m.input.Focus()
+			return m, nil
+		}
+	}
+
 	return m, nil
 }
 

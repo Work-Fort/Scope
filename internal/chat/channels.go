@@ -68,6 +68,12 @@ func (cl *ChannelList) ClearUnread(channel string) {
 	delete(cl.unread, channel)
 }
 
+func (cl *ChannelList) SelectIndex(i int) {
+	if i >= 0 && i < len(cl.channels) {
+		cl.cursor = i
+	}
+}
+
 func (cl ChannelList) View() string {
 	if len(cl.channels) == 0 {
 		return ui.CurrentTheme.TextDimStyle().Render("  No channels")
@@ -81,7 +87,7 @@ func (cl ChannelList) View() string {
 		Foreground(ui.CurrentTheme.Text)
 
 	unreadStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Accent).
+		Foreground(ui.CurrentTheme.Text).
 		Bold(true)
 
 	// Available inner width (pane width minus border chars minus padding)
@@ -90,13 +96,15 @@ func (cl ChannelList) View() string {
 		innerW = 1
 	}
 
+	unreadDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent).Render("● ")
+
 	var lines []string
 	for i, ch := range cl.channels {
 		prefix := "  "
 		name := fmt.Sprintf("# %s", ch.Name)
 
-		if cl.unread[ch.Name] {
-			prefix = ui.CurrentTheme.AccentStyle().Render("* ")
+		if cl.unread[ch.Name] && i != cl.cursor {
+			prefix = unreadDot
 		}
 
 		var line string

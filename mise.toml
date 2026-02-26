@@ -15,6 +15,33 @@ VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
 go build -ldflags "-X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
 """
 
+[tasks."build:release"]
+description = "Build a static release binary"
+sources = ["**/*.go", "go.mod", "go.sum"]
+outputs = ["{{env.BUILD_DIR}}/{{env.BINARY_NAME}}"]
+run = """
+mkdir -p ${BUILD_DIR}
+VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
+"""
+
+[tasks."install:local"]
+description = "Install release binary to ~/.local/bin"
+depends = ["build:release"]
+run = """
+INSTALL_DIR="$HOME/.local/bin"
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo "Error: $INSTALL_DIR does not exist"
+    exit 1
+fi
+if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+    echo "Error: $INSTALL_DIR is not on PATH"
+    exit 1
+fi
+cp ${BUILD_DIR}/${BINARY_NAME} "$INSTALL_DIR/${BINARY_NAME}"
+echo "Installed ${BINARY_NAME} to $INSTALL_DIR"
+"""
+
 [tasks.test]
 description = "Run tests with race detection and coverage"
 run = """

@@ -1,5 +1,7 @@
 package chat
 
+import "time"
+
 // ChannelInfo represents a chat channel.
 type ChannelInfo struct {
 	Name   string
@@ -11,7 +13,7 @@ type MessageInfo struct {
 	ID     int
 	From   string
 	Body   string
-	SentAt string
+	SentAt time.Time
 }
 
 // Inbound messages (from sharkfin in Plan 2, mocked for now)
@@ -36,7 +38,7 @@ type MessageNewMsg struct {
 	Channel string
 	From    string
 	Body    string
-	SentAt  string
+	SentAt  time.Time
 }
 
 type PresenceMsg struct {

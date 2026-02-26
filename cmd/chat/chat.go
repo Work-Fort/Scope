@@ -36,7 +36,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 	// client.Identify(username)
 
 	model := chatui.NewModel(username)
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
 	// Plan 2: launch goroutines
 	// go client.ReadPump(p)
