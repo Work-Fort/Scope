@@ -12,7 +12,6 @@ const (
 
 	SidebarRatio = 0.25
 	MinSidebarW  = 20
-	MaxSidebarW  = 40
 
 	HeaderHeight = 3
 	InputHeight  = 3
@@ -34,12 +33,22 @@ type ChatLayout struct {
 
 // CalculateChatLayout computes panel dimensions from terminal size.
 func CalculateChatLayout(termW, termH int) ChatLayout {
-	sidebarW := int(float64(termW) * SidebarRatio)
+	return CalculateChatLayoutWithSidebar(termW, termH, 0)
+}
+
+// CalculateChatLayoutWithSidebar computes panel dimensions with an optional
+// sidebar width override. Pass 0 to use the default ratio-based calculation.
+func CalculateChatLayoutWithSidebar(termW, termH, sidebarOverride int) ChatLayout {
+	sidebarW := sidebarOverride
+	if sidebarW <= 0 {
+		sidebarW = int(float64(termW) * SidebarRatio)
+	}
 	if sidebarW < MinSidebarW {
 		sidebarW = MinSidebarW
 	}
-	if sidebarW > MaxSidebarW {
-		sidebarW = MaxSidebarW
+	maxW := termW / 2
+	if sidebarW > maxW {
+		sidebarW = maxW
 	}
 
 	// Account for borders and gap between panes

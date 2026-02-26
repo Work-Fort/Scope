@@ -39,6 +39,9 @@ type ChatModel struct {
 
 	lastChannelScroll time.Time
 	loadingHistory    bool
+
+	customSidebarW int  // user-dragged sidebar width (0 = auto)
+	dragging       bool // true while dragging the divider
 }
 
 // NewModel creates a ChatModel wired to a sharkfin client.
@@ -292,7 +295,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	layout := ui.CalculateChatLayout(m.width, m.height)
+	layout := m.layout()
 
 	switch msg.Button {
 	case tea.MouseButtonWheelUp:
@@ -323,47 +326,66 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.MouseButtonLeft:
-		if msg.Action != tea.MouseActionPress {
-			return m, nil
-		}
-
-		contentTop := ui.HeaderHeight
-		contentBottom := contentTop + layout.ContentH
-
-		// Help bar spans full width — check Y first
-		if msg.Y >= contentBottom {
-			return m.handleHelpBarClick(msg.X)
-		}
-
-		// Click in header — ignore
-		if msg.Y < contentTop {
-			return m, nil
-		}
-
-		if msg.X < layout.SidebarW {
-			// Click in sidebar: select channel
-			// Account for header + border (1) + title line (1)
-			row := msg.Y - contentTop - 1 - 1
-			if row >= 0 {
-				m.channels.SelectIndex(row)
-				m.switchChannel()
+		switch msg.Action {
+		case tea.MouseActionPress:
+			// Check if pressing on the divider gap (±1 char hit zone)
+			gap := layout.SidebarW
+			if msg.X >= gap-1 && msg.X <= gap+1 {
+				m.dragging = true
+				return m, nil
 			}
-			return m, nil
-		}
 
-		// Click in right pane — check if input area
-		inputTop := contentBottom - ui.InputHeight
-		if msg.Y >= inputTop && msg.Y < contentBottom {
-			m.activePane = PaneInput
-			m.input.Focus()
-			return m, nil
-		}
+			contentTop := ui.HeaderHeight
+			contentBottom := contentTop + layout.ContentH
 
-		// Click in messages area — focus input (natural chat behavior)
-		if msg.Y < inputTop {
-			m.activePane = PaneInput
-			m.input.Focus()
-			return m, nil
+			// Help bar spans full width — check Y first
+			if msg.Y >= contentBottom {
+				return m.handleHelpBarClick(msg.X)
+			}
+
+			// Click in header — ignore
+			if msg.Y < contentTop {
+				return m, nil
+			}
+
+			if msg.X < layout.SidebarW {
+				// Click in sidebar: select channel
+				// Account for header + border (1) + title line (1)
+				row := msg.Y - contentTop - 1 - 1
+				if row >= 0 {
+					m.channels.SelectIndex(row)
+					m.switchChannel()
+				}
+				return m, nil
+			}
+
+			// Click in right pane — check if input area
+			inputTop := contentBottom - ui.InputHeight
+			if msg.Y >= inputTop && msg.Y < contentBottom {
+				m.activePane = PaneInput
+				m.input.Focus()
+				return m, nil
+			}
+
+			// Click in messages area — focus input (natural chat behavior)
+			if msg.Y < inputTop {
+				m.activePane = PaneInput
+				m.input.Focus()
+				return m, nil
+			}
+
+		case tea.MouseActionMotion:
+			if m.dragging {
+				m.customSidebarW = msg.X
+				m.updateLayout()
+				return m, nil
+			}
+
+		case tea.MouseActionRelease:
+			if m.dragging {
+				m.dragging = false
+				return m, nil
+			}
 		}
 	}
 
@@ -448,8 +470,12 @@ func (m *ChatModel) maybeLoadHistory() {
 	}
 }
 
+func (m *ChatModel) layout() ui.ChatLayout {
+	return ui.CalculateChatLayoutWithSidebar(m.width, m.height, m.customSidebarW)
+}
+
 func (m *ChatModel) updateLayout() {
-	layout := ui.CalculateChatLayout(m.width, m.height)
+	layout := m.layout()
 
 	// Inner heights subtract 2 for border, then PaneTitleH for the title+gap rendered inside
 	sidebarInnerH := layout.ContentH - 2 - ui.PaneTitleH
@@ -470,7 +496,7 @@ func (m ChatModel) View() string {
 		return ""
 	}
 
-	layout := ui.CalculateChatLayout(m.width, m.height)
+	layout := m.layout()
 
 	// Sidebar
 	sidebarTitle := ui.RenderPaneTitle(" Channels ", m.activePane == PaneChannels)
