@@ -241,15 +241,23 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		contentTop := ui.HeaderHeight
+		contentBottom := contentTop + layout.ContentH
+
 		// Help bar spans full width — check Y first
-		if msg.Y >= layout.ContentH {
+		if msg.Y >= contentBottom {
 			return m.handleHelpBarClick(msg.X)
+		}
+
+		// Click in header — ignore
+		if msg.Y < contentTop {
+			return m, nil
 		}
 
 		if msg.X < layout.SidebarW {
 			// Click in sidebar: select channel
-			// Account for border (1) + title line (1)
-			row := msg.Y - 1 - 1
+			// Account for header + border (1) + title line (1)
+			row := msg.Y - contentTop - 1 - 1
 			if row >= 0 {
 				m.channels.SelectIndex(row)
 				m.switchChannel()
@@ -258,8 +266,8 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 
 		// Click in right pane — check if input area
-		inputTop := layout.ContentH - ui.InputHeight
-		if msg.Y >= inputTop && msg.Y < layout.ContentH {
+		inputTop := contentBottom - ui.InputHeight
+		if msg.Y >= inputTop && msg.Y < contentBottom {
 			m.activePane = PaneInput
 			m.input.Focus()
 			return m, nil
@@ -386,10 +394,20 @@ func (m ChatModel) View() string {
 	// Compose main layout
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, rightPane)
 
+	// Header bar
+	headerStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		Width(m.width - 2).
+		Align(lipgloss.Center)
+	header := headerStyle.Render(
+		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
+	)
+
 	// Help bar
 	helpBar := ChatKeyBindings().Render()
 
-	fullUI := lipgloss.JoinVertical(lipgloss.Left, mainContent, helpBar)
+	fullUI := lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)
 
 	// Modal overlay
 	if m.modal != nil {

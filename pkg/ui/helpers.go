@@ -14,9 +14,10 @@ const (
 	MinSidebarW  = 20
 	MaxSidebarW  = 40
 
-	InputHeight = 3
-	HelpHeight  = 3
-	PaneTitleH  = 2 // title line + 1 blank line
+	HeaderHeight = 3
+	InputHeight  = 3
+	HelpHeight   = 3
+	PaneTitleH   = 2 // title line + 1 blank line
 )
 
 // ChatLayout holds calculated dimensions for the chat UI.
@@ -43,8 +44,8 @@ func CalculateChatLayout(termW, termH int) ChatLayout {
 	// Account for borders: 2 chars per pane (left+right)
 	messageW := termW - sidebarW
 
-	// Vertical: content + help bar
-	contentH := termH - HelpHeight
+	// Vertical: header + content + help bar
+	contentH := termH - HeaderHeight - HelpHeight
 
 	return ChatLayout{
 		SidebarW: sidebarW,
