@@ -187,8 +187,23 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	// Ignore mouse when modal is open
+	// Modal click handling
 	if m.modal != nil {
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			action := m.modal.HitTest(msg.X, msg.Y)
+			switch action {
+			case ModalActionSubmit:
+				if m.modal.Value() != "" {
+					m.modal = nil
+				}
+			case ModalActionToggle:
+				if m.modal.Type == ModalChannelCreate {
+					m.modal.TogglePublic()
+				}
+			case ModalActionCancel:
+				m.modal = nil
+			}
+		}
 		return m, nil
 	}
 
@@ -226,6 +241,11 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		// Help bar spans full width — check Y first
+		if msg.Y >= layout.ContentH {
+			return m.handleHelpBarClick(msg.X)
+		}
+
 		if msg.X < layout.SidebarW {
 			// Click in sidebar: select channel
 			// Account for border (1) + title line (1)
@@ -253,6 +273,53 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	return m, nil
+}
+
+func (m ChatModel) handleHelpBarClick(x int) (tea.Model, tea.Cmd) {
+	bindings := ChatKeyBindings()
+	regions := bindings.ButtonRegions()
+
+	for _, r := range regions {
+		if x >= r.XMin && x < r.XMax {
+			kb := bindings.Bindings[r.Index]
+			if len(kb.Keys) > 0 {
+				return m.dispatchAction(kb.Keys[0])
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
+	switch key {
+	case "ctrl+q":
+		return m, tea.Quit
+	case "ctrl+j":
+		m.channels.MoveDown()
+		m.switchChannel()
+	case "ctrl+k":
+		m.channels.MoveUp()
+		m.switchChannel()
+	case "ctrl+l":
+		m.activePane = PaneInput
+		m.input.Focus()
+	case "ctrl+o":
+		m.activePane = PaneChannels
+		m.input.Blur()
+	case "ctrl+n":
+		modal := NewModal(ModalChannelCreate)
+		m.modal = &modal
+		m.input.Blur()
+	case "ctrl+u":
+		modal := NewModal(ModalUserInvite)
+		m.modal = &modal
+		m.input.Blur()
+	case "ctrl+up":
+		m.messages.ScrollUp(3)
+	case "ctrl+down":
+		m.messages.ScrollDown(3)
+	}
 	return m, nil
 }
 
@@ -320,10 +387,7 @@ func (m ChatModel) View() string {
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, rightPane)
 
 	// Help bar
-	helpBar := lipgloss.NewStyle().
-		Width(m.width).
-		Foreground(ui.CurrentTheme.TextDim).
-		Render(" " + ChatKeyBindings().Render())
+	helpBar := ChatKeyBindings().Render()
 
 	fullUI := lipgloss.JoinVertical(lipgloss.Left, mainContent, helpBar)
 

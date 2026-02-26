@@ -16,12 +16,33 @@ const (
 	ModalUserInvite
 )
 
+// ModalAction identifies a clickable modal button action.
+type ModalAction int
+
+const (
+	ModalActionNone ModalAction = iota
+	ModalActionSubmit
+	ModalActionToggle
+	ModalActionCancel
+)
+
+// modalButton defines a button in the modal help bar.
+type modalButton struct {
+	key    string
+	label  string
+	action ModalAction
+}
+
 // Modal holds the state for overlay modals.
 type Modal struct {
 	Type      ModalType
 	textinput textinput.Model
 	public    bool // for channel create
 	err       string
+	boxX      int // screen X of the rendered modal box (set during View)
+	boxY      int // screen Y of the rendered modal box
+	boxW      int
+	boxH      int
 }
 
 func NewModal(modalType ModalType) Modal {
@@ -69,33 +90,102 @@ func (m *Modal) UpdateTextInput(msg interface{}) {
 	m.textinput, _ = m.textinput.Update(msg)
 }
 
-func (m Modal) View(totalW, totalH int) string {
+func (m Modal) buttons() []modalButton {
+	switch m.Type {
+	case ModalChannelCreate:
+		visLabel := "public"
+		if !m.public {
+			visLabel = "private"
+		}
+		return []modalButton{
+			{key: "Enter", label: "create", action: ModalActionSubmit},
+			{key: "Tab", label: visLabel, action: ModalActionToggle},
+			{key: "Esc", label: "cancel", action: ModalActionCancel},
+		}
+	case ModalUserInvite:
+		return []modalButton{
+			{key: "Enter", label: "invite", action: ModalActionSubmit},
+			{key: "Esc", label: "cancel", action: ModalActionCancel},
+		}
+	}
+	return nil
+}
+
+func renderModalButtons(buttons []modalButton) string {
+	keyStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Primary).
+		Bold(true)
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.TextDim)
+
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		PaddingLeft(1).
+		PaddingRight(1)
+
+	var rendered []string
+	for _, b := range buttons {
+		label := keyStyle.Render(b.key) + " " + descStyle.Render(b.label)
+		rendered = append(rendered, btnStyle.Render(label))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
+}
+
+// HitTest checks if screen coordinates (x, y) land on a modal button.
+func (m *Modal) HitTest(screenX, screenY int) ModalAction {
+	// Modal-relative coordinates, accounting for border (1) + padding (2)
+	relX := screenX - m.boxX - 3
+	// Button row is at the bottom of the box content
+	// boxY + boxH - 1 = bottom border, -3 = button row (border top, content, border bottom)
+	btnRowTop := m.boxY + m.boxH - 4
+	if screenY < btnRowTop || screenY > btnRowTop+2 {
+		return ModalActionNone
+	}
+
+	buttons := m.buttons()
+	keyStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Primary).
+		Bold(true)
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.TextDim)
+
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		PaddingLeft(1).
+		PaddingRight(1)
+
+	x := 0
+	for _, b := range buttons {
+		label := keyStyle.Render(b.key) + " " + descStyle.Render(b.label)
+		w := lipgloss.Width(btnStyle.Render(label))
+		if relX >= x && relX < x+w {
+			return b.action
+		}
+		x += w
+	}
+	return ModalActionNone
+}
+
+func (m *Modal) View(totalW, totalH int) string {
 	modalW := 54
 
 	titleStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Primary).
 		Bold(true)
 
-	helpStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.TextDim)
-
 	errStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#E05252"))
 
 	var title string
-	var help string
-
 	switch m.Type {
 	case ModalChannelCreate:
 		title = "Create Channel"
-		visStr := "public"
-		if !m.public {
-			visStr = "private"
-		}
-		help = "Enter: create  Tab: toggle " + visStr + "  Esc: cancel"
 	case ModalUserInvite:
 		title = "Invite User"
-		help = "Enter: invite  Esc: cancel"
 	}
 
 	var content string
@@ -115,7 +205,7 @@ func (m Modal) View(totalW, totalH int) string {
 		content += "\n" + errStyle.Render("  "+m.err) + "\n"
 	}
 
-	content += "\n" + helpStyle.Render("  "+help)
+	content += "\n" + renderModalButtons(m.buttons())
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.ThickBorder()).
@@ -123,6 +213,12 @@ func (m Modal) View(totalW, totalH int) string {
 		Padding(1, 2).
 		Width(modalW).
 		Render(content)
+
+	// Store box position for click hit testing
+	m.boxW = lipgloss.Width(box)
+	m.boxH = lipgloss.Height(box)
+	m.boxX = (totalW - m.boxW) / 2
+	m.boxY = (totalH - m.boxH) / 2
 
 	return lipgloss.Place(totalW, totalH, lipgloss.Center, lipgloss.Center, box)
 }

@@ -15,7 +15,7 @@ const (
 	MaxSidebarW  = 40
 
 	InputHeight = 3
-	HelpHeight  = 1
+	HelpHeight  = 3
 	PaneTitleH  = 2 // title line + 1 blank line
 )
 

@@ -1,10 +1,6 @@
 package ui
 
-import (
-	"strings"
-
-	"github.com/charmbracelet/lipgloss"
-)
+import "github.com/charmbracelet/lipgloss"
 
 // KeyBinding represents a single key binding with its display info.
 type KeyBinding struct {
@@ -30,7 +26,7 @@ func (kbs KeyBindingSet) Contains(key string) *KeyBinding {
 	return nil
 }
 
-// Render formats the key binding set as a help bar.
+// Render formats the key binding set as bordered buttons.
 func (kbs KeyBindingSet) Render() string {
 	keyStyle := lipgloss.NewStyle().
 		Foreground(CurrentTheme.Primary).
@@ -39,14 +35,56 @@ func (kbs KeyBindingSet) Render() string {
 	descStyle := lipgloss.NewStyle().
 		Foreground(CurrentTheme.TextDim)
 
-	sepStyle := lipgloss.NewStyle().
-		Foreground(CurrentTheme.Muted)
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(CurrentTheme.Muted).
+		PaddingLeft(1).
+		PaddingRight(1)
 
-	var parts []string
+	var buttons []string
 	for _, kb := range kbs.Bindings {
-		part := keyStyle.Render(kb.Key) + " " + descStyle.Render(kb.Description)
-		parts = append(parts, part)
+		label := keyStyle.Render(kb.Key) + " " + descStyle.Render(kb.Description)
+		buttons = append(buttons, btnStyle.Render(label))
 	}
 
-	return strings.Join(parts, sepStyle.Render("  "))
+	return lipgloss.JoinHorizontal(lipgloss.Top, buttons...)
+}
+
+// ButtonRegions returns the X start/end positions for each button in the rendered help bar.
+// Used for mouse click hit testing.
+func (kbs KeyBindingSet) ButtonRegions() []ButtonRegion {
+	keyStyle := lipgloss.NewStyle().
+		Foreground(CurrentTheme.Primary).
+		Bold(true)
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(CurrentTheme.TextDim)
+
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(CurrentTheme.Muted).
+		PaddingLeft(1).
+		PaddingRight(1)
+
+	var regions []ButtonRegion
+	x := 0
+	for i, kb := range kbs.Bindings {
+		label := keyStyle.Render(kb.Key) + " " + descStyle.Render(kb.Description)
+		rendered := btnStyle.Render(label)
+		w := lipgloss.Width(rendered)
+		regions = append(regions, ButtonRegion{
+			Index: i,
+			XMin:  x,
+			XMax:  x + w,
+		})
+		x += w
+	}
+	return regions
+}
+
+// ButtonRegion describes the horizontal hit area of a rendered button.
+type ButtonRegion struct {
+	Index int
+	XMin  int
+	XMax  int
 }
