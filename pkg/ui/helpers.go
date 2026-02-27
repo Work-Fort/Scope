@@ -2,8 +2,9 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 const (
@@ -86,7 +87,7 @@ func CalculateChatLayoutWithSidebar(termW, termH, sidebarOverride int) ChatLayou
 
 // CreatePaneStyle returns a bordered style for active or inactive panes.
 func CreatePaneStyle(isActive bool, width, height int) lipgloss.Style {
-	var borderColor lipgloss.Color
+	var borderColor color.Color
 	var border lipgloss.Border
 
 	if isActive {
@@ -100,8 +101,8 @@ func CreatePaneStyle(isActive bool, width, height int) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Border(border).
 		BorderForeground(borderColor).
-		Width(width - 2).  // subtract border chars
-		Height(height - 2) // subtract border chars
+		Width(width).  // v2: Width/Height include border
+		Height(height)
 }
 
 // RenderSizeError renders a centered error box when the terminal is too small.

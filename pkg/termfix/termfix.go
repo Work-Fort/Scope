@@ -1,10 +1,14 @@
-// Package termfix pre-sets lipgloss background detection to avoid
-// a 5-second OSC query timeout during Bubble Tea initialization.
+// Package termfix pre-configures lipgloss v1 (used by glamour) so it does not
+// attempt to query the terminal when bubbletea v2 already owns stdin/stdout.
 // Import this package (blank import) BEFORE bubbletea in the import list.
 package termfix
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	lipglossv1 "github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
+)
 
 func init() {
-	lipgloss.SetHasDarkBackground(true)
+	lipglossv1.SetColorProfile(termenv.TrueColor)
+	lipglossv1.SetHasDarkBackground(true)
 }

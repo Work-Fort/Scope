@@ -6,7 +6,7 @@ import (
 	"testing"
 	"unicode"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	rw "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 )
@@ -188,7 +188,7 @@ func TestInputBarHeightDuringTyping(t *testing.T) {
 
 			for i, r := range tt.text {
 				// Simulate typing via UpdateTextInput
-				msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
+				msg := tea.KeyPressMsg{Code: r, Text: string(r)}
 				ib.UpdateTextInput(msg)
 
 				// Check: the textarea's Value should have i+1 characters
@@ -231,7 +231,7 @@ func TestInputBarWrappingWidth(t *testing.T) {
 	// Type enough text to trigger wrapping
 	text := "the quick brown fox jumps over the lazy dog and then more text"
 	for _, r := range text {
-		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
+		msg := tea.KeyPressMsg{Code: r, Text: string(r)}
 		ib.UpdateTextInput(msg)
 	}
 

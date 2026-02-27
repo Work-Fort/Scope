@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/log"
 
 	"github.com/spf13/viper"
@@ -114,7 +114,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
 	case tea.MouseMsg:
@@ -293,7 +293,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m ChatModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
 	// Modal takes priority if open
@@ -305,7 +305,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+q":
 		return m, tea.Quit
 
-	case "ctrl+,":
+	case "ctrl+,", "ctrl+.":
 		modal := NewSettingsModal(m.notifSound)
 		m.modal = &modal
 		m.input.Blur()
@@ -459,7 +459,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m ChatModel) handleModalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
 	switch key {
@@ -468,12 +468,14 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.input.Focus()
 		return m, nil
 
-	case "ctrl+s", "ctrl+d", "ctrl+n", "ctrl+u":
+	case "ctrl+s", "ctrl+d", "ctrl+n", "ctrl+u", "ctrl+,", "ctrl+.":
 		toggleType := map[string]ModalType{
 			"ctrl+s": ModalShortcuts,
 			"ctrl+d": ModalDMOpen,
 			"ctrl+n": ModalChannelCreate,
 			"ctrl+u": ModalUserInvite,
+			"ctrl+,": ModalSettings,
+			"ctrl+.": ModalSettings,
 		}[key]
 		if m.modal.Type == toggleType {
 			m.modal = nil
@@ -560,19 +562,20 @@ func (m *ChatModel) submitModal() {
 }
 
 func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	m.lastMouseY = msg.Y
+	mouse := msg.Mouse()
+	m.lastMouseY = mouse.Y
 	m.lastMouseTime = time.Now()
 
 	// Modal click handling
 	if m.modal != nil {
-		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+		if _, ok := msg.(tea.MouseClickMsg); ok && mouse.Button == tea.MouseLeft {
 			// Sound selector click
-			if idx := m.modal.SoundHitTest(msg.X, msg.Y); idx >= 0 {
+			if idx := m.modal.SoundHitTest(mouse.X, mouse.Y); idx >= 0 {
 				m.modal.soundCursor = idx
 				audio.Play(m.modal.SelectedSound())
 				return m, nil
 			}
-			action := m.modal.HitTest(msg.X, msg.Y)
+			action := m.modal.HitTest(mouse.X, mouse.Y)
 			switch action {
 			case ModalActionSubmit:
 				if m.modal.Type == ModalSettings || m.modal.Value() != "" {
@@ -594,159 +597,160 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 
 	layout := m.layout()
 
-	switch msg.Button {
-	case tea.MouseButtonWheelUp:
-		if msg.X < layout.SidebarW {
-			if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
-				return m, nil
-			}
-			m.lastChannelScroll = time.Now()
-			switch m.sidebarTab {
-			case TabChannels:
-				m.channels.MoveUp()
-			case TabDMs:
-				m.dmList.MoveUp()
-			case TabUsers:
-				m.userList.MoveUp()
-			}
-			m.switchChannel()
-		} else {
-			if m.messages.Height() <= 24 {
-				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
+	switch msg.(type) {
+	case tea.MouseWheelMsg:
+		if mouse.Button == tea.MouseWheelUp {
+			if mouse.X < layout.SidebarW {
+				if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
 					return m, nil
 				}
-				m.lastMsgScroll = time.Now()
+				m.lastChannelScroll = time.Now()
+				switch m.sidebarTab {
+				case TabChannels:
+					m.channels.MoveUp()
+				case TabDMs:
+					m.dmList.MoveUp()
+				case TabUsers:
+					m.userList.MoveUp()
+				}
+				m.switchChannel()
+			} else {
+				if m.messages.Height() <= 24 {
+					if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
+						return m, nil
+					}
+					m.lastMsgScroll = time.Now()
+				}
+				m.messages.ScrollUp(3)
+				m.maybeLoadHistory()
 			}
-			m.messages.ScrollUp(3)
-			m.maybeLoadHistory()
+		} else if mouse.Button == tea.MouseWheelDown {
+			if mouse.X < layout.SidebarW {
+				if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
+					return m, nil
+				}
+				m.lastChannelScroll = time.Now()
+				switch m.sidebarTab {
+				case TabChannels:
+					m.channels.MoveDown()
+				case TabDMs:
+					m.dmList.MoveDown()
+				case TabUsers:
+					m.userList.MoveDown()
+				}
+				m.switchChannel()
+			} else {
+				if m.messages.Height() <= 24 {
+					if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
+						return m, nil
+					}
+					m.lastMsgScroll = time.Now()
+				}
+				m.messages.ScrollDown(3)
+			}
 		}
 		return m, nil
 
-	case tea.MouseButtonWheelDown:
-		if msg.X < layout.SidebarW {
-			if time.Since(m.lastChannelScroll) < 80*time.Millisecond {
-				return m, nil
-			}
-			m.lastChannelScroll = time.Now()
-			switch m.sidebarTab {
-			case TabChannels:
-				m.channels.MoveDown()
-			case TabDMs:
-				m.dmList.MoveDown()
-			case TabUsers:
-				m.userList.MoveDown()
-			}
-			m.switchChannel()
-		} else {
-			if m.messages.Height() <= 24 {
-				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
-					return m, nil
-				}
-				m.lastMsgScroll = time.Now()
-			}
-			m.messages.ScrollDown(3)
+	case tea.MouseClickMsg:
+		if mouse.Button != tea.MouseLeft {
+			return m, nil
 		}
-		return m, nil
 
-	case tea.MouseButtonLeft:
-		switch msg.Action {
-		case tea.MouseActionPress:
-			// Check if pressing on the divider gap (±1 char hit zone)
-			if !layout.Skinny && !m.sidebarHidden {
-				gap := layout.SidebarW
-				if msg.X >= gap-1 && msg.X <= gap+1 {
-					m.dragging = true
-					return m, nil
+		// Check if pressing on the divider gap (±1 char hit zone)
+		if !layout.Skinny && !m.sidebarHidden {
+			gap := layout.SidebarW
+			if mouse.X >= gap-1 && mouse.X <= gap+1 {
+				m.dragging = true
+				return m, nil
+			}
+		}
+
+		contentTop := ui.HeaderHeight
+		contentBottom := contentTop + layout.ContentH
+
+		// Help bar spans full width — check Y first
+		if mouse.Y >= contentBottom {
+			return m.handleHelpBarClick(mouse.X)
+		}
+
+		// Click in header — ignore
+		if mouse.Y < contentTop {
+			return m, nil
+		}
+
+		if mouse.X < layout.SidebarW {
+			// Tab bar buttons span 3 rows inside the sidebar border
+			tabBarTop := contentTop + 1 // after sidebar border
+			tabBarBottom := tabBarTop + 2
+			if mouse.Y >= tabBarTop && mouse.Y <= tabBarBottom {
+				// Click on tab bar — split into thirds
+				third := layout.SidebarW / 3
+				if mouse.X < third {
+					m.sidebarTab = TabChannels
+				} else if mouse.X < third*2 {
+					m.sidebarTab = TabDMs
+				} else {
+					m.sidebarTab = TabUsers
 				}
-			}
-
-			contentTop := ui.HeaderHeight
-			contentBottom := contentTop + layout.ContentH
-
-			// Help bar spans full width — check Y first
-			if msg.Y >= contentBottom {
-				return m.handleHelpBarClick(msg.X)
-			}
-
-			// Click in header — ignore
-			if msg.Y < contentTop {
+				m.switchChannel()
 				return m, nil
 			}
 
-			if msg.X < layout.SidebarW {
-				// Tab bar buttons span 3 rows inside the sidebar border
-				tabBarTop := contentTop + 1 // after sidebar border
-				tabBarBottom := tabBarTop + 2
-				if msg.Y >= tabBarTop && msg.Y <= tabBarBottom {
-					// Click on tab bar — split into thirds
-					third := layout.SidebarW / 3
-					if msg.X < third {
-						m.sidebarTab = TabChannels
-					} else if msg.X < third*2 {
-						m.sidebarTab = TabDMs
-					} else {
-						m.sidebarTab = TabUsers
-					}
-					m.switchChannel()
-					return m, nil
+			// Click in sidebar list: select item from active tab
+			// Account for border (1) + tab bar (3)
+			row := mouse.Y - contentTop - 1 - 3
+			if row >= 0 {
+				switch m.sidebarTab {
+				case TabChannels:
+					m.channels.SelectIndex(row)
+				case TabDMs:
+					m.dmList.SelectIndex(row)
+				case TabUsers:
+					m.userList.SelectIndex(row)
 				}
-
-				// Click in sidebar list: select item from active tab
-				// Account for border (1) + tab bar (3)
-				row := msg.Y - contentTop - 1 - 3
-				if row >= 0 {
-					switch m.sidebarTab {
-					case TabChannels:
-						m.channels.SelectIndex(row)
-					case TabDMs:
-						m.dmList.SelectIndex(row)
-					case TabUsers:
-						m.userList.SelectIndex(row)
-					}
-					m.switchChannel()
-				}
-				return m, nil
-			}
-
-			// Check for action button clicks (bordered mic/send beside input)
-			rightPaneX := layout.SidebarW + ui.PaneGap
-			if layout.Skinny || m.sidebarHidden {
-				rightPaneX = 0
-			}
-			btnAreaX := rightPaneX + layout.MessageW - inputBtnW
-			inputBottom := contentTop + layout.ContentH
-			// Buttons are 3 rows tall (border+content+border), bottom-aligned
-			btnTop := inputBottom - 3
-			if msg.X >= btnAreaX && msg.Y >= btnTop && msg.Y < inputBottom {
-				// Each bordered button is 7 wide (border+Width(5)+border)
-				// 1 space gap before buttons, so send starts at offset 1+7=8
-				if msg.X >= btnAreaX+8 {
-					m.trySendMessage()
-				}
-				// Mic button (left) — unwired
-				return m, nil
-			}
-
-			// Click in right pane — focus input if writable
-			canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
-			if canWrite {
-				m.activePane = PaneInput
-				m.input.Focus()
+				m.switchChannel()
 			}
 			return m, nil
+		}
 
-		case tea.MouseActionMotion:
-			if m.dragging {
-				m.customSidebarW = msg.X
-				m.updateLayout()
-				return m, nil
+		// Check for action button clicks (bordered mic/send beside input)
+		rightPaneX := layout.SidebarW + ui.PaneGap
+		if layout.Skinny || m.sidebarHidden {
+			rightPaneX = 0
+		}
+		btnAreaX := rightPaneX + layout.MessageW - inputBtnW
+		inputBottom := contentTop + layout.ContentH
+		// Buttons are 3 rows tall (border+content+border), bottom-aligned
+		btnTop := inputBottom - 3
+		if mouse.X >= btnAreaX && mouse.Y >= btnTop && mouse.Y < inputBottom {
+			// Each bordered button is 7 wide (border+Width(5)+border)
+			// 1 space gap before buttons, so send starts at offset 1+7=8
+			if mouse.X >= btnAreaX+8 {
+				m.trySendMessage()
 			}
+			// Mic button (left) — unwired
+			return m, nil
+		}
 
-		case tea.MouseActionRelease:
-			if m.dragging {
-				m.dragging = false
-				return m, nil
-			}
+		// Click in right pane — focus input if writable
+		canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
+		if canWrite {
+			m.activePane = PaneInput
+			m.input.Focus()
+		}
+		return m, nil
+
+	case tea.MouseMotionMsg:
+		if m.dragging {
+			m.customSidebarW = mouse.X
+			m.updateLayout()
+			return m, nil
+		}
+
+	case tea.MouseReleaseMsg:
+		if m.dragging {
+			m.dragging = false
+			return m, nil
 		}
 	}
 
@@ -832,7 +836,7 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		modal := NewModal(ModalUserInvite)
 		m.modal = &modal
 		m.input.Blur()
-	case "ctrl+,":
+	case "ctrl+,", "ctrl+.":
 		modal := NewSettingsModal(m.notifSound)
 		m.modal = &modal
 		m.input.Blur()
@@ -975,13 +979,20 @@ func (m *ChatModel) updateLayout() {
 	m.input.SetWidth(layout.MessageW - 2 - inputBtnW) // minus border minus action buttons
 }
 
-func (m ChatModel) View() string {
+func (m ChatModel) View() tea.View {
+	view := func(s string) tea.View {
+		v := tea.NewView(s)
+		v.AltScreen = true
+		v.MouseMode = tea.MouseModeCellMotion
+		return v
+	}
+
 	if m.tooSmall {
-		return ui.RenderSizeError(ui.MinWidth, ui.MinHeight, m.width, m.height)
+		return view(ui.RenderSizeError(ui.MinWidth, ui.MinHeight, m.width, m.height))
 	}
 
 	if m.width == 0 || m.height == 0 {
-		return ""
+		return view("")
 	}
 
 	layout := m.layout()
@@ -1027,15 +1038,17 @@ func (m ChatModel) View() string {
 	chanHeaderStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(chanHeaderBorderColor).
-		Width(layout.MessageW - 2).
-		Height(ui.ChannelHeaderH - 2)
+		Width(layout.MessageW).
+		Height(ui.ChannelHeaderH)
 	chanHeader := chanHeaderStyle.Render(
 		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render(" "+chanLabel) + chanExtra,
 	)
 
 	// Message pane
-	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.ChannelHeaderH-m.input.Height())
-	msgPane := msgStyle.Render(m.messages.View())
+	msgPaneH := layout.ContentH - ui.ChannelHeaderH - m.input.Height()
+	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, msgPaneH)
+	msgView := m.messages.View()
+	msgPane := msgStyle.Render(msgView)
 
 	// Input bar
 	inputBorder := lipgloss.NormalBorder()
@@ -1047,8 +1060,8 @@ func (m ChatModel) View() string {
 	inputStyle := lipgloss.NewStyle().
 		Border(inputBorder).
 		BorderForeground(inputBorderColor).
-		Width(layout.MessageW - 2 - inputBtnW).
-		Height(m.input.Height() - 2)
+		Width(layout.MessageW - inputBtnW).
+		Height(m.input.Height())
 	inputBox := inputStyle.Render(m.input.View())
 
 	// Action buttons (mic + send) beside input, bordered like help bar
@@ -1061,7 +1074,7 @@ func (m ChatModel) View() string {
 	btnStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(ui.CurrentTheme.Muted).
-		Width(5).
+		Width(7). // v2: total rendered width (5 content + 2 border)
 		Align(lipgloss.Center)
 	micBtn := btnStyle.Foreground(ui.CurrentTheme.TextDim).Render("󰍬")
 	sendBtn := btnStyle.BorderForeground(sendColor).Foreground(sendColor).Render("󰒊")
@@ -1088,7 +1101,7 @@ func (m ChatModel) View() string {
 		headerStyle := lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(ui.CurrentTheme.Muted).
-			Width(m.width - 2).
+			Width(m.width).
 			Align(lipgloss.Center)
 		header := headerStyle.Render(
 			lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
@@ -1099,11 +1112,11 @@ func (m ChatModel) View() string {
 
 	// Modal overlay
 	if m.modal != nil {
-		return m.modal.View(m.width, m.height)
+		return view(m.modal.View(m.width, m.height))
 	}
 
 	// Place constrains output to exact terminal dimensions
-	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI)
+	return view(lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI))
 }
 
 // renderSidebarTabs renders tab buttons matching the help bar button style.
@@ -1129,10 +1142,10 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 
 	// Three buttons filling available width (minus 1-col margins on each side)
 	available := innerW - 2 // 1 left margin + 1 right margin
-	btnContentW := (available - 6) / 3 // 6 = 2 border chars per button x 3
-	remainder := (available - 6) % 3
-	if btnContentW < 4 {
-		btnContentW = 4
+	btnContentW := available / 3 // v2: Width includes border
+	remainder := available % 3
+	if btnContentW < 6 {
+		btnContentW = 6
 	}
 	baseBtnStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
@@ -1164,13 +1177,10 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 // parser failed to consume. These look like "[<64;87;52M" — digits and semicolons
 // bracketed by "[<" and "M"/"m". Also catches multi-rune fragments where the
 // sequence is partially split.
-func isLeakedMouseSeq(msg tea.KeyMsg) bool {
-	// Only KeyRunes can be leaked mouse fragments
-	if msg.Type != tea.KeyRunes {
-		return false
-	}
-	// Bracketed paste wraps content in "[...]" — never a mouse sequence
-	if tea.Key(msg).Paste {
+func isLeakedMouseSeq(msg tea.KeyPressMsg) bool {
+	// Only printable text keys can be leaked mouse fragments
+	text := msg.Key().Text
+	if text == "" {
 		return false
 	}
 	s := msg.String()
@@ -1181,8 +1191,8 @@ func isLeakedMouseSeq(msg tea.KeyMsg) bool {
 	if strings.HasPrefix(s, "[<") {
 		return true
 	}
-	// Multi-char starting with "[" (real bracket typing is single rune)
-	if s[0] == '[' && len(msg.Runes) > 1 {
+	// Multi-char starting with "[" (real bracket typing is single char)
+	if s[0] == '[' && len(text) > 1 {
 		return true
 	}
 	// Fragment starting with "<" containing semicolons

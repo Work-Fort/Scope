@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	_ "github.com/Work-Fort/WorkFort/pkg/termfix" // must be before bubbletea — avoids 5s OSC timeout
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -65,7 +65,7 @@ func runChat(cmd *cobra.Command, args []string) error {
 	}
 
 	model := chatui.NewModel(client, user)
-	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(model)
 
 	// Start pumps before Run() so Init()'s requests can be sent immediately
 	go client.WritePump()

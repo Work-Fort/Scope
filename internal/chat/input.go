@@ -4,9 +4,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textarea"
+	"charm.land/lipgloss/v2"
 	rw "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 
@@ -24,13 +24,14 @@ type InputBar struct {
 func NewInputBar() InputBar {
 	ta := textarea.New()
 	ta.Placeholder = "type a message..."
-	ta.FocusedStyle.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
-	ta.BlurredStyle.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
-	ta.FocusedStyle.Base = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
-	ta.BlurredStyle.Base = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
-	ta.FocusedStyle.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
-	ta.BlurredStyle.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
-	ta.Cursor.Style = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
+	styles := textarea.DefaultDarkStyles()
+	styles.Focused.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	styles.Blurred.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	styles.Focused.Base = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	styles.Blurred.Base = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	styles.Focused.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	styles.Blurred.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	ta.SetStyles(styles)
 	ta.Prompt = " "
 	ta.CharLimit = 2000
 	ta.ShowLineNumbers = false
@@ -43,8 +44,8 @@ func NewInputBar() InputBar {
 	ta.KeyMap.WordBackward = key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b"))
 
 	// Add ctrl+backspace/delete word delete (textarea only has alt+backspace/delete by default)
-	ta.KeyMap.DeleteWordBackward = key.NewBinding(key.WithKeys("alt+backspace", "ctrl+w", "ctrl+backspace"))
-	ta.KeyMap.DeleteWordForward = key.NewBinding(key.WithKeys("alt+delete", "alt+d", "ctrl+delete"))
+	ta.KeyMap.DeleteWordBackward = key.NewBinding(key.WithKeys("alt+backspace", "ctrl+backspace", "ctrl+w"))
+	ta.KeyMap.DeleteWordForward = key.NewBinding(key.WithKeys("alt+delete", "ctrl+delete", "alt+d"))
 
 	return InputBar{
 		textarea: ta,
@@ -282,7 +283,7 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 	for i := len(lines) - 1; i > row; i-- {
 		ib.textarea.CursorUp()
 	}
-	ib.textarea.SetCursor(atIdx + 1 + len(completion))
+	ib.textarea.SetCursorColumn(atIdx + 1 + len(completion))
 	return true
 }
 

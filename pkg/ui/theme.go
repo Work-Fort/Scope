@@ -1,16 +1,20 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
+
+	"charm.land/lipgloss/v2"
+)
 
 // Theme holds the application color palette.
 type Theme struct {
-	Primary   lipgloss.Color // Active elements, selection
-	Secondary lipgloss.Color // Borders, inactive text
-	Muted     lipgloss.Color // Dimmed elements, help text
-	Accent    lipgloss.Color // Unread indicators, alerts
-	Text      lipgloss.Color // Primary text
-	TextDim   lipgloss.Color // Secondary text
-	BgDark    lipgloss.Color // Dark background areas
+	Primary   color.Color // Active elements, selection
+	Secondary color.Color // Borders, inactive text
+	Muted     color.Color // Dimmed elements, help text
+	Accent    color.Color // Unread indicators, alerts
+	Text      color.Color // Primary text
+	TextDim   color.Color // Secondary text
+	BgDark    color.Color // Dark background areas
 }
 
 // CurrentTheme is the active application theme.

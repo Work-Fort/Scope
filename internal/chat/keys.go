@@ -10,7 +10,7 @@ func ChatKeyBindings() ui.KeyBindingSet {
 			{Key: "Ctrl+d", Keys: []string{"ctrl+d"}, Description: "new dm"},
 			{Key: "Ctrl+u", Keys: []string{"ctrl+u"}, Description: "invite user"},
 			{Key: "Ctrl+s", Keys: []string{"ctrl+s"}, Description: "shortcuts"},
-			{Key: "Ctrl+,", Keys: []string{"ctrl+,"}, Description: "settings"},
+			{Key: "Ctrl+,", Keys: []string{"ctrl+,", "ctrl+."}, Description: "settings"},
 			{Key: "Ctrl+q", Keys: []string{"ctrl+q"}, Description: "quit"},
 		},
 	}

@@ -3,8 +3,8 @@ package chat
 import (
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/lipgloss/v2"
 
 	"github.com/Work-Fort/WorkFort/pkg/audio"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
@@ -57,10 +57,15 @@ type Modal struct {
 
 func NewModal(modalType ModalType) Modal {
 	ti := textinput.New()
-	ti.TextStyle = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
-	ti.PromptStyle = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	styles := textinput.DefaultDarkStyles()
+	styles.Focused.Text = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	styles.Focused.Prompt = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
+	styles.Focused.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	styles.Blurred.Text = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
+	styles.Blurred.Prompt = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
+	styles.Blurred.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	styles.Cursor.Color = ui.CurrentTheme.Primary
+	ti.SetStyles(styles)
 	ti.CharLimit = 64
 	ti.Focus()
 
@@ -262,9 +267,9 @@ func (m *Modal) HitTest(screenX, screenY int) ModalAction {
 }
 
 func (m *Modal) View(totalW, totalH int) string {
-	modalW := 54
+	modalW := 56 // v2: Width includes border (54 content + 2 border)
 	if m.Type == ModalShortcuts {
-		modalW = 60
+		modalW = 62
 	}
 
 	titleStyle := lipgloss.NewStyle().
