@@ -10,6 +10,7 @@ import (
 	rw "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 
+	"github.com/Work-Fort/WorkFort/pkg/clipboard"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
@@ -35,6 +36,7 @@ func NewInputBar() InputBar {
 	ta.ShowLineNumbers = false
 	ta.SetHeight(1)
 	ta.KeyMap.InsertNewline.SetEnabled(false) // we handle newline manually
+	ta.KeyMap.Paste.SetEnabled(false)         // we handle paste with Wayland support
 
 	// Add ctrl+arrow word navigation (textarea only has alt+arrow by default)
 	ta.KeyMap.WordForward = key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f"))
@@ -78,6 +80,16 @@ func (ib *InputBar) SetReadOnly(ro bool) {
 	} else {
 		ib.textarea.Placeholder = "type a message..."
 	}
+}
+
+func (ib *InputBar) Paste() {
+	text, err := clipboard.Read()
+	if err != nil || text == "" {
+		return
+	}
+	ib.textarea.SetHeight(maxInputLines)
+	ib.textarea.InsertString(text)
+	ib.updateHeight()
 }
 
 func (ib *InputBar) InsertNewline() {

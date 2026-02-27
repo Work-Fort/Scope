@@ -377,6 +377,13 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+	case "ctrl+v":
+		if m.activePane == PaneInput {
+			m.input.Paste()
+			m.updateLayout()
+			return m, nil
+		}
+
 	case "enter":
 		if m.activePane == PaneInput && m.trySendMessage() {
 			return m, nil
@@ -1089,6 +1096,10 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 func isLeakedMouseSeq(msg tea.KeyMsg) bool {
 	// Only KeyRunes can be leaked mouse fragments
 	if msg.Type != tea.KeyRunes {
+		return false
+	}
+	// Bracketed paste wraps content in "[...]" — never a mouse sequence
+	if tea.Key(msg).Paste {
 		return false
 	}
 	s := msg.String()
