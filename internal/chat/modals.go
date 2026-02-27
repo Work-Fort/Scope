@@ -85,6 +85,11 @@ func (m *Modal) Value() string {
 	return m.textinput.Value()
 }
 
+func (m *Modal) SetValue(v string) {
+	m.textinput.SetValue(v)
+	m.textinput.CursorEnd()
+}
+
 func (m *Modal) IsPublic() bool {
 	return m.public
 }

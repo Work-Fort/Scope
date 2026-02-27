@@ -394,8 +394,14 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.input.Focus()
 		return m, nil
 
-	case "ctrl+s":
-		if m.modal.Type == ModalShortcuts {
+	case "ctrl+s", "ctrl+d", "ctrl+n", "ctrl+u":
+		toggleType := map[string]ModalType{
+			"ctrl+s": ModalShortcuts,
+			"ctrl+d": ModalDMOpen,
+			"ctrl+n": ModalChannelCreate,
+			"ctrl+u": ModalUserInvite,
+		}[key]
+		if m.modal.Type == toggleType {
 			m.modal = nil
 			m.input.Focus()
 			return m, nil
@@ -411,6 +417,8 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "tab":
 		if m.modal.Type == ModalChannelCreate {
 			m.modal.TogglePublic()
+		} else if m.modal.Type == ModalDMOpen || m.modal.Type == ModalUserInvite {
+			m.tryModalComplete()
 		}
 		return m, nil
 	}
@@ -916,6 +924,30 @@ func isLeakedMouseSeq(msg tea.KeyMsg) bool {
 		}
 	}
 	return false
+}
+
+func (m *ChatModel) tryModalComplete() {
+	prefix := strings.ToLower(m.modal.Value())
+	if prefix == "" {
+		return
+	}
+	var matches []string
+	for _, u := range m.users {
+		if strings.HasPrefix(strings.ToLower(u.Username), prefix) {
+			matches = append(matches, u.Username)
+		}
+	}
+	if len(matches) == 0 {
+		return
+	}
+	if len(matches) == 1 {
+		m.modal.SetValue(matches[0])
+	} else {
+		lcp := longestCommonPrefix(matches)
+		if len(lcp) > len(prefix) {
+			m.modal.SetValue(lcp)
+		}
+	}
 }
 
 func (m *ChatModel) usernameList() []string {
