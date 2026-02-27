@@ -152,15 +152,16 @@ func (mp *MessagePane) refreshContent() {
 
 	bodyStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Text).
+		PaddingLeft(1).
 		Width(contentW)
 
 	var lines []string
 	for _, m := range msgs {
-		header := fmt.Sprintf("  %s %s",
+		header := fmt.Sprintf(" %s %s",
 			nameStyle.Render(m.From),
 			timeStyle.Render("["+ui.FormatShortDateTime(m.SentAt)+"]"),
 		)
-		body := "  " + bodyStyle.Render(m.Body)
+		body := bodyStyle.Render(m.Body)
 		lines = append(lines, header, body, "")
 	}
 
