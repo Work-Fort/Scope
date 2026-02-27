@@ -204,6 +204,9 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sharkfin.DMListMsg:
 		log.Debug("dm_list", "count", len(msg.DMs))
 		m.dmList.SetDMs(msg.DMs)
+		if m.sidebarTab == TabDMs && m.selectedChannel != "" {
+			m.dmList.SelectByChannel(m.selectedChannel)
+		}
 		return m, nil
 
 	case sharkfin.DMOpenMsg:
@@ -213,6 +216,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.sidebarTab = TabDMs
 		m.selectedChannel = msg.Channel
+		m.dmList.SelectByChannel(msg.Channel)
 		m.dmList.ClearUnread(msg.Channel)
 		m.messages.SetChannel(msg.Channel)
 		m.client.RequestHistory(msg.Channel, 0, 50)

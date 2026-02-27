@@ -120,6 +120,16 @@ func (dl *DMList) HasUnreads() bool {
 	return len(dl.unread) > 0
 }
 
+func (dl *DMList) SelectByChannel(channel string) {
+	for i, dm := range dl.dms {
+		if dm.Channel == channel {
+			dl.cursor = i
+			dl.ensureCursorVisible()
+			return
+		}
+	}
+}
+
 func (dl *DMList) SelectIndex(i int) {
 	idx := i + dl.scrollOffset
 	if idx >= 0 && idx < len(dl.dms) {
