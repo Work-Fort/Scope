@@ -138,7 +138,7 @@ func (mp *MessagePane) refreshContent() {
 		return
 	}
 
-	contentW := mp.width - 4 - 1 // border + padding + scrollbar
+	contentW := mp.width - 4 - 2 // border + padding + scrollbar gap
 	if contentW < 1 {
 		contentW = 1
 	}
