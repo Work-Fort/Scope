@@ -356,7 +356,17 @@ The official whisper.cpp Go bindings **require** pre-building static libraries. 
 #cgo linux LDFLAGS: -fopenmp
 ```
 
-### mise.toml — New build tasks
+### mise.toml Changes
+
+Add cmake to managed tools (installed by mise, not assumed on system):
+
+```toml
+[tools]
+go = "latest"
+cmake = "latest"
+```
+
+New and updated tasks:
 
 ```toml
 [tasks."whisper:setup"]
@@ -377,22 +387,27 @@ cmake --build "$WHISPER_DIR/build" --target whisper -- -j$(nproc)
 description = "Build workfort binary"
 depends = ["whisper:setup"]
 run = """
+mkdir -p ${BUILD_DIR}
 WHISPER_DIR="$PWD/third_party/whisper.cpp"
+VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
 C_INCLUDE_PATH="$WHISPER_DIR/include:$WHISPER_DIR/ggml/include" \
 LIBRARY_PATH="$WHISPER_DIR/build/src:$WHISPER_DIR/build/ggml/src" \
 CGO_ENABLED=1 \
-go build -o build/workfort ./cmd/workfort
+go build -ldflags "-X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" \
+  -o ${BUILD_DIR}/${BINARY_NAME} .
 """
 sources = ["**/*.go", "go.mod", "go.sum"]
-outputs = ["build/workfort"]
+outputs = ["{{env.BUILD_DIR}}/{{env.BINARY_NAME}}"]
 ```
+
+All build tools (Go, cmake) are managed by mise — contributors just run `mise install` to get everything.
 
 ### System Requirements
 
-| Platform | Requirements |
-|----------|-------------|
-| Linux | `cmake`, `g++` (or `clang++`), `libgomp` (for `-fopenmp`) |
-| macOS | `cmake`, Xcode command line tools |
+| Platform | Via mise | System-level |
+|----------|---------|-------------|
+| Linux | Go, cmake | C++ compiler (`g++` or `clang++`), `libgomp` |
+| macOS | Go, cmake | Xcode command line tools |
 
 malgo adds no system requirements (vendors miniaudio inline, links only `-ldl -lpthread -lm`).
 
