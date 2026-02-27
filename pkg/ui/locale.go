@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+// TimeFormatOverride allows forcing 12h or 24h time display.
+// Set to "12h" or "24h" to override locale detection. Empty uses locale default.
+var TimeFormatOverride string
+
 // FormatShortDateTime formats a time in local timezone using the system locale's short date/time style.
 func FormatShortDateTime(t time.Time) string {
 	return t.Local().Format(localeTimeFormat())
@@ -13,26 +17,42 @@ func FormatShortDateTime(t time.Time) string {
 
 func localeTimeFormat() string {
 	lang := extractLang(getLocale())
+	datePart := localeDateFormat(lang)
 
-	// 12-hour locales
+	switch TimeFormatOverride {
+	case "24h":
+		return datePart + " 15:04"
+	case "12h":
+		return datePart + " 3:04 PM"
+	}
+
+	return datePart + " " + localeTimePart(lang)
+}
+
+func localeDateFormat(lang string) string {
+	switch lang {
+	case "de", "de_DE", "de_AT", "de_CH":
+		return "02.01."
+	case "ja", "ja_JP", "zh", "zh_CN", "zh_TW", "ko", "ko_KR":
+		return "01/02"
+	case "en_US", "en_PH":
+		return "1/2"
+	}
+	if strings.HasPrefix(lang, "en") {
+		return "1/2"
+	}
+	return "02/01"
+}
+
+func localeTimePart(lang string) string {
 	switch lang {
 	case "en_US", "en_PH":
-		return "1/2 3:04 PM"
-	case "en_GB", "en_AU", "en_NZ", "en_IE", "en_ZA":
-		return "02/01 15:04"
-	case "de", "de_DE", "de_AT", "de_CH":
-		return "02.01. 15:04"
-	case "ja", "ja_JP", "zh", "zh_CN", "zh_TW", "ko", "ko_KR":
-		return "01/02 15:04"
+		return "3:04 PM"
 	}
-
-	// Region fallbacks
 	if strings.HasPrefix(lang, "en") {
-		return "1/2 3:04 PM"
+		return "3:04 PM"
 	}
-
-	// Most of the world: D/M 24h
-	return "02/01 15:04"
+	return "15:04"
 }
 
 func getLocale() string {
