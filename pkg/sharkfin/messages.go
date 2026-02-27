@@ -109,6 +109,24 @@ type SendMessageRequest struct {
 	ThreadID *int   `json:"thread_id,omitempty"`
 }
 
+// MarkReadRequest advances the read cursor for a channel.
+type MarkReadRequest struct {
+	Channel   string `json:"channel"`
+	MessageID *int   `json:"message_id,omitempty"`
+}
+
+// ChannelUnreadCount holds per-channel unread and mention counts.
+type ChannelUnreadCount struct {
+	Channel      string `json:"channel"`
+	UnreadCount  int    `json:"unread_count"`
+	MentionCount int    `json:"mention_count"`
+}
+
+// UnreadCountsResponse is the payload of an unread_counts response.
+type UnreadCountsResponse struct {
+	Counts []ChannelUnreadCount `json:"counts"`
+}
+
 // MessageNewEvent is a server push for new messages.
 type MessageNewEvent struct {
 	ID       int       `json:"id"`
@@ -117,6 +135,7 @@ type MessageNewEvent struct {
 	Body     string    `json:"body"`
 	SentAt   time.Time `json:"sent_at"`
 	ThreadID *int      `json:"thread_id,omitempty"`
+	Mentions []string  `json:"mentions,omitempty"`
 }
 
 func (e *MessageNewEvent) UnmarshalJSON(data []byte) error {

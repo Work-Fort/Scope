@@ -35,7 +35,7 @@ type ChatModel struct {
 	activePane      Pane
 	selectedChannel string
 	username        string
-	users []sharkfin.User
+	users           []sharkfin.User
 
 	lastChannelScroll time.Time
 	loadingHistory    bool
@@ -90,11 +90,21 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sharkfin.ChannelListMsg:
 		log.Debug("channel_list", "count", len(msg.Channels))
 		m.channels.SetChannels(msg.Channels)
+		m.client.RequestUnreadCounts()
 		if len(msg.Channels) > 0 && m.selectedChannel == "" {
 			m.selectedChannel = msg.Channels[0].Name
 			m.messages.SetChannel(m.selectedChannel)
 			m.client.RequestHistory(m.selectedChannel, 0, 50)
 			m.client.RequestUnread(m.selectedChannel)
+		}
+		return m, nil
+
+	case sharkfin.UnreadCountsMsg:
+		log.Debug("unread_counts", "count", len(msg.Counts))
+		for _, c := range msg.Counts {
+			if c.Channel != m.selectedChannel {
+				m.channels.SetCounts(c.Channel, c.UnreadCount, c.MentionCount)
+			}
 		}
 		return m, nil
 
@@ -133,11 +143,16 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.messages.AppendMessage(msg.Channel, newMsg)
 		if msg.Channel != m.selectedChannel {
-			m.channels.IncrementUnread(msg.Channel)
+			if containsUser(msg.Mentions, m.username) {
+				m.channels.IncrementMention(msg.Channel)
+			} else {
+				m.channels.IncrementUnread(msg.Channel)
+			}
 		}
 		return m, nil
 
 	case sharkfin.PresenceMsg:
+		log.Debug("presence", "user", msg.Username, "online", msg.Online)
 		for i := range m.users {
 			if m.users[i].Username == msg.Username {
 				m.users[i].Online = msg.Online
@@ -444,6 +459,14 @@ func (m *ChatModel) switchChannel() {
 	selected := m.channels.Selected()
 	if selected != m.selectedChannel {
 		log.Debug("switch_channel", "from", m.selectedChannel, "to", selected)
+
+		// Advance server-side read cursor
+		if latestID := m.messages.LatestID(selected); latestID > 0 {
+			m.client.MarkRead(selected, &latestID)
+		} else {
+			m.client.MarkRead(selected, nil)
+		}
+
 		m.selectedChannel = selected
 		m.channels.ClearUnread(selected)
 		m.messages.SetChannel(selected)
@@ -577,4 +600,13 @@ func (m ChatModel) View() string {
 
 	// Place constrains output to exact terminal dimensions
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI)
+}
+
+func containsUser(mentions []string, username string) bool {
+	for _, m := range mentions {
+		if strings.EqualFold(m, username) {
+			return true
+		}
+	}
+	return false
 }

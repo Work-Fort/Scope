@@ -17,11 +17,13 @@ type ChannelList struct {
 	width        int
 	height       int
 	unread       map[string]int
+	mentions     map[string]int
 }
 
 func NewChannelList() ChannelList {
 	return ChannelList{
-		unread: make(map[string]int),
+		unread:   make(map[string]int),
+		mentions: make(map[string]int),
 	}
 }
 
@@ -81,8 +83,27 @@ func (cl *ChannelList) IncrementUnread(channel string) {
 	cl.unread[channel]++
 }
 
+func (cl *ChannelList) IncrementMention(channel string) {
+	cl.unread[channel]++
+	cl.mentions[channel]++
+}
+
+func (cl *ChannelList) SetCounts(channel string, unread, mentions int) {
+	if unread > 0 {
+		cl.unread[channel] = unread
+	} else {
+		delete(cl.unread, channel)
+	}
+	if mentions > 0 {
+		cl.mentions[channel] = mentions
+	} else {
+		delete(cl.mentions, channel)
+	}
+}
+
 func (cl *ChannelList) ClearUnread(channel string) {
 	delete(cl.unread, channel)
+	delete(cl.mentions, channel)
 }
 
 func (cl *ChannelList) SelectIndex(i int) {
@@ -116,7 +137,13 @@ func (cl ChannelList) View() string {
 	}
 
 	unreadDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent).Render("● ")
-	countStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent)
+	unreadCountStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent)
+
+	mentionStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Secondary).
+		Bold(true)
+	mentionDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Secondary).Render("● ")
+	mentionCountStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Secondary)
 
 	// Determine visible window
 	visEnd := cl.scrollOffset + cl.height
@@ -131,8 +158,14 @@ func (cl ChannelList) View() string {
 		prefix := "  "
 		name := "#" + ch.Name
 
-		count := cl.unread[ch.Name]
-		if count > 0 && i != cl.cursor {
+		unreadCount := cl.unread[ch.Name]
+		mentionCount := cl.mentions[ch.Name]
+		hasMention := mentionCount > 0 && i != cl.cursor
+		hasUnread := unreadCount > 0 && i != cl.cursor
+
+		if hasMention {
+			prefix = mentionDot
+		} else if hasUnread {
 			prefix = unreadDot
 		}
 
@@ -140,8 +173,12 @@ func (cl ChannelList) View() string {
 		// prefix is 2 chars, leave room for suffix
 		maxNameW := innerW - 2
 		suffix := ""
-		if count > 0 && i != cl.cursor {
-			badge := fmt.Sprintf(" (%d)", count)
+		if hasMention {
+			badge := fmt.Sprintf(" @%d", mentionCount)
+			maxNameW -= len(badge)
+			suffix = badge
+		} else if hasUnread {
+			badge := fmt.Sprintf(" (%d)", unreadCount)
 			maxNameW -= len(badge)
 			suffix = badge
 		}
@@ -152,8 +189,10 @@ func (cl ChannelList) View() string {
 		var line string
 		if i == cl.cursor {
 			line = prefix + selectedStyle.Render(name)
-		} else if count > 0 {
-			line = prefix + unreadStyle.Render(name) + " " + countStyle.Render(suffix)
+		} else if hasMention {
+			line = prefix + mentionStyle.Render(name) + " " + mentionCountStyle.Render(suffix)
+		} else if hasUnread {
+			line = prefix + unreadStyle.Render(name) + " " + unreadCountStyle.Render(suffix)
 		} else {
 			line = prefix + normalStyle.Render(name)
 		}

@@ -46,7 +46,7 @@ func (mp *MessagePane) SetSize(w, h int) {
 			contentW = 1
 		}
 		r, _ := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
+			glamour.WithStylePath("dark"),
 			glamour.WithWordWrap(contentW-1), // -1 for left padding
 		)
 		mp.mdRenderer = r
@@ -123,6 +123,15 @@ func (mp *MessagePane) PrependHistory(channel string, msgs []sharkfin.Message) {
 			mp.viewport.SetYOffset(mp.viewport.YOffset + addedLines)
 		}
 	}
+}
+
+// LatestID returns the largest message ID for the channel, or 0 if none.
+func (mp *MessagePane) LatestID(channel string) int {
+	msgs := mp.messages[channel]
+	if len(msgs) == 0 {
+		return 0
+	}
+	return msgs[len(msgs)-1].ID
 }
 
 // OldestID returns the smallest message ID for the channel, or 0 if none.

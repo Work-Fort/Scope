@@ -131,6 +131,7 @@ func (c *Client) ReadPump(p *tea.Program) {
 			continue
 		}
 
+		log.Debug("ws_recv", "type", env.Type, "ref", env.Ref)
 		msg := c.dispatchMessage(env)
 		if msg != nil {
 			p.Send(msg)
@@ -220,6 +221,19 @@ func (c *Client) InviteUser(channel, username string) {
 	c.send("channel_invite", ChannelInviteRequest{
 		Channel:  channel,
 		Username: username,
+	})
+}
+
+// RequestUnreadCounts requests per-channel unread and mention counts.
+func (c *Client) RequestUnreadCounts() {
+	c.send("unread_counts", nil)
+}
+
+// MarkRead advances the read cursor for a channel.
+func (c *Client) MarkRead(channel string, messageID *int) {
+	c.send("mark_read", MarkReadRequest{
+		Channel:   channel,
+		MessageID: messageID,
 	})
 }
 
@@ -362,6 +376,17 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 	case "channel_invite":
 		return nil
 
+	case "unread_counts":
+		resp, err := ParseData[UnreadCountsResponse](env)
+		if err != nil {
+			log.Error("parse unread_counts reply", "err", err)
+			return nil
+		}
+		return UnreadCountsMsg{Counts: resp.Counts}
+
+	case "mark_read":
+		return nil
+
 	default:
 		log.Debug("unhandled reply type", "reqType", reqType, "ref", env.Ref)
 		return nil
@@ -399,3 +424,7 @@ type UserListMsg struct {
 }
 
 type MessageSentMsg struct{}
+
+type UnreadCountsMsg struct {
+	Counts []ChannelUnreadCount
+}
