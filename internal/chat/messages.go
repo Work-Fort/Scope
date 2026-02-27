@@ -35,6 +35,7 @@ func NewMessagePane() MessagePane {
 
 func (mp *MessagePane) SetSize(w, h int) {
 	oldW := mp.width
+	oldH := mp.viewport.Height
 	mp.width = w
 	mp.height = h
 	mp.viewport.Width = w - 2 - 1 // border + scrollbar
@@ -52,6 +53,16 @@ func (mp *MessagePane) SetSize(w, h int) {
 		mp.mdRenderer = r
 	}
 	mp.refreshContent()
+
+	// Anchor scroll to bottom: keep the same bottom line visible when height changes.
+	if oldH > 0 && h != oldH {
+		bottomLine := mp.viewport.YOffset + oldH
+		newOffset := bottomLine - h
+		if newOffset < 0 {
+			newOffset = 0
+		}
+		mp.viewport.SetYOffset(newOffset)
+	}
 }
 
 func (mp *MessagePane) SetChannel(name string) {

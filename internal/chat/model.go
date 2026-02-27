@@ -359,6 +359,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "alt+enter":
 		if m.activePane == PaneInput {
 			m.input.InsertNewline()
+			m.updateLayout()
 			return m, nil
 		}
 
@@ -390,7 +391,11 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	if m.activePane == PaneInput && !leaked {
+		prevH := m.input.Height()
 		m.input.UpdateTextInput(msg)
+		if m.input.Height() != prevH {
+			m.updateLayout()
+		}
 	}
 
 	return m, nil
@@ -739,6 +744,7 @@ func (m *ChatModel) trySendMessage() bool {
 		SentAt: time.Now().UTC(),
 	})
 	m.input.Reset()
+	m.updateLayout()
 	return true
 }
 
