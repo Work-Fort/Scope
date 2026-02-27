@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -144,18 +145,30 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 		return false
 	}
 
-	// Get current line and column
+	// Get current line and column.
+	// LineInfo().ColumnOffset is the visual column within the current
+	// wrapped sub-line. When a line soft-wraps, we must add back the
+	// width of all preceding visual sub-lines to get the logical offset.
 	lines := strings.Split(val, "\n")
 	row := ib.textarea.Line()
+	li := ib.textarea.LineInfo()
+	col := li.ColumnOffset
+	if li.RowOffset > 0 && li.Width > 0 {
+		col += li.RowOffset * li.Width
+	}
+	log.Debug("tab_complete", "val", val, "row", row, "lines", len(lines),
+		"col", col, "charOffset", li.CharOffset, "colOffset", li.ColumnOffset,
+		"rowOffset", li.RowOffset, "width", li.Width)
 	if row >= len(lines) {
+		log.Debug("tab_complete_bail", "reason", "row>=lines", "row", row, "lines", len(lines))
 		return false
 	}
 	lineText := lines[row]
-	col := ib.textarea.LineInfo().ColumnOffset
 	if col > len(lineText) {
 		col = len(lineText)
 	}
 	if col == 0 {
+		log.Debug("tab_complete_bail", "reason", "col==0")
 		return false
 	}
 
@@ -173,6 +186,7 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 		}
 	}
 	if atIdx < 0 {
+		log.Debug("tab_complete_bail", "reason", "no_@", "lineText", lineText, "col", col)
 		return false
 	}
 
