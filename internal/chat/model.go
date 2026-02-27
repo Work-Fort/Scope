@@ -153,6 +153,10 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sharkfin.MessageNewMsg:
 		log.Debug("message.new", "channel", msg.Channel, "from", msg.From, "body", msg.Body, "active", m.selectedChannel)
+		// Skip messages from ourselves — we already appended locally on send
+		if msg.From == m.username {
+			return m, nil
+		}
 		newMsg := sharkfin.Message{
 			ID:       msg.ID,
 			Channel:  msg.Channel,
