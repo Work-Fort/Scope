@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
@@ -125,7 +124,6 @@ func (ul *UserList) UpdatePresence(username string, online bool) {
 func (ul *UserList) SetDMMapping(dms []sharkfin.DM, myUsername string) {
 	ul.dmChannels = make(map[string]string, len(dms))
 	for _, dm := range dms {
-		log.Debug("dm_mapping_raw", "channel", dm.Channel, "participant", dm.Participant, "participants", dm.Participants, "member", dm.Member)
 		// WS dm_list is admin-scoped (returns all DMs). Only map DMs
 		// where we are a participant to avoid cross-mapping other users' DMs.
 		if len(dm.Participants) > 0 {
@@ -137,18 +135,15 @@ func (ul *UserList) SetDMMapping(dms []sharkfin.DM, myUsername string) {
 				}
 			}
 			if !isMember {
-				log.Debug("dm_mapping_skip", "channel", dm.Channel, "reason", "not_member")
 				continue
 			}
 			for _, p := range dm.Participants {
 				if p != myUsername {
-					log.Debug("dm_mapping_set", "username", p, "channel", dm.Channel)
 					ul.dmChannels[p] = dm.Channel
 				}
 			}
 		} else if dm.Participant != "" && dm.Participant != myUsername {
 			// MCP path: Participant is already user-scoped (the other user)
-			log.Debug("dm_mapping_set", "username", dm.Participant, "channel", dm.Channel)
 			ul.dmChannels[dm.Participant] = dm.Channel
 		}
 	}

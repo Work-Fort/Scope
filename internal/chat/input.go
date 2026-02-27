@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -47,7 +46,7 @@ func NewInputBar() InputBar {
 
 func (ib *InputBar) SetWidth(w int) {
 	ib.width = w
-	ib.textarea.SetWidth(w - 4) // border + padding
+	ib.textarea.SetWidth(w) // caller already subtracted border
 }
 
 func (ib *InputBar) Focus() {
@@ -110,8 +109,11 @@ func (ib *InputBar) visualLineCount() int {
 		return 1
 	}
 
-	// The textarea wraps at: SetWidth arg (ib.width - 4) minus prompt width (2).
-	wrapW := ib.width - 6
+	// The textarea wraps at: SetWidth(ib.width) minus prompt width (2) minus
+	// cursor column (1). The cursor sits after the last character, so when text
+	// fills the line the cursor forces a visual wrap before our text-only
+	// measurement would predict it.
+	wrapW := ib.width - 3
 	if wrapW < 1 {
 		wrapW = 1
 	}
@@ -156,11 +158,7 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 	if li.RowOffset > 0 && li.Width > 0 {
 		col += li.RowOffset * li.Width
 	}
-	log.Debug("tab_complete", "val", val, "row", row, "lines", len(lines),
-		"col", col, "charOffset", li.CharOffset, "colOffset", li.ColumnOffset,
-		"rowOffset", li.RowOffset, "width", li.Width)
 	if row >= len(lines) {
-		log.Debug("tab_complete_bail", "reason", "row>=lines", "row", row, "lines", len(lines))
 		return false
 	}
 	lineText := lines[row]
@@ -168,7 +166,6 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 		col = len(lineText)
 	}
 	if col == 0 {
-		log.Debug("tab_complete_bail", "reason", "col==0")
 		return false
 	}
 
@@ -186,7 +183,6 @@ func (ib *InputBar) TryComplete(usernames []string) bool {
 		}
 	}
 	if atIdx < 0 {
-		log.Debug("tab_complete_bail", "reason", "no_@", "lineText", lineText, "col", col)
 		return false
 	}
 
