@@ -43,8 +43,8 @@ func CalculateChatLayoutWithSidebar(termW, termH, sidebarOverride int) ChatLayou
 	skinny := termW < SkinnyWidth
 
 	if skinny {
-		// Skinny mode: no sidebar, no help bar
-		contentH := termH - HeaderHeight
+		// Skinny mode: no sidebar, no help bar, no header
+		contentH := termH
 		return ChatLayout{
 			SidebarW: 0,
 			MessageW: termW,

@@ -49,6 +49,7 @@ type ChatModel struct {
 	users           []sharkfin.User
 
 	lastChannelScroll time.Time
+	lastMsgScroll     time.Time
 	loadingHistory    bool
 	historyExhausted  map[string]bool // channels that have no more history to load
 
@@ -484,6 +485,12 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 			m.switchChannel()
 		} else {
+			if layout.Skinny {
+				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
+					return m, nil
+				}
+				m.lastMsgScroll = time.Now()
+			}
 			m.messages.ScrollUp(3)
 			m.maybeLoadHistory()
 		}
@@ -502,6 +509,12 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 			m.switchChannel()
 		} else {
+			if layout.Skinny {
+				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
+					return m, nil
+				}
+				m.lastMsgScroll = time.Now()
+			}
 			m.messages.ScrollDown(3)
 		}
 		return m, nil
@@ -841,21 +854,19 @@ func (m ChatModel) View() string {
 		mainContent = lipgloss.JoinHorizontal(lipgloss.Top, sidebar, gap, rightPane)
 	}
 
-	// Header bar
-	headerStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
-		Width(m.width - 2).
-		Align(lipgloss.Center)
-	header := headerStyle.Render(
-		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
-	)
-
-	// Help bar — hidden in skinny mode
+	// Compose full UI — skinny mode hides header and help bar
 	var fullUI string
 	if layout.Skinny {
-		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent)
+		fullUI = mainContent
 	} else {
+		headerStyle := lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(ui.CurrentTheme.Muted).
+			Width(m.width - 2).
+			Align(lipgloss.Center)
+		header := headerStyle.Render(
+			lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
+		)
 		helpBar := ChatKeyBindings().Render()
 		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)
 	}
