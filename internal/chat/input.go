@@ -103,6 +103,12 @@ func (ib *InputBar) InsertNewline() {
 	ib.updateHeight()
 }
 
+func (ib *InputBar) InsertString(s string) {
+	ib.textarea.SetHeight(maxInputLines)
+	ib.textarea.InsertString(s)
+	ib.updateHeight()
+}
+
 // Height returns the total height including borders (2 for border).
 func (ib *InputBar) Height() int {
 	return ib.textarea.Height() + 2

@@ -117,6 +117,16 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 
+	case tea.PasteMsg:
+		if m.activePane == PaneInput && m.modal == nil {
+			prevH := m.input.Height()
+			m.input.InsertString(msg.Content)
+			if m.input.Height() != prevH {
+				m.updateLayout()
+			}
+		}
+		return m, nil
+
 	case tea.MouseMsg:
 		return m.handleMouse(msg)
 

@@ -7,7 +7,7 @@ import (
 
 	"charm.land/bubbles/v2/viewport"
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/log"
+	"github.com/charmbracelet/glamour/styles"
 	"charm.land/lipgloss/v2"
 
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
@@ -52,22 +52,32 @@ func (mp *MessagePane) SetSize(w, h int) {
 		if contentW < 1 {
 			contentW = 1
 		}
+		style := styles.DarkStyleConfig
+		noMargin := uint(0)
+		style.Document.Margin = &noMargin
+		style.CodeBlock.StyleBlock.Margin = &noMargin
 		r, _ := glamour.NewTermRenderer(
-			glamour.WithStylePath("dark"),
+			glamour.WithStyles(style),
 			glamour.WithWordWrap(contentW-1), // -1 for left padding
 		)
 		mp.mdRenderer = r
 	}
 	mp.refreshContent()
 
-	// Anchor scroll to bottom: keep the same bottom line visible when height changes.
+	// Anchor scroll: when height changes, keep the viewport anchored appropriately.
 	if oldH > 0 && h != oldH {
-		bottomLine := mp.viewport.YOffset() + oldH
-		newOffset := bottomLine - h
-		if newOffset < 0 {
-			newOffset = 0
+		if mp.viewport.AtBottom() {
+			// Stay pinned to bottom when already there
+			mp.viewport.GotoBottom()
+		} else {
+			// Keep the same bottom line visible
+			bottomLine := mp.viewport.YOffset() + oldH
+			newOffset := bottomLine - h
+			if newOffset < 0 {
+				newOffset = 0
+			}
+			mp.viewport.SetYOffset(newOffset)
 		}
-		mp.viewport.SetYOffset(newOffset)
 	}
 }
 
@@ -192,8 +202,7 @@ func (mp *MessagePane) refreshContent() {
 		Foreground(ui.CurrentTheme.TextDim)
 
 	var lines []string
-	logFirst := len(msgs) > 0
-	for i, m := range msgs {
+	for _, m := range msgs {
 		header := fmt.Sprintf(" %s %s",
 			nameStyle.Render(m.From),
 			timeStyle.Render("["+ui.FormatShortDateTime(m.SentAt)+"]"),
@@ -201,17 +210,7 @@ func (mp *MessagePane) refreshContent() {
 		body := m.Body
 		if mp.mdRenderer != nil {
 			if rendered, err := mp.mdRenderer.Render(body); err == nil {
-				if logFirst && i == 0 {
-					log.Debug("glamour_render",
-						"raw_body", m.Body,
-						"rendered_lines", strings.Count(rendered, "\n"),
-						"rendered_len", len(rendered),
-						"rendered_sample", truncLog(rendered, 200),
-					)
-				}
 				body = strings.TrimRight(rendered, "\n")
-			} else if logFirst && i == 0 {
-				log.Debug("glamour_error", "err", err, "body", m.Body)
 			}
 		}
 		// Indent each line by 1 space
@@ -223,19 +222,7 @@ func (mp *MessagePane) refreshContent() {
 		lines = append(lines, header, body, "")
 	}
 
-	content := strings.Join(lines, "\n")
-	if logFirst {
-		log.Debug("refresh_content",
-			"channel", mp.channel,
-			"msg_count", len(msgs),
-			"content_lines", strings.Count(content, "\n")+1,
-			"pane_w", mp.width,
-			"pane_h", mp.height,
-			"vp_w", mp.viewport.Width(),
-			"vp_h", mp.viewport.Height(),
-		)
-	}
-	mp.viewport.SetContent(content)
+	mp.viewport.SetContent(strings.Join(lines, "\n"))
 }
 
 func (mp *MessagePane) ScrollUp(n int) {
@@ -252,12 +239,6 @@ func (mp MessagePane) View() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, content, scrollbar)
 }
 
-func truncLog(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
-}
 
 func (mp MessagePane) renderScrollbar() string {
 	h := mp.viewport.Height()
