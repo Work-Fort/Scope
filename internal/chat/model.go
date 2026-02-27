@@ -253,8 +253,10 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Pass remaining keys to focused component
-	if m.activePane == PaneInput {
+	// Pass remaining keys to focused component, filtering leaked SGR mouse sequences.
+	// Bubble Tea's parser can split SGR mouse events across reads, delivering fragments
+	// like "[<64;87;52M" as KeyRunes. Drop these before they reach the text input.
+	if m.activePane == PaneInput && !isLeakedMouseSeq(key) {
 		m.input.UpdateTextInput(msg)
 	}
 
@@ -600,6 +602,27 @@ func (m ChatModel) View() string {
 
 	// Place constrains output to exact terminal dimensions
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI)
+}
+
+// isLeakedMouseSeq detects SGR mouse escape sequence fragments that Bubble Tea's
+// parser failed to consume. These look like "[<64;87;52M" — digits and semicolons
+// bracketed by "[<" and "M"/"m".
+func isLeakedMouseSeq(s string) bool {
+	if !strings.HasPrefix(s, "[<") {
+		return false
+	}
+	for _, r := range s[2:] {
+		switch {
+		case r >= '0' && r <= '9', r == ';':
+			continue
+		case r == 'M' || r == 'm':
+			return true
+		default:
+			return false
+		}
+	}
+	// Partial sequence (no trailing M/m yet) — still drop it
+	return len(s) > 2
 }
 
 func containsUser(mentions []string, username string) bool {
