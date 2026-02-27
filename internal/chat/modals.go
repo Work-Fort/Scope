@@ -3,6 +3,7 @@ package chat
 import (
 	"strings"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/lipgloss/v2"
 
@@ -66,6 +67,7 @@ func NewModal(modalType ModalType) Modal {
 	styles.Blurred.Placeholder = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
 	styles.Cursor.Color = ui.CurrentTheme.Primary
 	ti.SetStyles(styles)
+	ti.KeyMap.DeleteWordBackward = key.NewBinding(key.WithKeys("alt+backspace", "ctrl+backspace", "ctrl+w"))
 	ti.CharLimit = 64
 	ti.Focus()
 
