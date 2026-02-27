@@ -33,6 +33,11 @@ func NewMessagePane() MessagePane {
 	}
 }
 
+// Height returns the inner height of the message pane in lines.
+func (mp *MessagePane) Height() int {
+	return mp.height
+}
+
 func (mp *MessagePane) SetSize(w, h int) {
 	oldW := mp.width
 	oldH := mp.viewport.Height

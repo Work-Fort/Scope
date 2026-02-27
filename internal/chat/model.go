@@ -611,7 +611,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 			m.switchChannel()
 		} else {
-			if layout.Skinny {
+			if m.messages.Height() <= 24 {
 				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
 					return m, nil
 				}
@@ -638,7 +638,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 			m.switchChannel()
 		} else {
-			if layout.Skinny {
+			if m.messages.Height() <= 24 {
 				if time.Since(m.lastMsgScroll) < 80*time.Millisecond {
 					return m, nil
 				}
