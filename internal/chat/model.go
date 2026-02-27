@@ -308,6 +308,12 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+	case "alt+enter":
+		if m.activePane == PaneInput {
+			m.input.InsertNewline()
+			return m, nil
+		}
+
 	case "enter":
 		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
 		if m.activePane == PaneInput && m.input.Value() != "" && canWrite {
@@ -661,7 +667,8 @@ func (m *ChatModel) updateLayout() {
 
 	// Inner heights subtract 2 for border, PaneTitleH for tab bar+gap
 	sidebarInnerH := layout.ContentH - 2 - ui.PaneTitleH
-	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - ui.InputHeight
+	inputH := m.input.Height()
+	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - inputH
 	msgInnerH := msgPaneOuterH - 2
 
 	m.channels.SetSize(layout.SidebarW, sidebarInnerH)
@@ -711,7 +718,7 @@ func (m ChatModel) View() string {
 	)
 
 	// Message pane
-	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.ChannelHeaderH-ui.InputHeight)
+	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.ChannelHeaderH-m.input.Height())
 	msgPane := msgStyle.Render(m.messages.View())
 
 	// Input bar
@@ -725,7 +732,7 @@ func (m ChatModel) View() string {
 		Border(inputBorder).
 		BorderForeground(inputBorderColor).
 		Width(layout.MessageW - 2).
-		Height(ui.InputHeight - 2)
+		Height(m.input.Height() - 2)
 	inputPane := inputStyle.Render(m.input.View())
 
 	// Compose right side

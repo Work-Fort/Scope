@@ -14,8 +14,7 @@ const (
 	MinSidebarW  = 20
 
 	HeaderHeight   = 3
-	ChannelHeaderH = 3 // channel name box above messages (mirrors input bar)
-	InputHeight    = 3
+	ChannelHeaderH = 3 // channel name box above messages
 	HelpHeight     = 3
 	PaneGap        = 1 // gap between sidebar and message pane
 	PaneTitleH     = 2 // title line + 1 blank line
@@ -26,7 +25,6 @@ type ChatLayout struct {
 	SidebarW int
 	MessageW int
 	ContentH int // Height available for sidebar and message pane
-	InputH   int
 	HelpH    int
 	TotalW   int
 	TotalH   int
@@ -62,7 +60,6 @@ func CalculateChatLayoutWithSidebar(termW, termH, sidebarOverride int) ChatLayou
 		SidebarW: sidebarW,
 		MessageW: messageW,
 		ContentH: contentH,
-		InputH:   InputHeight,
 		HelpH:    HelpHeight,
 		TotalW:   termW,
 		TotalH:   termH,
