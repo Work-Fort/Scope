@@ -21,6 +21,9 @@ type Client struct {
 	refSeq      atomic.Int64
 	mu          sync.Mutex
 	pendingRefs sync.Map // ref string → request type string
+
+	username string       // stored for reconnect
+	program  *tea.Program // stored for reconnect pump restart
 }
 
 // New creates a new sharkfin client for the given WebSocket URL.
@@ -66,6 +69,7 @@ func (c *Client) Connect() (*Hello, error) {
 // Identify authenticates as an existing user, falling back to register.
 // Writes directly to the connection (WritePump is not yet running during handshake).
 func (c *Client) Identify(username string) error {
+	c.username = username
 	ref := c.nextRef()
 	data, _ := MarshalEnvelope("identify", IdentifyRequest{
 		Username: username,
@@ -110,6 +114,7 @@ func (c *Client) Identify(username string) error {
 
 // ReadPump reads messages from the WebSocket and dispatches them as tea.Msg via p.Send().
 func (c *Client) ReadPump(p *tea.Program) {
+	c.program = p
 	defer func() {
 		c.Close()
 		p.Send(DisconnectedMsg{})
@@ -434,6 +439,50 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 	}
 }
 
+// Reconnect returns a tea.Cmd that attempts to reconnect with exponential backoff.
+// It blocks until a connection is re-established, sending ReconnectingMsg on each attempt.
+func (c *Client) Reconnect() tea.Cmd {
+	return func() tea.Msg {
+		maxDelay := 30 * time.Second
+		delay := time.Second
+
+		for attempt := 1; ; attempt++ {
+			if c.program != nil {
+				c.program.Send(ReconnectingMsg{Attempt: attempt})
+			}
+
+			// Reset internal state for a fresh connection
+			c.closed.Store(false)
+			c.done = make(chan struct{})
+			c.outbound = make(chan []byte, 64)
+			c.pendingRefs = sync.Map{}
+
+			_, err := c.Connect()
+			if err != nil {
+				log.Debug("reconnect dial failed", "attempt", attempt, "err", err)
+				time.Sleep(delay)
+				delay = min(delay*2, maxDelay)
+				continue
+			}
+
+			if err := c.Identify(c.username); err != nil {
+				log.Debug("reconnect identify failed", "attempt", attempt, "err", err)
+				if c.conn != nil {
+					c.conn.Close()
+				}
+				time.Sleep(delay)
+				delay = min(delay*2, maxDelay)
+				continue
+			}
+
+			// Success — restart pumps
+			go c.WritePump()
+			go c.ReadPump(c.program)
+			return ConnectedMsg{}
+		}
+	}
+}
+
 // Tea messages dispatched by the client.
 
 type ConnectedMsg struct{}
@@ -480,4 +529,8 @@ type DMOpenMsg struct {
 	Channel     string
 	Participant string
 	Created     bool
+}
+
+type ReconnectingMsg struct {
+	Attempt int
 }

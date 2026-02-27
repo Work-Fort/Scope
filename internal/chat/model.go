@@ -69,6 +69,9 @@ type ChatModel struct {
 
 	notifSound     audio.Sound // current notification sound
 	pendingJoinCh  string      // channel name to select after join completes
+
+	disconnected     bool // true when WS connection is lost
+	reconnectAttempt int  // current reconnect attempt number
 }
 
 // NewModel creates a ChatModel wired to a sharkfin client.
@@ -262,7 +265,28 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case sharkfin.DisconnectedMsg:
-		// TODO: show disconnect overlay
+		if !m.disconnected {
+			m.disconnected = true
+			m.reconnectAttempt = 0
+			return m, m.client.Reconnect()
+		}
+		return m, nil
+
+	case sharkfin.ReconnectingMsg:
+		m.reconnectAttempt = msg.Attempt
+		return m, nil
+
+	case sharkfin.ConnectedMsg:
+		m.disconnected = false
+		m.reconnectAttempt = 0
+		// Re-fetch all state
+		m.client.RequestChannels()
+		m.client.RequestDMList()
+		m.client.RequestUsers()
+		if m.selectedChannel != "" {
+			m.client.RequestHistory(m.selectedChannel, 0, 50)
+			m.client.RequestUnread(m.selectedChannel)
+		}
 		return m, nil
 	}
 
@@ -823,6 +847,9 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 
 // trySendMessage sends the current input if the channel is writable and has text.
 func (m *ChatModel) trySendMessage() bool {
+	if m.disconnected {
+		return false
+	}
 	canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 	if !canWrite || m.input.Value() == "" {
 		return false
@@ -987,13 +1014,23 @@ func (m ChatModel) View() string {
 	} else {
 		chanLabel = "#" + m.selectedChannel
 	}
+	chanHeaderBorderColor := ui.CurrentTheme.Muted
+	var chanExtra string
+	if m.disconnected {
+		chanHeaderBorderColor = lipgloss.Color("#E05252")
+		status := "Reconnecting"
+		if m.reconnectAttempt > 1 {
+			status = fmt.Sprintf("Reconnecting (attempt %d)", m.reconnectAttempt)
+		}
+		chanExtra = lipgloss.NewStyle().Foreground(lipgloss.Color("#E05252")).Render("  " + status)
+	}
 	chanHeaderStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
+		BorderForeground(chanHeaderBorderColor).
 		Width(layout.MessageW - 2).
 		Height(ui.ChannelHeaderH - 2)
 	chanHeader := chanHeaderStyle.Render(
-		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render(" " + chanLabel),
+		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render(" "+chanLabel) + chanExtra,
 	)
 
 	// Message pane
