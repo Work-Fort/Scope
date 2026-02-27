@@ -483,8 +483,8 @@ func (m *ChatModel) updateLayout() {
 
 	// Inner heights subtract 2 for border, then PaneTitleH for the title+gap rendered inside
 	sidebarInnerH := layout.ContentH - 2 - ui.PaneTitleH
-	msgPaneOuterH := layout.ContentH - ui.InputHeight
-	msgInnerH := msgPaneOuterH - 2 - ui.PaneTitleH
+	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - ui.InputHeight
+	msgInnerH := msgPaneOuterH - 2
 
 	m.channels.SetSize(layout.SidebarW, sidebarInnerH)
 	m.messages.SetSize(layout.MessageW, msgInnerH)
@@ -507,14 +507,23 @@ func (m ChatModel) View() string {
 	sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
 	sidebar := sidebarStyle.Render(sidebarTitle + "\n" + m.channels.View())
 
-	// Message pane
+	// Channel header bar (mirrors input bar)
 	chanLabel := "#" + m.selectedChannel
 	if m.selectedChannel == "" {
 		chanLabel = "No channel"
 	}
-	channelTitle := ui.RenderPaneTitle(" "+chanLabel+" ", m.activePane == PaneInput)
-	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.InputHeight)
-	msgPane := msgStyle.Render(channelTitle + "\n" + m.messages.View())
+	chanHeaderStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		Width(layout.MessageW - 2).
+		Height(ui.ChannelHeaderH - 2)
+	chanHeader := chanHeaderStyle.Render(
+		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render(" " + chanLabel),
+	)
+
+	// Message pane
+	msgStyle := ui.CreatePaneStyle(m.activePane == PaneInput, layout.MessageW, layout.ContentH-ui.ChannelHeaderH-ui.InputHeight)
+	msgPane := msgStyle.Render(m.messages.View())
 
 	// Input bar
 	inputBorder := lipgloss.NormalBorder()
@@ -531,7 +540,7 @@ func (m ChatModel) View() string {
 	inputPane := inputStyle.Render(m.input.View())
 
 	// Compose right side
-	rightPane := lipgloss.JoinVertical(lipgloss.Left, msgPane, inputPane)
+	rightPane := lipgloss.JoinVertical(lipgloss.Left, chanHeader, msgPane, inputPane)
 
 	// Compose main layout
 	gap := strings.Repeat(" ", ui.PaneGap)

@@ -13,11 +13,12 @@ const (
 	SidebarRatio = 0.25
 	MinSidebarW  = 20
 
-	HeaderHeight = 3
-	InputHeight  = 3
-	HelpHeight   = 3
-	PaneGap      = 1 // gap between sidebar and message pane
-	PaneTitleH   = 2 // title line + 1 blank line
+	HeaderHeight   = 3
+	ChannelHeaderH = 3 // channel name box above messages (mirrors input bar)
+	InputHeight    = 3
+	HelpHeight     = 3
+	PaneGap        = 1 // gap between sidebar and message pane
+	PaneTitleH     = 2 // title line + 1 blank line
 )
 
 // ChatLayout holds calculated dimensions for the chat UI.
