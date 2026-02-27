@@ -26,6 +26,7 @@ type SidebarTab int
 const (
 	TabChannels SidebarTab = iota
 	TabDMs
+	TabUsers // TODO: wire up user list panel
 )
 
 // ChatModel is the root Bubble Tea model for the chat UI.
@@ -251,9 +252,12 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "ctrl+a":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.sidebarTab = TabDMs
-		} else {
+		case TabDMs:
+			m.sidebarTab = TabUsers
+		default:
 			m.sidebarTab = TabChannels
 		}
 		m.switchChannel()
@@ -528,26 +532,26 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 
 			if msg.X < layout.SidebarW {
-				// Tab bar is the first row inside the sidebar border
-				tabBarY := contentTop + 1 // border top
-				if msg.Y == tabBarY {
-					// Click on tab bar — determine which tab
-					// Tab bar: " Channels │ DMs"
-					// "Channels" starts at X=2 (border+space), ~10 chars
-					// Separator at ~11, "DMs" starts at ~14
-					relX := msg.X - 1 // subtract border
-					if relX < 11 {
+				// Tab bar buttons span 3 rows inside the sidebar border
+				tabBarTop := contentTop + 1 // after sidebar border
+				tabBarBottom := tabBarTop + 2
+				if msg.Y >= tabBarTop && msg.Y <= tabBarBottom {
+					// Click on tab bar — split into thirds
+					third := layout.SidebarW / 3
+					if msg.X < third {
 						m.sidebarTab = TabChannels
-					} else {
+					} else if msg.X < third*2 {
 						m.sidebarTab = TabDMs
+					} else {
+						m.sidebarTab = TabUsers
 					}
 					m.switchChannel()
 					return m, nil
 				}
 
 				// Click in sidebar list: select item from active tab
-				// Account for border (1) + tab bar (1)
-				row := msg.Y - contentTop - 1 - 1
+				// Account for border (1) + tab bar (3)
+				row := msg.Y - contentTop - 1 - 3
 				if row >= 0 {
 					if m.sidebarTab == TabChannels {
 						m.channels.SelectIndex(row)
@@ -605,9 +609,12 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 	case "ctrl+q":
 		return m, tea.Quit
 	case "ctrl+a":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.sidebarTab = TabDMs
-		} else {
+		case TabDMs:
+			m.sidebarTab = TabUsers
+		default:
 			m.sidebarTab = TabChannels
 		}
 		m.switchChannel()
@@ -748,8 +755,8 @@ func (m *ChatModel) layout() ui.ChatLayout {
 func (m *ChatModel) updateLayout() {
 	layout := m.layout()
 
-	// Inner heights subtract 2 for border, PaneTitleH for tab bar+gap
-	sidebarInnerH := layout.ContentH - 2 - ui.PaneTitleH
+	// Inner heights subtract 2 for sidebar border, 3 for tab bar buttons (bordered)
+	sidebarInnerH := layout.ContentH - 2 - 3
 	inputH := m.input.Height()
 	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - inputH
 	msgInnerH := msgPaneOuterH - 2
@@ -775,12 +782,16 @@ func (m ChatModel) View() string {
 	var sidebar string
 	if !m.sidebarHidden {
 		var listView string
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			listView = m.channels.View()
-		} else {
+		case TabDMs:
 			listView = m.dmList.View()
+		case TabUsers:
+			// TODO: wire up user list panel
+			listView = ui.CurrentTheme.TextDimStyle().Render("  Coming soon")
 		}
-		tabBar := m.renderSidebarTabs(layout.SidebarW - 4) // minus border+padding
+		tabBar := m.renderSidebarTabs(layout.SidebarW - 2) // minus sidebar border
 		sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
 		sidebar = sidebarStyle.Render(tabBar + "\n" + listView)
 	}
@@ -857,8 +868,8 @@ func (m ChatModel) View() string {
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI)
 }
 
-// renderSidebarTabs renders tab labels at the bottom of the sidebar.
-func (m ChatModel) renderSidebarTabs(width int) string {
+// renderSidebarTabs renders tab buttons matching the help bar button style.
+func (m ChatModel) renderSidebarTabs(innerW int) string {
 	activeStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Primary).
 		Bold(true)
@@ -867,28 +878,42 @@ func (m ChatModel) renderSidebarTabs(width int) string {
 	dotStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Accent)
 
-	chLabel := "Channels"
-	dmLabel := "DMs"
-
-	// Add unread dot to inactive tab if it has unreads
-	if m.sidebarTab == TabChannels {
-		chLabel = activeStyle.Render(chLabel)
-		if m.dmList.HasUnreads() {
-			dmLabel = inactiveStyle.Render(dmLabel) + dotStyle.Render("●")
-		} else {
-			dmLabel = inactiveStyle.Render(dmLabel)
-		}
-	} else {
-		dmLabel = activeStyle.Render(dmLabel)
-		if m.channels.HasUnreads() {
-			chLabel = inactiveStyle.Render(chLabel) + dotStyle.Render("●")
-		} else {
-			chLabel = inactiveStyle.Render(chLabel)
-		}
+	type tabDef struct {
+		label     string
+		tab       SidebarTab
+		hasUnread bool
+	}
+	tabs := []tabDef{
+		{"Channels", TabChannels, m.channels.HasUnreads()},
+		{"DMs", TabDMs, m.dmList.HasUnreads()},
+		{"Users", TabUsers, false}, // TODO: wire up user unread indicator
 	}
 
-	sep := inactiveStyle.Render(" │ ")
-	return " " + chLabel + sep + dmLabel
+	// Three equal-width bordered buttons, centered text
+	btnContentW := (innerW - 6) / 3 // 6 = 2 borders per button x 3 buttons
+	if btnContentW < 4 {
+		btnContentW = 4
+	}
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		Width(btnContentW).
+		Align(lipgloss.Center)
+
+	var rendered []string
+	for _, t := range tabs {
+		var text string
+		if m.sidebarTab == t.tab {
+			text = activeStyle.Render(t.label)
+		} else if t.hasUnread {
+			text = inactiveStyle.Render(t.label) + dotStyle.Render(" ●")
+		} else {
+			text = inactiveStyle.Render(t.label)
+		}
+		rendered = append(rendered, btnStyle.Render(text))
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
 }
 
 // isLeakedMouseSeq detects SGR mouse escape sequence fragments that Bubble Tea's

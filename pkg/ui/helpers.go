@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	MinWidth  = 80
+	MinWidth  = 96
 	MinHeight = 24
 
 	SidebarRatio = 0.25
-	MinSidebarW  = 20
+	MinSidebarW  = 48
 
 	HeaderHeight   = 3
 	ChannelHeaderH = 3 // channel name box above messages
