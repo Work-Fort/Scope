@@ -60,8 +60,9 @@ func runChat(cmd *cobra.Command, args []string) error {
 	model := chatui.NewModel(client, user)
 	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 
-	go client.ReadPump(p)
+	// Start pumps before Run() so Init()'s requests can be sent immediately
 	go client.WritePump()
+	go client.ReadPump(p)
 
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("chat exited with error: %w", err)

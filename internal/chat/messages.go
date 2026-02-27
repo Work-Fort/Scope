@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
@@ -19,6 +20,7 @@ type MessagePane struct {
 	width      int
 	height     int
 	autoScroll bool
+	mdRenderer *glamour.TermRenderer
 }
 
 func NewMessagePane() MessagePane {
@@ -32,10 +34,23 @@ func NewMessagePane() MessagePane {
 }
 
 func (mp *MessagePane) SetSize(w, h int) {
+	oldW := mp.width
 	mp.width = w
 	mp.height = h
 	mp.viewport.Width = w - 4 - 1 // border + padding + scrollbar
 	mp.viewport.Height = h
+	// Only recreate markdown renderer when width changes
+	if w != oldW {
+		contentW := w - 4 - 2
+		if contentW < 1 {
+			contentW = 1
+		}
+		r, _ := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(contentW-1), // -1 for left padding
+		)
+		mp.mdRenderer = r
+	}
 	mp.refreshContent()
 }
 
@@ -150,18 +165,24 @@ func (mp *MessagePane) refreshContent() {
 	timeStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.TextDim)
 
-	bodyStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text).
-		PaddingLeft(1).
-		Width(contentW)
-
 	var lines []string
 	for _, m := range msgs {
 		header := fmt.Sprintf(" %s %s",
 			nameStyle.Render(m.From),
 			timeStyle.Render("["+ui.FormatShortDateTime(m.SentAt)+"]"),
 		)
-		body := bodyStyle.Render(m.Body)
+		body := m.Body
+		if mp.mdRenderer != nil {
+			if rendered, err := mp.mdRenderer.Render(body); err == nil {
+				body = strings.TrimRight(rendered, "\n")
+			}
+		}
+		// Indent each line by 1 space
+		indented := make([]string, 0)
+		for _, line := range strings.Split(body, "\n") {
+			indented = append(indented, " "+line)
+		}
+		body = strings.Join(indented, "\n")
 		lines = append(lines, header, body, "")
 	}
 

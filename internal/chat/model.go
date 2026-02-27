@@ -35,10 +35,11 @@ type ChatModel struct {
 	activePane      Pane
 	selectedChannel string
 	username        string
-	users           []sharkfin.User
+	users []sharkfin.User
 
 	lastChannelScroll time.Time
 	loadingHistory    bool
+	historyExhausted  map[string]bool // channels that have no more history to load
 
 	customSidebarW int  // user-dragged sidebar width (0 = auto)
 	dragging       bool // true while dragging the divider
@@ -51,12 +52,13 @@ func NewModel(client *sharkfin.Client, username string) ChatModel {
 	ib := NewInputBar()
 
 	return ChatModel{
-		client:     client,
-		channels:   cl,
-		messages:   mp,
-		input:      ib,
-		activePane: PaneChannels,
-		username:   username,
+		client:           client,
+		channels:         cl,
+		messages:         mp,
+		input:            ib,
+		activePane:       PaneChannels,
+		username:         username,
+		historyExhausted: make(map[string]bool),
 	}
 }
 
@@ -99,8 +101,12 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sharkfin.HistoryMsg:
 		log.Debug("history", "channel", msg.Channel, "count", len(msg.Messages), "scrollback", m.loadingHistory)
 		if m.loadingHistory {
-			// Scrollback: prepend older messages, preserve scroll position
-			m.messages.PrependHistory(msg.Channel, msg.Messages)
+			if len(msg.Messages) == 0 {
+				// No older messages — channel history is fully loaded
+				m.historyExhausted[msg.Channel] = true
+			} else {
+				m.messages.PrependHistory(msg.Channel, msg.Messages)
+			}
 		} else {
 			// Initial load: merge and auto-scroll to bottom
 			m.messages.MergeMessages(msg.Channel, msg.Messages)
@@ -462,6 +468,9 @@ func (m *ChatModel) switchChannel() {
 
 func (m *ChatModel) maybeLoadHistory() {
 	if m.loadingHistory {
+		return
+	}
+	if m.historyExhausted[m.selectedChannel] {
 		return
 	}
 	if !m.messages.AtTop() {
