@@ -26,7 +26,7 @@ type SidebarTab int
 const (
 	TabChannels SidebarTab = iota
 	TabDMs
-	TabUsers // TODO: wire up user list panel
+	TabUsers
 )
 
 // ChatModel is the root Bubble Tea model for the chat UI.
@@ -38,6 +38,7 @@ type ChatModel struct {
 	client   *sharkfin.Client
 	channels ChannelList
 	dmList   DMList
+	userList UserList
 	messages MessagePane
 	input    InputBar
 	modal    *Modal
@@ -63,6 +64,7 @@ type ChatModel struct {
 func NewModel(client *sharkfin.Client, username string) ChatModel {
 	cl := NewChannelList()
 	dl := NewDMList(username)
+	ul := NewUserList(username)
 	mp := NewMessagePane()
 	ib := NewInputBar()
 
@@ -70,6 +72,7 @@ func NewModel(client *sharkfin.Client, username string) ChatModel {
 		client:           client,
 		channels:         cl,
 		dmList:           dl,
+		userList:         ul,
 		messages:         mp,
 		input:            ib,
 		activePane:       PaneChannels,
@@ -124,6 +127,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			if c.ChannelType == "dm" {
 				m.dmList.SetCounts(c.Channel, c.UnreadCount, c.MentionCount)
+				m.userList.SetDMUnread(c.Channel, c.UnreadCount)
 			} else {
 				m.channels.SetCounts(c.Channel, c.UnreadCount, c.MentionCount)
 			}
@@ -176,6 +180,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.dmList.IncrementUnread(msg.Channel)
 				}
+				m.userList.SetDMUnread(msg.Channel, m.dmList.unread[msg.Channel])
 			} else {
 				if isMention {
 					m.channels.IncrementMention(msg.Channel)
@@ -194,10 +199,12 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
+		m.userList.UpdatePresence(msg.Username, msg.Online)
 		return m, nil
 
 	case sharkfin.UserListMsg:
 		m.users = msg.Users
+		m.userList.SetUsers(msg.Users)
 		return m, nil
 
 	case sharkfin.MessageSentMsg:
@@ -206,6 +213,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sharkfin.DMListMsg:
 		log.Debug("dm_list", "count", len(msg.DMs))
 		m.dmList.SetDMs(msg.DMs)
+		m.userList.SetDMMapping(msg.DMs, m.username)
 		if m.sidebarTab == TabDMs && m.selectedChannel != "" {
 			m.dmList.SelectByChannel(m.selectedChannel)
 		}
@@ -216,10 +224,11 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Created {
 			m.client.RequestDMList()
 		}
-		m.sidebarTab = TabDMs
 		m.selectedChannel = msg.Channel
+		// Sync both DM-aware lists without switching tabs
 		m.dmList.SelectByChannel(msg.Channel)
 		m.dmList.ClearUnread(msg.Channel)
+		m.userList.ClearDMUnread(msg.Channel)
 		m.messages.SetChannel(msg.Channel)
 		m.client.RequestHistory(msg.Channel, 0, 50)
 		m.input.SetReadOnly(false)
@@ -282,25 +291,31 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "ctrl+j":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.channels.MoveDown()
-		} else {
+		case TabDMs:
 			m.dmList.MoveDown()
+		case TabUsers:
+			m.userList.MoveDown()
 		}
 		m.switchChannel()
 		return m, nil
 
 	case "ctrl+k":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.channels.MoveUp()
-		} else {
+		case TabDMs:
 			m.dmList.MoveUp()
+		case TabUsers:
+			m.userList.MoveUp()
 		}
 		m.switchChannel()
 		return m, nil
 
 	case "ctrl+l":
-		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+		canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 		if canWrite {
 			m.activePane = PaneInput
 			m.input.Focus()
@@ -346,7 +361,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
-		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+		canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 		if m.activePane == PaneInput && m.input.Value() != "" && canWrite {
 			body := m.input.Value()
 			log.Debug("send_message", "channel", m.selectedChannel, "body", body)
@@ -478,10 +493,13 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.lastChannelScroll = time.Now()
-			if m.sidebarTab == TabChannels {
+			switch m.sidebarTab {
+			case TabChannels:
 				m.channels.MoveUp()
-			} else {
+			case TabDMs:
 				m.dmList.MoveUp()
+			case TabUsers:
+				m.userList.MoveUp()
 			}
 			m.switchChannel()
 		} else {
@@ -502,10 +520,13 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.lastChannelScroll = time.Now()
-			if m.sidebarTab == TabChannels {
+			switch m.sidebarTab {
+			case TabChannels:
 				m.channels.MoveDown()
-			} else {
+			case TabDMs:
 				m.dmList.MoveDown()
+			case TabUsers:
+				m.userList.MoveDown()
 			}
 			m.switchChannel()
 		} else {
@@ -566,10 +587,13 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				// Account for border (1) + tab bar (3)
 				row := msg.Y - contentTop - 1 - 3
 				if row >= 0 {
-					if m.sidebarTab == TabChannels {
+					switch m.sidebarTab {
+					case TabChannels:
 						m.channels.SelectIndex(row)
-					} else {
+					case TabDMs:
 						m.dmList.SelectIndex(row)
+					case TabUsers:
+						m.userList.SelectIndex(row)
 					}
 					m.switchChannel()
 				}
@@ -577,7 +601,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 
 			// Click in right pane — focus input if writable
-			canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+			canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 			if canWrite {
 				m.activePane = PaneInput
 				m.input.Focus()
@@ -648,17 +672,23 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 			m.input.Blur()
 		}
 	case "ctrl+j":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.channels.MoveDown()
-		} else {
+		case TabDMs:
 			m.dmList.MoveDown()
+		case TabUsers:
+			m.userList.MoveDown()
 		}
 		m.switchChannel()
 	case "ctrl+k":
-		if m.sidebarTab == TabChannels {
+		switch m.sidebarTab {
+		case TabChannels:
 			m.channels.MoveUp()
-		} else {
+		case TabDMs:
 			m.dmList.MoveUp()
+		case TabUsers:
+			m.userList.MoveUp()
 		}
 		m.switchChannel()
 	case "ctrl+l":
@@ -686,10 +716,20 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 
 func (m *ChatModel) switchChannel() {
 	var selected string
-	if m.sidebarTab == TabChannels {
+	switch m.sidebarTab {
+	case TabChannels:
 		selected = m.channels.Selected()
-	} else {
+	case TabDMs:
 		selected = m.dmList.Selected()
+	case TabUsers:
+		selected = m.userList.SelectedDMChannel()
+		if selected == "" {
+			// No DM exists yet with this user — open one
+			if user := m.userList.SelectedUsername(); user != "" {
+				m.client.DMOpen(user)
+			}
+			return
+		}
 	}
 	if selected == "" || selected == m.selectedChannel {
 		return
@@ -705,10 +745,14 @@ func (m *ChatModel) switchChannel() {
 	}
 
 	m.selectedChannel = selected
-	if m.sidebarTab == TabChannels {
+	switch m.sidebarTab {
+	case TabChannels:
 		m.channels.ClearUnread(selected)
-	} else {
+	case TabDMs:
 		m.dmList.ClearUnread(selected)
+	case TabUsers:
+		m.dmList.ClearUnread(selected)
+		m.userList.ClearDMUnread(selected)
 	}
 	m.messages.SetChannel(selected)
 	m.loadingHistory = false
@@ -767,6 +811,7 @@ func (m *ChatModel) updateLayout() {
 		sidebarInnerH := layout.ContentH - 2 - 3
 		m.channels.SetSize(layout.SidebarW, sidebarInnerH)
 		m.dmList.SetSize(layout.SidebarW, sidebarInnerH)
+		m.userList.SetSize(layout.SidebarW, sidebarInnerH)
 	}
 
 	inputH := m.input.Height()
@@ -798,8 +843,7 @@ func (m ChatModel) View() string {
 		case TabDMs:
 			listView = m.dmList.View()
 		case TabUsers:
-			// TODO: wire up user list panel
-			listView = ui.CurrentTheme.TextDimStyle().Render("  Coming soon")
+			listView = m.userList.View()
 		}
 		tabBar := m.renderSidebarTabs(layout.SidebarW - 2) // minus sidebar border
 		sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
@@ -812,6 +856,8 @@ func (m ChatModel) View() string {
 		chanLabel = "No channel"
 	} else if m.sidebarTab == TabDMs {
 		chanLabel = m.dmList.Participant()
+	} else if m.sidebarTab == TabUsers {
+		chanLabel = m.userList.SelectedUsername()
 	} else {
 		chanLabel = "#" + m.selectedChannel
 	}
@@ -898,7 +944,7 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 	tabs := []tabDef{
 		{"Channels", TabChannels, m.channels.HasUnreads()},
 		{"DMs", TabDMs, m.dmList.HasUnreads()},
-		{"Users", TabUsers, false}, // TODO: wire up user unread indicator
+		{"Users", TabUsers, false},
 	}
 
 	// Three buttons filling available width (minus 1-col margins on each side)
