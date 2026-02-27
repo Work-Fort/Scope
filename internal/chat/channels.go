@@ -106,6 +106,10 @@ func (cl *ChannelList) ClearUnread(channel string) {
 	delete(cl.mentions, channel)
 }
 
+func (cl *ChannelList) HasUnreads() bool {
+	return len(cl.unread) > 0
+}
+
 func (cl *ChannelList) SelectIndex(i int) {
 	idx := i + cl.scrollOffset
 	if idx >= 0 && idx < len(cl.channels) {

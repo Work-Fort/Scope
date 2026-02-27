@@ -118,6 +118,7 @@ type MarkReadRequest struct {
 // ChannelUnreadCount holds per-channel unread and mention counts.
 type ChannelUnreadCount struct {
 	Channel      string `json:"channel"`
+	ChannelType  string `json:"type"`
 	UnreadCount  int    `json:"unread_count"`
 	MentionCount int    `json:"mention_count"`
 }
@@ -129,13 +130,14 @@ type UnreadCountsResponse struct {
 
 // MessageNewEvent is a server push for new messages.
 type MessageNewEvent struct {
-	ID       int       `json:"id"`
-	Channel  string    `json:"channel"`
-	From     string    `json:"from"`
-	Body     string    `json:"body"`
-	SentAt   time.Time `json:"sent_at"`
-	ThreadID *int      `json:"thread_id,omitempty"`
-	Mentions []string  `json:"mentions,omitempty"`
+	ID          int       `json:"id"`
+	Channel     string    `json:"channel"`
+	ChannelType string    `json:"channel_type"`
+	From        string    `json:"from"`
+	Body        string    `json:"body"`
+	SentAt      time.Time `json:"sent_at"`
+	ThreadID    *int      `json:"thread_id,omitempty"`
+	Mentions    []string  `json:"mentions,omitempty"`
 }
 
 func (e *MessageNewEvent) UnmarshalJSON(data []byte) error {
@@ -164,6 +166,31 @@ type UserListResponse struct {
 type PresenceEvent struct {
 	Username string `json:"username"`
 	Online   bool   `json:"online"`
+}
+
+// DM represents a direct message conversation.
+type DM struct {
+	Channel      string   `json:"channel"`
+	Participant  string   `json:"participant,omitempty"`  // MCP (user-scoped)
+	Participants []string `json:"participants,omitempty"` // WS (admin-scoped)
+	Member       bool     `json:"member"`
+}
+
+// DMListResponse is the payload of a dm_list response.
+type DMListResponse struct {
+	DMs []DM `json:"dms"`
+}
+
+// DMOpenRequest opens or creates a DM with a user.
+type DMOpenRequest struct {
+	Username string `json:"username"`
+}
+
+// DMOpenResponse is the payload of a dm_open response.
+type DMOpenResponse struct {
+	Channel     string `json:"channel"`
+	Participant string `json:"participant"`
+	Created     bool   `json:"created"`
 }
 
 // MarshalEnvelope creates an Envelope with the given type and data payload.

@@ -16,6 +16,7 @@ const (
 	ModalNone ModalType = iota
 	ModalChannelCreate
 	ModalUserInvite
+	ModalDMOpen
 )
 
 // ModalAction identifies a clickable modal button action.
@@ -63,6 +64,9 @@ func NewModal(modalType ModalType) Modal {
 	case ModalUserInvite:
 		ti.Placeholder = "username"
 		ti.Prompt = "  @ "
+	case ModalDMOpen:
+		ti.Placeholder = "username"
+		ti.Prompt = "  @ "
 	}
 
 	return Modal{
@@ -107,6 +111,11 @@ func (m Modal) buttons() []modalButton {
 	case ModalUserInvite:
 		return []modalButton{
 			{key: "Enter", label: "invite", action: ModalActionSubmit},
+			{key: "Esc", label: "cancel", action: ModalActionCancel},
+		}
+	case ModalDMOpen:
+		return []modalButton{
+			{key: "Enter", label: "open", action: ModalActionSubmit},
 			{key: "Esc", label: "cancel", action: ModalActionCancel},
 		}
 	}
@@ -196,6 +205,8 @@ func (m *Modal) View(totalW, totalH int) string {
 		title = "Create Channel"
 	case ModalUserInvite:
 		title = "Invite User"
+	case ModalDMOpen:
+		title = "Direct Message"
 	}
 
 	var content string

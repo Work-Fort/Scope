@@ -20,6 +20,14 @@ const (
 	PaneInput
 )
 
+// SidebarTab identifies which sidebar list is visible.
+type SidebarTab int
+
+const (
+	TabChannels SidebarTab = iota
+	TabDMs
+)
+
 // ChatModel is the root Bubble Tea model for the chat UI.
 type ChatModel struct {
 	width    int
@@ -28,11 +36,13 @@ type ChatModel struct {
 
 	client   *sharkfin.Client
 	channels ChannelList
+	dmList   DMList
 	messages MessagePane
 	input    InputBar
 	modal    *Modal
 
 	activePane      Pane
+	sidebarTab      SidebarTab
 	selectedChannel string
 	username        string
 	users           []sharkfin.User
@@ -48,12 +58,14 @@ type ChatModel struct {
 // NewModel creates a ChatModel wired to a sharkfin client.
 func NewModel(client *sharkfin.Client, username string) ChatModel {
 	cl := NewChannelList()
+	dl := NewDMList(username)
 	mp := NewMessagePane()
 	ib := NewInputBar()
 
 	return ChatModel{
 		client:           client,
 		channels:         cl,
+		dmList:           dl,
 		messages:         mp,
 		input:            ib,
 		activePane:       PaneChannels,
@@ -64,6 +76,7 @@ func NewModel(client *sharkfin.Client, username string) ChatModel {
 
 func (m ChatModel) Init() tea.Cmd {
 	m.client.RequestChannels()
+	m.client.RequestDMList()
 	m.client.RequestUsers()
 	return nil
 }
@@ -102,7 +115,12 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sharkfin.UnreadCountsMsg:
 		log.Debug("unread_counts", "count", len(msg.Counts))
 		for _, c := range msg.Counts {
-			if c.Channel != m.selectedChannel {
+			if c.Channel == m.selectedChannel {
+				continue
+			}
+			if c.ChannelType == "dm" {
+				m.dmList.SetCounts(c.Channel, c.UnreadCount, c.MentionCount)
+			} else {
 				m.channels.SetCounts(c.Channel, c.UnreadCount, c.MentionCount)
 			}
 		}
@@ -143,10 +161,19 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.messages.AppendMessage(msg.Channel, newMsg)
 		if msg.Channel != m.selectedChannel {
-			if containsUser(msg.Mentions, m.username) {
-				m.channels.IncrementMention(msg.Channel)
+			isMention := containsUser(msg.Mentions, m.username)
+			if msg.ChannelType == "dm" {
+				if isMention {
+					m.dmList.IncrementMention(msg.Channel)
+				} else {
+					m.dmList.IncrementUnread(msg.Channel)
+				}
 			} else {
-				m.channels.IncrementUnread(msg.Channel)
+				if isMention {
+					m.channels.IncrementMention(msg.Channel)
+				} else {
+					m.channels.IncrementUnread(msg.Channel)
+				}
 			}
 		}
 		return m, nil
@@ -166,6 +193,26 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case sharkfin.MessageSentMsg:
+		return m, nil
+
+	case sharkfin.DMListMsg:
+		log.Debug("dm_list", "count", len(msg.DMs))
+		m.dmList.SetDMs(msg.DMs)
+		return m, nil
+
+	case sharkfin.DMOpenMsg:
+		log.Debug("dm_open", "channel", msg.Channel, "participant", msg.Participant, "created", msg.Created)
+		if msg.Created {
+			m.client.RequestDMList()
+		}
+		m.sidebarTab = TabDMs
+		m.selectedChannel = msg.Channel
+		m.dmList.ClearUnread(msg.Channel)
+		m.messages.SetChannel(msg.Channel)
+		m.client.RequestHistory(msg.Channel, 0, 50)
+		m.input.SetReadOnly(false)
+		m.activePane = PaneInput
+		m.input.Focus()
 		return m, nil
 
 	case sharkfin.DisconnectedMsg:
@@ -188,18 +235,42 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+q":
 		return m, tea.Quit
 
+	case "ctrl+a":
+		if m.sidebarTab == TabChannels {
+			m.sidebarTab = TabDMs
+		} else {
+			m.sidebarTab = TabChannels
+		}
+		m.switchChannel()
+		return m, nil
+
+	case "ctrl+d":
+		modal := NewModal(ModalDMOpen)
+		m.modal = &modal
+		m.input.Blur()
+		return m, nil
+
 	case "ctrl+j":
-		m.channels.MoveDown()
+		if m.sidebarTab == TabChannels {
+			m.channels.MoveDown()
+		} else {
+			m.dmList.MoveDown()
+		}
 		m.switchChannel()
 		return m, nil
 
 	case "ctrl+k":
-		m.channels.MoveUp()
+		if m.sidebarTab == TabChannels {
+			m.channels.MoveUp()
+		} else {
+			m.dmList.MoveUp()
+		}
 		m.switchChannel()
 		return m, nil
 
 	case "ctrl+l":
-		if m.channels.IsMember() {
+		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+		if canWrite {
 			m.activePane = PaneInput
 			m.input.Focus()
 		}
@@ -232,7 +303,8 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "enter":
-		if m.activePane == PaneInput && m.input.Value() != "" && m.channels.IsMember() {
+		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+		if m.activePane == PaneInput && m.input.Value() != "" && canWrite {
 			body := m.input.Value()
 			log.Debug("send_message", "channel", m.selectedChannel, "body", body)
 			m.client.SendMessage(m.selectedChannel, body)
@@ -295,6 +367,8 @@ func (m *ChatModel) submitModal() {
 		m.client.CreateChannel(m.modal.Value(), m.modal.IsPublic(), nil)
 	case ModalUserInvite:
 		m.client.InviteUser(m.selectedChannel, m.modal.Value())
+	case ModalDMOpen:
+		m.client.DMOpen(m.modal.Value())
 	}
 }
 
@@ -329,7 +403,11 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.lastChannelScroll = time.Now()
-			m.channels.MoveUp()
+			if m.sidebarTab == TabChannels {
+				m.channels.MoveUp()
+			} else {
+				m.dmList.MoveUp()
+			}
 			m.switchChannel()
 		} else {
 			m.messages.ScrollUp(3)
@@ -343,7 +421,11 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.lastChannelScroll = time.Now()
-			m.channels.MoveDown()
+			if m.sidebarTab == TabChannels {
+				m.channels.MoveDown()
+			} else {
+				m.dmList.MoveDown()
+			}
 			m.switchChannel()
 		} else {
 			m.messages.ScrollDown(3)
@@ -374,18 +456,40 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			}
 
 			if msg.X < layout.SidebarW {
-				// Click in sidebar: select channel
-				// Account for header + border (1) + title line (1)
+				// Tab bar is the first row inside the sidebar border
+				tabBarY := contentTop + 1 // border top
+				if msg.Y == tabBarY {
+					// Click on tab bar — determine which tab
+					// Tab bar: " Channels │ DMs"
+					// "Channels" starts at X=2 (border+space), ~10 chars
+					// Separator at ~11, "DMs" starts at ~14
+					relX := msg.X - 1 // subtract border
+					if relX < 11 {
+						m.sidebarTab = TabChannels
+					} else {
+						m.sidebarTab = TabDMs
+					}
+					m.switchChannel()
+					return m, nil
+				}
+
+				// Click in sidebar list: select item from active tab
+				// Account for border (1) + tab bar (1)
 				row := msg.Y - contentTop - 1 - 1
 				if row >= 0 {
-					m.channels.SelectIndex(row)
+					if m.sidebarTab == TabChannels {
+						m.channels.SelectIndex(row)
+					} else {
+						m.dmList.SelectIndex(row)
+					}
 					m.switchChannel()
 				}
 				return m, nil
 			}
 
-			// Click in right pane — focus input if member
-			if m.channels.IsMember() {
+			// Click in right pane — focus input if writable
+			canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
+			if canWrite {
 				m.activePane = PaneInput
 				m.input.Focus()
 			}
@@ -428,11 +532,30 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+q":
 		return m, tea.Quit
+	case "ctrl+a":
+		if m.sidebarTab == TabChannels {
+			m.sidebarTab = TabDMs
+		} else {
+			m.sidebarTab = TabChannels
+		}
+		m.switchChannel()
+	case "ctrl+d":
+		modal := NewModal(ModalDMOpen)
+		m.modal = &modal
+		m.input.Blur()
 	case "ctrl+j":
-		m.channels.MoveDown()
+		if m.sidebarTab == TabChannels {
+			m.channels.MoveDown()
+		} else {
+			m.dmList.MoveDown()
+		}
 		m.switchChannel()
 	case "ctrl+k":
-		m.channels.MoveUp()
+		if m.sidebarTab == TabChannels {
+			m.channels.MoveUp()
+		} else {
+			m.dmList.MoveUp()
+		}
 		m.switchChannel()
 	case "ctrl+l":
 		m.activePane = PaneInput
@@ -458,27 +581,40 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 }
 
 func (m *ChatModel) switchChannel() {
-	selected := m.channels.Selected()
-	if selected != m.selectedChannel {
-		log.Debug("switch_channel", "from", m.selectedChannel, "to", selected)
+	var selected string
+	if m.sidebarTab == TabChannels {
+		selected = m.channels.Selected()
+	} else {
+		selected = m.dmList.Selected()
+	}
+	if selected == "" || selected == m.selectedChannel {
+		return
+	}
 
-		// Advance server-side read cursor
-		if latestID := m.messages.LatestID(selected); latestID > 0 {
-			m.client.MarkRead(selected, &latestID)
-		} else {
-			m.client.MarkRead(selected, nil)
-		}
+	log.Debug("switch_channel", "from", m.selectedChannel, "to", selected, "tab", m.sidebarTab)
 
-		m.selectedChannel = selected
+	// Advance server-side read cursor
+	if latestID := m.messages.LatestID(selected); latestID > 0 {
+		m.client.MarkRead(selected, &latestID)
+	} else {
+		m.client.MarkRead(selected, nil)
+	}
+
+	m.selectedChannel = selected
+	if m.sidebarTab == TabChannels {
 		m.channels.ClearUnread(selected)
-		m.messages.SetChannel(selected)
-		m.loadingHistory = false
-		// Load recent history if no messages cached for this channel
-		if m.messages.OldestID(selected) == 0 {
-			m.client.RequestHistory(selected, 0, 50)
-		}
-		m.client.RequestUnread(selected)
-		// Disable input for non-member (read-only) channels
+	} else {
+		m.dmList.ClearUnread(selected)
+	}
+	m.messages.SetChannel(selected)
+	m.loadingHistory = false
+	// Load recent history if no messages cached for this channel
+	if m.messages.OldestID(selected) == 0 {
+		m.client.RequestHistory(selected, 0, 50)
+	}
+	m.client.RequestUnread(selected)
+	// DMs are always member; channels check membership
+	if m.sidebarTab == TabChannels {
 		readOnly := !m.channels.IsMember()
 		m.input.SetReadOnly(readOnly)
 		if readOnly {
@@ -488,6 +624,8 @@ func (m *ChatModel) switchChannel() {
 				m.activePane = PaneChannels
 			}
 		}
+	} else {
+		m.input.SetReadOnly(false)
 	}
 }
 
@@ -515,12 +653,13 @@ func (m *ChatModel) layout() ui.ChatLayout {
 func (m *ChatModel) updateLayout() {
 	layout := m.layout()
 
-	// Inner heights subtract 2 for border, then PaneTitleH for the title+gap rendered inside
+	// Inner heights subtract 2 for border, PaneTitleH for tab bar+gap
 	sidebarInnerH := layout.ContentH - 2 - ui.PaneTitleH
 	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - ui.InputHeight
 	msgInnerH := msgPaneOuterH - 2
 
 	m.channels.SetSize(layout.SidebarW, sidebarInnerH)
+	m.dmList.SetSize(layout.SidebarW, sidebarInnerH)
 	m.messages.SetSize(layout.MessageW, msgInnerH)
 	m.input.SetWidth(layout.MessageW - 2) // minus border
 }
@@ -536,15 +675,25 @@ func (m ChatModel) View() string {
 
 	layout := m.layout()
 
-	// Sidebar
-	sidebarTitle := ui.RenderPaneTitle(" Channels ", m.activePane == PaneChannels)
+	// Sidebar — tab bar as title, content based on active tab
+	var listView string
+	if m.sidebarTab == TabChannels {
+		listView = m.channels.View()
+	} else {
+		listView = m.dmList.View()
+	}
+	tabBar := m.renderSidebarTabs(layout.SidebarW - 4) // minus border+padding
 	sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
-	sidebar := sidebarStyle.Render(sidebarTitle + "\n" + m.channels.View())
+	sidebar := sidebarStyle.Render(tabBar + "\n" + listView)
 
 	// Channel header bar (mirrors input bar)
-	chanLabel := "#" + m.selectedChannel
+	var chanLabel string
 	if m.selectedChannel == "" {
 		chanLabel = "No channel"
+	} else if m.sidebarTab == TabDMs {
+		chanLabel = m.dmList.Participant()
+	} else {
+		chanLabel = "#" + m.selectedChannel
 	}
 	chanHeaderStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
@@ -602,6 +751,40 @@ func (m ChatModel) View() string {
 
 	// Place constrains output to exact terminal dimensions
 	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, fullUI)
+}
+
+// renderSidebarTabs renders tab labels at the bottom of the sidebar.
+func (m ChatModel) renderSidebarTabs(width int) string {
+	activeStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Primary).
+		Bold(true)
+	inactiveStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.TextDim)
+	dotStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Accent)
+
+	chLabel := "Channels"
+	dmLabel := "DMs"
+
+	// Add unread dot to inactive tab if it has unreads
+	if m.sidebarTab == TabChannels {
+		chLabel = activeStyle.Render(chLabel)
+		if m.dmList.HasUnreads() {
+			dmLabel = inactiveStyle.Render(dmLabel) + dotStyle.Render("●")
+		} else {
+			dmLabel = inactiveStyle.Render(dmLabel)
+		}
+	} else {
+		dmLabel = activeStyle.Render(dmLabel)
+		if m.channels.HasUnreads() {
+			chLabel = inactiveStyle.Render(chLabel) + dotStyle.Render("●")
+		} else {
+			chLabel = inactiveStyle.Render(chLabel)
+		}
+	}
+
+	sep := inactiveStyle.Render(" │ ")
+	return " " + chLabel + sep + dmLabel
 }
 
 // isLeakedMouseSeq detects SGR mouse escape sequence fragments that Bubble Tea's

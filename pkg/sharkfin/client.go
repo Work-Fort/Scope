@@ -229,6 +229,18 @@ func (c *Client) RequestUnreadCounts() {
 	c.send("unread_counts", nil)
 }
 
+// RequestDMList requests the DM conversation list.
+func (c *Client) RequestDMList() {
+	c.send("dm_list", nil)
+}
+
+// DMOpen opens or creates a DM with the given user.
+func (c *Client) DMOpen(username string) {
+	c.send("dm_open", DMOpenRequest{
+		Username: username,
+	})
+}
+
 // MarkRead advances the read cursor for a channel.
 func (c *Client) MarkRead(channel string, messageID *int) {
 	c.send("mark_read", MarkReadRequest{
@@ -387,6 +399,22 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 	case "mark_read":
 		return nil
 
+	case "dm_list":
+		resp, err := ParseData[DMListResponse](env)
+		if err != nil {
+			log.Error("parse dm_list reply", "err", err)
+			return nil
+		}
+		return DMListMsg{DMs: resp.DMs}
+
+	case "dm_open":
+		resp, err := ParseData[DMOpenResponse](env)
+		if err != nil {
+			log.Error("parse dm_open reply", "err", err)
+			return nil
+		}
+		return DMOpenMsg{Channel: resp.Channel, Participant: resp.Participant, Created: resp.Created}
+
 	default:
 		log.Debug("unhandled reply type", "reqType", reqType, "ref", env.Ref)
 		return nil
@@ -427,4 +455,14 @@ type MessageSentMsg struct{}
 
 type UnreadCountsMsg struct {
 	Counts []ChannelUnreadCount
+}
+
+type DMListMsg struct {
+	DMs []DM
+}
+
+type DMOpenMsg struct {
+	Channel     string
+	Participant string
+	Created     bool
 }
