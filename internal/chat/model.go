@@ -302,6 +302,12 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.messages.ScrollDown(1)
 		return m, nil
 
+	case "tab":
+		if m.activePane == PaneInput {
+			m.input.TryComplete(m.usernameList())
+			return m, nil
+		}
+
 	case "enter":
 		canWrite := m.sidebarTab == TabDMs || m.channels.IsMember()
 		if m.activePane == PaneInput && m.input.Value() != "" && canWrite {
@@ -806,6 +812,14 @@ func isLeakedMouseSeq(s string) bool {
 	}
 	// Partial sequence (no trailing M/m yet) — still drop it
 	return len(s) > 2
+}
+
+func (m *ChatModel) usernameList() []string {
+	names := make([]string, len(m.users))
+	for i, u := range m.users {
+		names[i] = u.Username
+	}
+	return names
 }
 
 func containsUser(mentions []string, username string) bool {
