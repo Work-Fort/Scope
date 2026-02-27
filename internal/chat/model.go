@@ -52,6 +52,7 @@ type ChatModel struct {
 	historyExhausted  map[string]bool // channels that have no more history to load
 
 	customSidebarW int  // user-dragged sidebar width (0 = auto)
+	sidebarHidden  bool // true when sidebar is toggled off (Ctrl+R)
 	dragging       bool // true while dragging the divider
 }
 
@@ -234,6 +235,11 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+q":
 		return m, tea.Quit
+
+	case "ctrl+r":
+		m.sidebarHidden = !m.sidebarHidden
+		m.updateLayout()
+		return m, nil
 
 	case "ctrl+a":
 		if m.sidebarTab == TabChannels {
@@ -469,10 +475,12 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		switch msg.Action {
 		case tea.MouseActionPress:
 			// Check if pressing on the divider gap (±1 char hit zone)
-			gap := layout.SidebarW
-			if msg.X >= gap-1 && msg.X <= gap+1 {
-				m.dragging = true
-				return m, nil
+			if !m.sidebarHidden {
+				gap := layout.SidebarW
+				if msg.X >= gap-1 && msg.X <= gap+1 {
+					m.dragging = true
+					return m, nil
+				}
 			}
 
 			contentTop := ui.HeaderHeight
@@ -572,6 +580,9 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 			m.sidebarTab = TabChannels
 		}
 		m.switchChannel()
+	case "ctrl+r":
+		m.sidebarHidden = !m.sidebarHidden
+		m.updateLayout()
 	case "ctrl+d":
 		modal := NewModal(ModalDMOpen)
 		m.modal = &modal
@@ -689,6 +700,17 @@ func (m *ChatModel) maybeLoadHistory() {
 }
 
 func (m *ChatModel) layout() ui.ChatLayout {
+	if m.sidebarHidden {
+		contentH := m.height - ui.HeaderHeight - ui.HelpHeight
+		return ui.ChatLayout{
+			SidebarW: 0,
+			MessageW: m.width,
+			ContentH: contentH,
+			HelpH:    ui.HelpHeight,
+			TotalW:   m.width,
+			TotalH:   m.height,
+		}
+	}
 	return ui.CalculateChatLayoutWithSidebar(m.width, m.height, m.customSidebarW)
 }
 
@@ -719,15 +741,18 @@ func (m ChatModel) View() string {
 	layout := m.layout()
 
 	// Sidebar — tab bar as title, content based on active tab
-	var listView string
-	if m.sidebarTab == TabChannels {
-		listView = m.channels.View()
-	} else {
-		listView = m.dmList.View()
+	var sidebar string
+	if !m.sidebarHidden {
+		var listView string
+		if m.sidebarTab == TabChannels {
+			listView = m.channels.View()
+		} else {
+			listView = m.dmList.View()
+		}
+		tabBar := m.renderSidebarTabs(layout.SidebarW - 4) // minus border+padding
+		sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
+		sidebar = sidebarStyle.Render(tabBar + "\n" + listView)
 	}
-	tabBar := m.renderSidebarTabs(layout.SidebarW - 4) // minus border+padding
-	sidebarStyle := ui.CreatePaneStyle(m.activePane == PaneChannels, layout.SidebarW, layout.ContentH)
-	sidebar := sidebarStyle.Render(tabBar + "\n" + listView)
 
 	// Channel header bar (mirrors input bar)
 	var chanLabel string
@@ -769,8 +794,13 @@ func (m ChatModel) View() string {
 	rightPane := lipgloss.JoinVertical(lipgloss.Left, chanHeader, msgPane, inputPane)
 
 	// Compose main layout
-	gap := strings.Repeat(" ", ui.PaneGap)
-	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, gap, rightPane)
+	var mainContent string
+	if m.sidebarHidden {
+		mainContent = rightPane
+	} else {
+		gap := strings.Repeat(" ", ui.PaneGap)
+		mainContent = lipgloss.JoinHorizontal(lipgloss.Top, sidebar, gap, rightPane)
+	}
 
 	// Header bar
 	headerStyle := lipgloss.NewStyle().
