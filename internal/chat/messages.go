@@ -41,7 +41,7 @@ func (mp *MessagePane) SetSize(w, h int) {
 	mp.viewport.Height = h
 	// Only recreate markdown renderer when width changes
 	if w != oldW {
-		contentW := w - 4 - 2
+		contentW := w - 4 - 1
 		if contentW < 1 {
 			contentW = 1
 		}
@@ -162,7 +162,7 @@ func (mp *MessagePane) refreshContent() {
 		return
 	}
 
-	contentW := mp.width - 4 - 2 // border + padding + scrollbar gap
+	contentW := mp.width - 4 - 1 // border + padding + scrollbar gap
 	if contentW < 1 {
 		contentW = 1
 	}
