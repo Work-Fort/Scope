@@ -510,7 +510,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 		switch msg.Action {
 		case tea.MouseActionPress:
 			// Check if pressing on the divider gap (±1 char hit zone)
-			if !m.sidebarHidden {
+			if !layout.Skinny && !m.sidebarHidden {
 				gap := layout.SidebarW
 				if msg.X >= gap-1 && msg.X <= gap+1 {
 					m.dragging = true
@@ -738,31 +738,28 @@ func (m *ChatModel) maybeLoadHistory() {
 }
 
 func (m *ChatModel) layout() ui.ChatLayout {
-	if m.sidebarHidden {
-		contentH := m.height - ui.HeaderHeight - ui.HelpHeight
-		return ui.ChatLayout{
-			SidebarW: 0,
-			MessageW: m.width,
-			ContentH: contentH,
-			HelpH:    ui.HelpHeight,
-			TotalW:   m.width,
-			TotalH:   m.height,
-		}
+	l := ui.CalculateChatLayoutWithSidebar(m.width, m.height, m.customSidebarW)
+	if !l.Skinny && m.sidebarHidden {
+		l.SidebarW = 0
+		l.MessageW = m.width
 	}
-	return ui.CalculateChatLayoutWithSidebar(m.width, m.height, m.customSidebarW)
+	return l
 }
 
 func (m *ChatModel) updateLayout() {
 	layout := m.layout()
 
-	// Inner heights subtract 2 for sidebar border, 3 for tab bar buttons (bordered)
-	sidebarInnerH := layout.ContentH - 2 - 3
+	if layout.SidebarW > 0 {
+		// Inner heights subtract 2 for sidebar border, 3 for tab bar buttons (bordered)
+		sidebarInnerH := layout.ContentH - 2 - 3
+		m.channels.SetSize(layout.SidebarW, sidebarInnerH)
+		m.dmList.SetSize(layout.SidebarW, sidebarInnerH)
+	}
+
 	inputH := m.input.Height()
 	msgPaneOuterH := layout.ContentH - ui.ChannelHeaderH - inputH
 	msgInnerH := msgPaneOuterH - 2
 
-	m.channels.SetSize(layout.SidebarW, sidebarInnerH)
-	m.dmList.SetSize(layout.SidebarW, sidebarInnerH)
 	m.messages.SetSize(layout.MessageW, msgInnerH)
 	m.input.SetWidth(layout.MessageW - 2) // minus border
 }
@@ -780,7 +777,7 @@ func (m ChatModel) View() string {
 
 	// Sidebar — tab bar as title, content based on active tab
 	var sidebar string
-	if !m.sidebarHidden {
+	if !layout.Skinny && !m.sidebarHidden {
 		var listView string
 		switch m.sidebarTab {
 		case TabChannels:
@@ -837,7 +834,7 @@ func (m ChatModel) View() string {
 
 	// Compose main layout
 	var mainContent string
-	if m.sidebarHidden {
+	if layout.Skinny || m.sidebarHidden {
 		mainContent = rightPane
 	} else {
 		gap := strings.Repeat(" ", ui.PaneGap)
@@ -854,10 +851,14 @@ func (m ChatModel) View() string {
 		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
 	)
 
-	// Help bar
-	helpBar := ChatKeyBindings().Render()
-
-	fullUI := lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)
+	// Help bar — hidden in skinny mode
+	var fullUI string
+	if layout.Skinny {
+		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent)
+	} else {
+		helpBar := ChatKeyBindings().Render()
+		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)
+	}
 
 	// Modal overlay
 	if m.modal != nil {
@@ -889,19 +890,24 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 		{"Users", TabUsers, false}, // TODO: wire up user unread indicator
 	}
 
-	// Three equal-width bordered buttons, centered text
-	btnContentW := (innerW - 6) / 3 // 6 = 2 borders per button x 3 buttons
+	// Three buttons filling available width (minus 1-col margins on each side)
+	available := innerW - 2 // 1 left margin + 1 right margin
+	btnContentW := (available - 6) / 3 // 6 = 2 border chars per button x 3
+	remainder := (available - 6) % 3
 	if btnContentW < 4 {
 		btnContentW = 4
 	}
-	btnStyle := lipgloss.NewStyle().
+	baseBtnStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(ui.CurrentTheme.Muted).
-		Width(btnContentW).
 		Align(lipgloss.Center)
 
 	var rendered []string
-	for _, t := range tabs {
+	for i, t := range tabs {
+		w := btnContentW
+		if i == len(tabs)-1 {
+			w += remainder // last button absorbs integer division slack
+		}
 		var text string
 		if m.sidebarTab == t.tab {
 			text = activeStyle.Render(t.label)
@@ -910,10 +916,11 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 		} else {
 			text = inactiveStyle.Render(t.label)
 		}
-		rendered = append(rendered, btnStyle.Render(text))
+		rendered = append(rendered, baseBtnStyle.Width(w).Render(text))
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
+	bar := lipgloss.JoinHorizontal(lipgloss.Top, rendered...)
+	return lipgloss.NewStyle().MarginLeft(1).MarginRight(1).Render(bar)
 }
 
 // isLeakedMouseSeq detects SGR mouse escape sequence fragments that Bubble Tea's

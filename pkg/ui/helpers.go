@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	MinWidth  = 96
-	MinHeight = 24
+	MinWidth    = 40
+	MinHeight   = 12
+	SkinnyWidth = 96 // below this, sidebar and help bar buttons are hidden
 
 	SidebarRatio = 0.25
 	MinSidebarW  = 48
@@ -28,6 +29,7 @@ type ChatLayout struct {
 	HelpH    int
 	TotalW   int
 	TotalH   int
+	Skinny   bool // true when terminal is too narrow for sidebar/help buttons
 }
 
 // CalculateChatLayout computes panel dimensions from terminal size.
@@ -38,6 +40,22 @@ func CalculateChatLayout(termW, termH int) ChatLayout {
 // CalculateChatLayoutWithSidebar computes panel dimensions with an optional
 // sidebar width override. Pass 0 to use the default ratio-based calculation.
 func CalculateChatLayoutWithSidebar(termW, termH, sidebarOverride int) ChatLayout {
+	skinny := termW < SkinnyWidth
+
+	if skinny {
+		// Skinny mode: no sidebar, no help bar
+		contentH := termH - HeaderHeight
+		return ChatLayout{
+			SidebarW: 0,
+			MessageW: termW,
+			ContentH: contentH,
+			HelpH:    0,
+			TotalW:   termW,
+			TotalH:   termH,
+			Skinny:   true,
+		}
+	}
+
 	sidebarW := sidebarOverride
 	if sidebarW <= 0 {
 		sidebarW = int(float64(termW) * SidebarRatio)
