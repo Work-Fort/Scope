@@ -20,6 +20,8 @@ const (
 	PaneInput
 )
 
+const inputBtnW = 15 // width reserved for two bordered action buttons beside input
+
 // SidebarTab identifies which sidebar list is visible.
 type SidebarTab int
 
@@ -361,18 +363,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
-		canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
-		if m.activePane == PaneInput && m.input.Value() != "" && canWrite {
-			body := m.input.Value()
-			log.Debug("send_message", "channel", m.selectedChannel, "body", body)
-			m.client.SendMessage(m.selectedChannel, body)
-			// Append locally — server doesn't echo message.new to sender
-			m.messages.AppendMessage(m.selectedChannel, sharkfin.Message{
-				From:   m.username,
-				Body:   body,
-				SentAt: time.Now().UTC(),
-			})
-			m.input.Reset()
+		if m.activePane == PaneInput && m.trySendMessage() {
 			return m, nil
 		}
 		if m.activePane == PaneChannels {
@@ -600,6 +591,25 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
+			// Check for action button clicks (bordered mic/send beside input)
+			rightPaneX := layout.SidebarW + ui.PaneGap
+			if layout.Skinny || m.sidebarHidden {
+				rightPaneX = 0
+			}
+			btnAreaX := rightPaneX + layout.MessageW - inputBtnW
+			inputBottom := contentTop + layout.ContentH
+			// Buttons are 3 rows tall (border+content+border), bottom-aligned
+			btnTop := inputBottom - 3
+			if msg.X >= btnAreaX && msg.Y >= btnTop && msg.Y < inputBottom {
+				// Each bordered button is 7 wide (border+Width(5)+border)
+				// 1 space gap before buttons, so send starts at offset 1+7=8
+				if msg.X >= btnAreaX+8 {
+					m.trySendMessage()
+				}
+				// Mic button (left) — unwired
+				return m, nil
+			}
+
 			// Click in right pane — focus input if writable
 			canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 			if canWrite {
@@ -714,6 +724,24 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// trySendMessage sends the current input if the channel is writable and has text.
+func (m *ChatModel) trySendMessage() bool {
+	canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
+	if !canWrite || m.input.Value() == "" {
+		return false
+	}
+	body := m.input.Value()
+	log.Debug("send_message", "channel", m.selectedChannel, "body", body)
+	m.client.SendMessage(m.selectedChannel, body)
+	m.messages.AppendMessage(m.selectedChannel, sharkfin.Message{
+		From:   m.username,
+		Body:   body,
+		SentAt: time.Now().UTC(),
+	})
+	m.input.Reset()
+	return true
+}
+
 func (m *ChatModel) switchChannel() {
 	var selected string
 	switch m.sidebarTab {
@@ -819,7 +847,7 @@ func (m *ChatModel) updateLayout() {
 	msgInnerH := msgPaneOuterH - 2
 
 	m.messages.SetSize(layout.MessageW, msgInnerH)
-	m.input.SetWidth(layout.MessageW - 2) // minus border
+	m.input.SetWidth(layout.MessageW - 2 - inputBtnW) // minus border minus action buttons
 }
 
 func (m ChatModel) View() string {
@@ -884,9 +912,26 @@ func (m ChatModel) View() string {
 	inputStyle := lipgloss.NewStyle().
 		Border(inputBorder).
 		BorderForeground(inputBorderColor).
-		Width(layout.MessageW - 2).
+		Width(layout.MessageW - 2 - inputBtnW).
 		Height(m.input.Height() - 2)
-	inputPane := inputStyle.Render(m.input.View())
+	inputBox := inputStyle.Render(m.input.View())
+
+	// Action buttons (mic + send) beside input, bordered like help bar
+	canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
+	hasText := m.input.Value() != ""
+	sendColor := ui.CurrentTheme.Muted
+	if canWrite && hasText {
+		sendColor = ui.CurrentTheme.Primary
+	}
+	btnStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(ui.CurrentTheme.Muted).
+		Width(5).
+		Align(lipgloss.Center)
+	micBtn := btnStyle.Foreground(ui.CurrentTheme.TextDim).Render("󰍬")
+	sendBtn := btnStyle.BorderForeground(sendColor).Foreground(sendColor).Render("󰒊")
+	btnGroup := lipgloss.JoinHorizontal(lipgloss.Top, micBtn, sendBtn)
+	inputPane := lipgloss.JoinHorizontal(lipgloss.Bottom, inputBox, " ", btnGroup)
 
 	// Compose right side
 	rightPane := lipgloss.JoinVertical(lipgloss.Left, chanHeader, msgPane, inputPane)
