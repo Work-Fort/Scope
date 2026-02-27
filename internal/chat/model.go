@@ -251,9 +251,14 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "ctrl+s":
-		modal := NewModal(ModalShortcuts)
-		m.modal = &modal
-		m.input.Blur()
+		if m.modal != nil && m.modal.Type == ModalShortcuts {
+			m.modal = nil
+			m.input.Focus()
+		} else {
+			modal := NewModal(ModalShortcuts)
+			m.modal = &modal
+			m.input.Blur()
+		}
 		return m, nil
 
 	case "ctrl+j":
@@ -359,7 +364,15 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "esc":
 		m.modal = nil
+		m.input.Focus()
 		return m, nil
+
+	case "ctrl+s":
+		if m.modal.Type == ModalShortcuts {
+			m.modal = nil
+			m.input.Focus()
+			return m, nil
+		}
 
 	case "enter":
 		if m.modal.Value() != "" {
@@ -564,9 +577,14 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		m.modal = &modal
 		m.input.Blur()
 	case "ctrl+s":
-		modal := NewModal(ModalShortcuts)
-		m.modal = &modal
-		m.input.Blur()
+		if m.modal != nil && m.modal.Type == ModalShortcuts {
+			m.modal = nil
+			m.input.Focus()
+		} else {
+			modal := NewModal(ModalShortcuts)
+			m.modal = &modal
+			m.input.Blur()
+		}
 	case "ctrl+j":
 		if m.sidebarTab == TabChannels {
 			m.channels.MoveDown()
