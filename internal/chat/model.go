@@ -8,6 +8,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 
+	"github.com/spf13/viper"
+
+	"github.com/Work-Fort/WorkFort/pkg/audio"
+	"github.com/Work-Fort/WorkFort/pkg/config"
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -60,6 +64,8 @@ type ChatModel struct {
 	sidebarHidden  bool // true when sidebar is toggled off (Ctrl+R)
 	dragging       bool // true while dragging the divider
 	lastMouseY     int  // last known mouse Y position from tea.MouseMsg
+
+	notifSound audio.Sound // current notification sound
 }
 
 // NewModel creates a ChatModel wired to a sharkfin client.
@@ -80,6 +86,7 @@ func NewModel(client *sharkfin.Client, username string) ChatModel {
 		activePane:       PaneChannels,
 		username:         username,
 		historyExhausted: make(map[string]bool),
+		notifSound:       audio.Sound(viper.GetString("notification-sound")),
 	}
 }
 
@@ -175,6 +182,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.messages.AppendMessage(msg.Channel, newMsg)
 		if msg.Channel != m.selectedChannel {
+			audio.Play(m.notifSound)
 			isMention := containsUser(msg.Mentions, m.username)
 			if msg.ChannelType == "dm" {
 				if isMention {
@@ -257,6 +265,12 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+q":
 		return m, tea.Quit
+
+	case "ctrl+,":
+		modal := NewSettingsModal(m.notifSound)
+		m.modal = &modal
+		m.input.Blur()
+		return m, nil
 
 	case "ctrl+r":
 		m.sidebarHidden = !m.sidebarHidden
@@ -424,11 +438,31 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
+		if m.modal.Type == ModalSettings {
+			m.submitModal()
+			m.modal = nil
+			m.input.Focus()
+			return m, nil
+		}
 		if m.modal.Value() != "" {
 			m.submitModal()
 			m.modal = nil
 		}
 		return m, nil
+
+	case "up", "k":
+		if m.modal.Type == ModalSettings {
+			m.modal.SoundCursorUp()
+			audio.Play(m.modal.SelectedSound())
+			return m, nil
+		}
+
+	case "down", "j":
+		if m.modal.Type == ModalSettings {
+			m.modal.SoundCursorDown()
+			audio.Play(m.modal.SelectedSound())
+			return m, nil
+		}
 
 	case "tab":
 		if m.modal.Type == ModalChannelCreate {
@@ -439,7 +473,7 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.modal.Type != ModalShortcuts {
+	if m.modal.Type != ModalShortcuts && m.modal.Type != ModalSettings {
 		m.modal.UpdateTextInput(msg)
 	}
 	return m, nil
@@ -453,6 +487,11 @@ func (m *ChatModel) submitModal() {
 		m.client.InviteUser(m.selectedChannel, m.modal.Value())
 	case ModalDMOpen:
 		m.client.DMOpen(m.modal.Value())
+	case ModalSettings:
+		m.notifSound = m.modal.SelectedSound()
+		if err := config.SaveSetting("notification-sound", string(m.notifSound)); err != nil {
+			log.Error("failed to save notification sound setting", "err", err)
+		}
 	}
 }
 
@@ -462,12 +501,19 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modal click handling
 	if m.modal != nil {
 		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			// Sound selector click
+			if idx := m.modal.SoundHitTest(msg.X, msg.Y); idx >= 0 {
+				m.modal.soundCursor = idx
+				audio.Play(m.modal.SelectedSound())
+				return m, nil
+			}
 			action := m.modal.HitTest(msg.X, msg.Y)
 			switch action {
 			case ModalActionSubmit:
-				if m.modal.Value() != "" {
+				if m.modal.Type == ModalSettings || m.modal.Value() != "" {
 					m.submitModal()
 					m.modal = nil
+					m.input.Focus()
 				}
 			case ModalActionToggle:
 				if m.modal.Type == ModalChannelCreate {
@@ -475,6 +521,7 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				}
 			case ModalActionCancel:
 				m.modal = nil
+				m.input.Focus()
 			}
 		}
 		return m, nil
@@ -718,6 +765,10 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		m.input.Blur()
 	case "ctrl+u":
 		modal := NewModal(ModalUserInvite)
+		m.modal = &modal
+		m.input.Blur()
+	case "ctrl+,":
+		modal := NewSettingsModal(m.notifSound)
 		m.modal = &modal
 		m.input.Blur()
 	case "ctrl+up":

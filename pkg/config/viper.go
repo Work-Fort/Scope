@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -17,6 +18,7 @@ func InitViper() {
 	viper.SetDefault("log-level", "debug")
 	viper.SetDefault("sharkfin-host", "ws://127.0.0.1:16000/ws")
 	viper.SetDefault("username", "")
+	viper.SetDefault("notification-sound", "tone")
 
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
@@ -71,4 +73,11 @@ func GetUseTUI() bool {
 
 func GetLogLevel() string {
 	return viper.GetString("log-level")
+}
+
+// SaveSetting sets a key in viper and persists it to the user config file.
+func SaveSetting(key, value string) error {
+	viper.Set(key, value)
+	configPath := filepath.Join(GlobalPaths.ConfigDir, UserConfigFileName+"."+ConfigType)
+	return viper.WriteConfigAs(configPath)
 }

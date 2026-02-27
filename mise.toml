@@ -22,7 +22,7 @@ outputs = ["{{env.BUILD_DIR}}/{{env.BINARY_NAME}}"]
 run = """
 mkdir -p ${BUILD_DIR}
 VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
-CGO_ENABLED=0 go build -ldflags "-s -w -X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
+go build -ldflags "-s -w -X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
 """
 
 [tasks."install:local"]
