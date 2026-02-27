@@ -110,6 +110,37 @@ func (cl *ChannelList) HasUnreads() bool {
 	return len(cl.unread) > 0
 }
 
+// Names returns all channel names.
+func (cl *ChannelList) Names() []string {
+	names := make([]string, len(cl.channels))
+	for i, ch := range cl.channels {
+		names[i] = ch.Name
+	}
+	return names
+}
+
+// FindByName returns the channel and true if found, or zero value and false.
+func (cl *ChannelList) FindByName(name string) (sharkfin.Channel, bool) {
+	for _, ch := range cl.channels {
+		if ch.Name == name {
+			return ch, true
+		}
+	}
+	return sharkfin.Channel{}, false
+}
+
+// SelectByName selects a channel by name. Returns true if found.
+func (cl *ChannelList) SelectByName(name string) bool {
+	for i, ch := range cl.channels {
+		if ch.Name == name {
+			cl.cursor = i
+			cl.ensureCursorVisible()
+			return true
+		}
+	}
+	return false
+}
+
 func (cl *ChannelList) SelectIndex(i int) {
 	idx := i + cl.scrollOffset
 	if idx >= 0 && idx < len(cl.channels) {

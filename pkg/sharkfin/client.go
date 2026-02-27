@@ -216,6 +216,13 @@ func (c *Client) CreateChannel(name string, public bool, members []string) {
 	})
 }
 
+// JoinChannel joins a public channel.
+func (c *Client) JoinChannel(channel string) {
+	c.send("channel_join", ChannelJoinRequest{
+		Channel: channel,
+	})
+}
+
 // InviteUser invites a user to a channel.
 func (c *Client) InviteUser(channel, username string) {
 	c.send("channel_invite", ChannelInviteRequest{
@@ -385,6 +392,12 @@ func (c *Client) dispatchReply(env Envelope) tea.Msg {
 		}
 		return nil
 
+	case "channel_join":
+		if env.OK != nil && *env.OK {
+			c.RequestChannels()
+		}
+		return ChannelJoinMsg{}
+
 	case "channel_invite":
 		return nil
 
@@ -460,6 +473,8 @@ type UnreadCountsMsg struct {
 type DMListMsg struct {
 	DMs []DM
 }
+
+type ChannelJoinMsg struct{}
 
 type DMOpenMsg struct {
 	Channel     string

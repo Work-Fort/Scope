@@ -36,7 +36,7 @@ func AllShortcuts() []ShortcutGroup {
 				{Key: "Enter", Description: "send message"},
 				{Key: "Alt+Enter", Description: "new line"},
 				{Key: "Tab", Description: "@mention completion"},
-				{Key: "Ctrl+n", Description: "create channel"},
+				{Key: "Ctrl+n", Description: "go to channel"},
 				{Key: "Ctrl+d", Description: "open DM"},
 				{Key: "Ctrl+u", Description: "invite user"},
 				{Key: "Ctrl+,", Description: "settings"},

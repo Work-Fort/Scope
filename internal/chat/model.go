@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -66,7 +67,8 @@ type ChatModel struct {
 	lastMouseY    int       // last known mouse Y position from tea.MouseMsg
 	lastMouseTime time.Time // when last mouse event was received
 
-	notifSound audio.Sound // current notification sound
+	notifSound     audio.Sound // current notification sound
+	pendingJoinCh  string      // channel name to select after join completes
 }
 
 // NewModel creates a ChatModel wired to a sharkfin client.
@@ -117,11 +119,23 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// --- Sharkfin inbound messages ---
 
+	case sharkfin.ChannelJoinMsg:
+		// Join succeeded — channel list refresh is already requested by the client.
+		// pendingJoinCh will be selected when the refreshed list arrives.
+		return m, nil
+
 	case sharkfin.ChannelListMsg:
 		log.Debug("channel_list", "count", len(msg.Channels))
 		m.channels.SetChannels(msg.Channels)
 		m.client.RequestUnreadCounts()
-		if len(msg.Channels) > 0 && m.selectedChannel == "" {
+		if m.pendingJoinCh != "" {
+			if m.channels.SelectByName(m.pendingJoinCh) {
+				m.switchChannel()
+				m.activePane = PaneInput
+				m.input.Focus()
+			}
+			m.pendingJoinCh = ""
+		} else if len(msg.Channels) > 0 && m.selectedChannel == "" {
 			m.selectedChannel = msg.Channels[0].Name
 			m.messages.SetChannel(m.selectedChannel)
 			m.client.RequestHistory(m.selectedChannel, 0, 50)
@@ -472,7 +486,7 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "tab":
 		if m.modal.Type == ModalChannelCreate {
-			m.modal.TogglePublic()
+			m.tryChannelModalComplete()
 		} else if m.modal.Type == ModalDMOpen || m.modal.Type == ModalUserInvite {
 			m.tryModalComplete()
 		}
@@ -481,6 +495,10 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.modal.Type != ModalShortcuts && m.modal.Type != ModalSettings {
 		m.modal.UpdateTextInput(msg)
+		// Clear hint when typing in channel modal
+		if m.modal.Type == ModalChannelCreate {
+			m.modal.hint = ""
+		}
 	}
 	return m, nil
 }
@@ -488,7 +506,23 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *ChatModel) submitModal() {
 	switch m.modal.Type {
 	case ModalChannelCreate:
-		m.client.CreateChannel(m.modal.Value(), m.modal.IsPublic(), nil)
+		name := m.modal.Value()
+		if ch, found := m.channels.FindByName(name); found {
+			if ch.Member {
+				// Already a member — switch to it
+				m.channels.SelectByName(name)
+				m.switchChannel()
+				m.activePane = PaneInput
+				m.input.Focus()
+			} else {
+				// Not a member — join it
+				m.pendingJoinCh = name
+				m.client.JoinChannel(name)
+			}
+		} else {
+			// Channel doesn't exist — create it (public by default)
+			m.client.CreateChannel(name, true, nil)
+		}
 	case ModalUserInvite:
 		m.client.InviteUser(m.selectedChannel, m.modal.Value())
 	case ModalDMOpen:
@@ -1149,6 +1183,38 @@ func (m *ChatModel) tryModalComplete() {
 		if len(lcp) > len(prefix) {
 			m.modal.SetValue(lcp)
 		}
+	}
+}
+
+func (m *ChatModel) tryChannelModalComplete() {
+	prefix := strings.ToLower(m.modal.Value())
+	if prefix == "" {
+		return
+	}
+	names := m.channels.Names()
+	var matches []string
+	for _, n := range names {
+		if strings.HasPrefix(strings.ToLower(n), prefix) {
+			matches = append(matches, n)
+		}
+	}
+	if len(matches) == 0 {
+		m.modal.hint = "New channel — Enter to create"
+		return
+	}
+	if len(matches) == 1 {
+		m.modal.SetValue(matches[0])
+		if ch, found := m.channels.FindByName(matches[0]); found && ch.Member {
+			m.modal.hint = "Switch to #" + matches[0]
+		} else {
+			m.modal.hint = "Join #" + matches[0]
+		}
+	} else {
+		lcp := longestCommonPrefix(matches)
+		if len(lcp) > len(prefix) {
+			m.modal.SetValue(lcp)
+		}
+		m.modal.hint = fmt.Sprintf("%d channels match", len(matches))
 	}
 }
 

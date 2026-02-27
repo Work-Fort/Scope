@@ -45,6 +45,7 @@ type Modal struct {
 	textinput textinput.Model
 	public    bool // for channel create
 	err       string
+	hint      string
 	boxX      int // screen X of the rendered modal box (set during View)
 	boxY      int // screen Y of the rendered modal box
 	boxW      int
@@ -149,13 +150,9 @@ func (m *Modal) UpdateTextInput(msg interface{}) {
 func (m Modal) buttons() []modalButton {
 	switch m.Type {
 	case ModalChannelCreate:
-		visLabel := "public "
-		if !m.public {
-			visLabel = "private"
-		}
 		return []modalButton{
-			{key: "Enter", label: "create", action: ModalActionSubmit},
-			{key: "Tab", label: visLabel, action: ModalActionToggle},
+			{key: "Enter", label: "go", action: ModalActionSubmit},
+			{key: "Tab", label: "complete", action: ModalActionToggle},
 			{key: "Esc", label: "cancel", action: ModalActionCancel},
 		}
 	case ModalUserInvite:
@@ -280,7 +277,7 @@ func (m *Modal) View(totalW, totalH int) string {
 	var title string
 	switch m.Type {
 	case ModalChannelCreate:
-		title = "Create Channel"
+		title = "Go to Channel"
 	case ModalUserInvite:
 		title = "Invite User"
 	case ModalDMOpen:
@@ -302,13 +299,9 @@ func (m *Modal) View(totalW, totalH int) string {
 		content += m.textinput.View() + "\n"
 	}
 
-	if m.Type == ModalChannelCreate {
-		visLabel := "public"
-		if !m.public {
-			visLabel = "private"
-		}
-		visStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Secondary)
-		content += "\n" + visStyle.Render("  Visibility: "+visLabel) + "\n"
+	if m.Type == ModalChannelCreate && m.hint != "" {
+		hintStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+		content += "\n" + hintStyle.Render("  "+m.hint) + "\n"
 	}
 
 	if m.err != "" {

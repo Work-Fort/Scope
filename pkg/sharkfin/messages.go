@@ -49,6 +49,11 @@ type ChannelCreateRequest struct {
 	Members []string `json:"members,omitempty"`
 }
 
+// ChannelJoinRequest joins a public channel.
+type ChannelJoinRequest struct {
+	Channel string `json:"channel"`
+}
+
 // ChannelInviteRequest invites a user to a channel.
 type ChannelInviteRequest struct {
 	Channel  string `json:"channel"`
