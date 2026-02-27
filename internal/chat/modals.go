@@ -17,6 +17,7 @@ const (
 	ModalChannelCreate
 	ModalUserInvite
 	ModalDMOpen
+	ModalShortcuts
 )
 
 // ModalAction identifies a clickable modal button action.
@@ -118,6 +119,10 @@ func (m Modal) buttons() []modalButton {
 			{key: "Enter", label: "open", action: ModalActionSubmit},
 			{key: "Esc", label: "cancel", action: ModalActionCancel},
 		}
+	case ModalShortcuts:
+		return []modalButton{
+			{key: "Esc", label: "close", action: ModalActionCancel},
+		}
 	}
 	return nil
 }
@@ -191,6 +196,9 @@ func (m *Modal) HitTest(screenX, screenY int) ModalAction {
 
 func (m *Modal) View(totalW, totalH int) string {
 	modalW := 54
+	if m.Type == ModalShortcuts {
+		modalW = 60
+	}
 
 	titleStyle := lipgloss.NewStyle().
 		Foreground(ui.CurrentTheme.Primary).
@@ -207,11 +215,18 @@ func (m *Modal) View(totalW, totalH int) string {
 		title = "Invite User"
 	case ModalDMOpen:
 		title = "Direct Message"
+	case ModalShortcuts:
+		title = "Keyboard Shortcuts"
 	}
 
 	var content string
 	content += titleStyle.Render("  "+title) + "\n\n"
-	content += m.textinput.View() + "\n"
+
+	if m.Type == ModalShortcuts {
+		content += renderShortcuts()
+	} else {
+		content += m.textinput.View() + "\n"
+	}
 
 	if m.Type == ModalChannelCreate {
 		visLabel := "public"
@@ -242,4 +257,32 @@ func (m *Modal) View(totalW, totalH int) string {
 	m.boxY = (totalH - m.boxH) / 2
 
 	return lipgloss.Place(totalW, totalH, lipgloss.Center, lipgloss.Center, box)
+}
+
+func renderShortcuts() string {
+	groups := AllShortcuts()
+
+	groupStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Secondary).
+		Bold(true)
+
+	keyStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Primary).
+		Bold(true).
+		Width(24)
+
+	descStyle := lipgloss.NewStyle().
+		Foreground(ui.CurrentTheme.Text)
+
+	var lines []string
+	for i, g := range groups {
+		if i > 0 {
+			lines = append(lines, "")
+		}
+		lines = append(lines, "  "+groupStyle.Render(g.Title))
+		for _, item := range g.Items {
+			lines = append(lines, "  "+keyStyle.Render(item.Key)+descStyle.Render(item.Description))
+		}
+	}
+	return strings.Join(lines, "\n") + "\n"
 }

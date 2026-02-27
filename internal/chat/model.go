@@ -250,6 +250,12 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.input.Blur()
 		return m, nil
 
+	case "ctrl+s":
+		modal := NewModal(ModalShortcuts)
+		m.modal = &modal
+		m.input.Blur()
+		return m, nil
+
 	case "ctrl+j":
 		if m.sidebarTab == TabChannels {
 			m.channels.MoveDown()
@@ -369,7 +375,9 @@ func (m ChatModel) handleModalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.modal.UpdateTextInput(msg)
+	if m.modal.Type != ModalShortcuts {
+		m.modal.UpdateTextInput(msg)
+	}
 	return m, nil
 }
 
@@ -553,6 +561,10 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		m.switchChannel()
 	case "ctrl+d":
 		modal := NewModal(ModalDMOpen)
+		m.modal = &modal
+		m.input.Blur()
+	case "ctrl+s":
+		modal := NewModal(ModalShortcuts)
 		m.modal = &modal
 		m.input.Blur()
 	case "ctrl+j":
