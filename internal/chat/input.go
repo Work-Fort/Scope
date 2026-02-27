@@ -3,6 +3,7 @@ package chat
 import (
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
 
@@ -33,6 +34,10 @@ func NewInputBar() InputBar {
 	ta.ShowLineNumbers = false
 	ta.SetHeight(1)
 	ta.KeyMap.InsertNewline.SetEnabled(false) // we handle newline manually
+
+	// Add ctrl+arrow word navigation (textarea only has alt+arrow by default)
+	ta.KeyMap.WordForward = key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f"))
+	ta.KeyMap.WordBackward = key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b"))
 
 	return InputBar{
 		textarea: ta,
