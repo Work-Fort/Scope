@@ -54,6 +54,7 @@ type ChatModel struct {
 	customSidebarW int  // user-dragged sidebar width (0 = auto)
 	sidebarHidden  bool // true when sidebar is toggled off (Ctrl+R)
 	dragging       bool // true while dragging the divider
+	lastMouseY     int  // last known mouse Y position from tea.MouseMsg
 }
 
 // NewModel creates a ChatModel wired to a sharkfin client.
@@ -355,9 +356,21 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Pass remaining keys to focused component, filtering leaked SGR mouse sequences.
-	// Bubble Tea's parser can split SGR mouse events across reads, delivering fragments
-	// like "[<64;87;52M" as KeyRunes. Drop these before they reach the text input.
-	if m.activePane == PaneInput && !isLeakedMouseSeq(key) {
+	// Bubble Tea's parser splits SGR mouse events across reads: "[" arrives as one
+	// KeyMsg, then "<64;87;52M" as another. We detect these fragments and also
+	// suppress lone "[" characters when the mouse is not over the input bar.
+	leaked := isLeakedMouseSeq(msg)
+	if !leaked && key == "[" {
+		// "[" is ambiguous — it's both a valid character and an SGR sequence opener.
+		// Suppress it when the mouse cursor is outside the input area, since that
+		// means the user is scrolling, not typing.
+		layout := m.layout()
+		inputTop := ui.HeaderHeight + layout.ContentH - m.input.Height()
+		if m.lastMouseY < inputTop {
+			leaked = true
+		}
+	}
+	if m.activePane == PaneInput && !leaked {
 		m.input.UpdateTextInput(msg)
 	}
 
@@ -412,6 +425,8 @@ func (m *ChatModel) submitModal() {
 }
 
 func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	m.lastMouseY = msg.Y
+
 	// Modal click handling
 	if m.modal != nil {
 		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
@@ -862,23 +877,37 @@ func (m ChatModel) renderSidebarTabs(width int) string {
 
 // isLeakedMouseSeq detects SGR mouse escape sequence fragments that Bubble Tea's
 // parser failed to consume. These look like "[<64;87;52M" — digits and semicolons
-// bracketed by "[<" and "M"/"m".
-func isLeakedMouseSeq(s string) bool {
-	if !strings.HasPrefix(s, "[<") {
+// bracketed by "[<" and "M"/"m". Also catches multi-rune fragments where the
+// sequence is partially split.
+func isLeakedMouseSeq(msg tea.KeyMsg) bool {
+	// Only KeyRunes can be leaked mouse fragments
+	if msg.Type != tea.KeyRunes {
 		return false
 	}
-	for _, r := range s[2:] {
-		switch {
-		case r >= '0' && r <= '9', r == ';':
-			continue
-		case r == 'M' || r == 'm':
+	s := msg.String()
+	if len(s) < 2 {
+		return false
+	}
+	// Full or partial SGR: "[<..."
+	if strings.HasPrefix(s, "[<") {
+		return true
+	}
+	// Multi-char starting with "[" (real bracket typing is single rune)
+	if s[0] == '[' && len(msg.Runes) > 1 {
+		return true
+	}
+	// Fragment starting with "<" containing semicolons
+	if s[0] == '<' && strings.ContainsAny(s, ";") {
+		return true
+	}
+	// Digits+semicolons ending in M/m
+	if strings.ContainsAny(s, ";") {
+		last := s[len(s)-1]
+		if last == 'M' || last == 'm' {
 			return true
-		default:
-			return false
 		}
 	}
-	// Partial sequence (no trailing M/m yet) — still drop it
-	return len(s) > 2
+	return false
 }
 
 func (m *ChatModel) usernameList() []string {
