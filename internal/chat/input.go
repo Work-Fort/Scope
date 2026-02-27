@@ -79,6 +79,7 @@ func (ib *InputBar) SetReadOnly(ro bool) {
 }
 
 func (ib *InputBar) InsertNewline() {
+	ib.textarea.SetHeight(maxInputLines)
 	ib.textarea.InsertString("\n")
 	ib.updateHeight()
 }
@@ -127,6 +128,10 @@ func (ib *InputBar) visualLineCount() int {
 }
 
 func (ib *InputBar) UpdateTextInput(msg interface{}) {
+	// Temporarily expand to max so the textarea's internal viewport never
+	// scrolls during Update (repositionView uses the current height).
+	// After Update, shrink back to the actual visual line count.
+	ib.textarea.SetHeight(maxInputLines)
 	ib.textarea, _ = ib.textarea.Update(msg)
 	ib.updateHeight()
 }
