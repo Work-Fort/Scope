@@ -2,10 +2,13 @@ package chat
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/lipgloss"
+	rw "github.com/mattn/go-runewidth"
+	"github.com/rivo/uniseg"
 
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -27,9 +30,7 @@ func NewInputBar() InputBar {
 	ta.FocusedStyle.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
 	ta.BlurredStyle.CursorLine = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Text)
 	ta.Cursor.Style = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
-	ta.Prompt = "> "
-	ta.FocusedStyle.Prompt = lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
-	ta.BlurredStyle.Prompt = lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+	ta.Prompt = " "
 	ta.CharLimit = 2000
 	ta.ShowLineNumbers = false
 	ta.SetHeight(1)
@@ -46,7 +47,8 @@ func NewInputBar() InputBar {
 
 func (ib *InputBar) SetWidth(w int) {
 	ib.width = w
-	ib.textarea.SetWidth(w) // caller already subtracted border
+	ib.textarea.SetWidth(w - 1) // caller subtracted border; -1 for right margin
+	ib.updateHeight()           // recalc in case width changed wrapping
 }
 
 func (ib *InputBar) Focus() {
@@ -100,34 +102,80 @@ func (ib *InputBar) updateHeight() {
 	ib.textarea.SetHeight(lines)
 }
 
-// visualLineCount returns the total number of visual lines accounting for
-// word wrap. Each logical line may occupy multiple visual lines when its
-// display width exceeds the textarea's internal wrap width.
+// visualLineCount returns the total number of visual lines by replicating
+// the textarea's word-wrap algorithm. This must match the textarea's internal
+// wrap() function exactly to avoid height mismatches.
 func (ib *InputBar) visualLineCount() int {
 	val := ib.textarea.Value()
 	if val == "" {
 		return 1
 	}
 
-	// The textarea wraps at: SetWidth(ib.width) minus prompt width (2) minus
-	// cursor column (1). The cursor sits after the last character, so when text
-	// fills the line the cursor forces a visual wrap before our text-only
-	// measurement would predict it.
-	wrapW := ib.width - 3
+	// The textarea's internal m.width = SetWidth_arg - promptWidth - baseFrameSize.
+	// With SetWidth(ib.width - 1), prompt " " (width 1), no base frame:
+	// m.width = (ib.width - 1) - 1 - 0 = ib.width - 2
+	wrapW := ib.width - 2
 	if wrapW < 1 {
 		wrapW = 1
 	}
 
 	total := 0
 	for _, line := range strings.Split(val, "\n") {
-		w := lipgloss.Width(line)
-		if w <= wrapW {
-			total++
-		} else {
-			total += (w + wrapW - 1) / wrapW // ceil(w / wrapW)
-		}
+		total += wordWrapLineCount([]rune(line), wrapW)
 	}
 	return total
+}
+
+// wordWrapLineCount replicates the textarea's wrap() to count visual lines.
+func wordWrapLineCount(runes []rune, width int) int {
+	if len(runes) == 0 {
+		return 1
+	}
+
+	var (
+		lines  = 1
+		lineW  int
+		word   []rune
+		spaces int
+	)
+
+	for _, r := range runes {
+		if unicode.IsSpace(r) {
+			spaces++
+		} else {
+			word = append(word, r)
+		}
+
+		if spaces > 0 {
+			wordW := uniseg.StringWidth(string(word))
+			if lineW+wordW+spaces > width {
+				lines++
+				lineW = wordW + spaces
+			} else {
+				lineW += wordW + spaces
+			}
+			spaces = 0
+			word = nil
+		} else {
+			lastCharLen := rw.RuneWidth(word[len(word)-1])
+			wordW := uniseg.StringWidth(string(word))
+			if wordW+lastCharLen > width {
+				if lineW > 0 {
+					lines++
+				}
+				lineW = wordW
+				word = nil
+			}
+		}
+	}
+
+	// Final check uses >= (matching textarea behavior)
+	wordW := uniseg.StringWidth(string(word))
+	if lineW+wordW+spaces >= width {
+		lines++
+	}
+
+	return lines
 }
 
 func (ib *InputBar) UpdateTextInput(msg interface{}) {
