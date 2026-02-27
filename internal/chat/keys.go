@@ -47,7 +47,7 @@ func AllShortcuts() []ShortcutGroup {
 			Items: []ShortcutItem{
 				{Key: "Ctrl+V", Description: "paste from clipboard"},
 				{Key: "Ctrl+Left / Ctrl+Right", Description: "word skip"},
-				{Key: "Alt+Backspace", Description: "delete word"},
+				{Key: "Ctrl+Bksp / Alt+Bksp", Description: "delete word"},
 			},
 		},
 	}

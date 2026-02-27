@@ -42,6 +42,10 @@ func NewInputBar() InputBar {
 	ta.KeyMap.WordForward = key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f"))
 	ta.KeyMap.WordBackward = key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b"))
 
+	// Add ctrl+backspace/delete word delete (textarea only has alt+backspace/delete by default)
+	ta.KeyMap.DeleteWordBackward = key.NewBinding(key.WithKeys("alt+backspace", "ctrl+w", "ctrl+backspace"))
+	ta.KeyMap.DeleteWordForward = key.NewBinding(key.WithKeys("alt+delete", "alt+d", "ctrl+delete"))
+
 	return InputBar{
 		textarea: ta,
 	}
