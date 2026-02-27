@@ -63,7 +63,8 @@ type ChatModel struct {
 	customSidebarW int  // user-dragged sidebar width (0 = auto)
 	sidebarHidden  bool // true when sidebar is toggled off (Ctrl+R)
 	dragging       bool // true while dragging the divider
-	lastMouseY     int  // last known mouse Y position from tea.MouseMsg
+	lastMouseY    int       // last known mouse Y position from tea.MouseMsg
+	lastMouseTime time.Time // when last mouse event was received
 
 	notifSound audio.Sound // current notification sound
 }
@@ -403,11 +404,9 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	leaked := isLeakedMouseSeq(msg)
 	if !leaked && key == "[" {
 		// "[" is ambiguous — it's both a valid character and an SGR sequence opener.
-		// Suppress it when the mouse cursor is outside the input area, since that
-		// means the user is scrolling, not typing.
-		layout := m.layout()
-		inputTop := ui.HeaderHeight + layout.ContentH - m.input.Height()
-		if m.lastMouseY < inputTop {
+		// Suppress it when a mouse event was received recently, since rapid
+		// scrolling splits SGR sequences and the "[" is almost certainly a fragment.
+		if time.Since(m.lastMouseTime) < 100*time.Millisecond {
 			leaked = true
 		}
 	}
@@ -504,6 +503,7 @@ func (m *ChatModel) submitModal() {
 
 func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	m.lastMouseY = msg.Y
+	m.lastMouseTime = time.Now()
 
 	// Modal click handling
 	if m.modal != nil {
