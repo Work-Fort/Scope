@@ -178,8 +178,10 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "ctrl+l":
-		m.activePane = PaneInput
-		m.input.Focus()
+		if m.channels.IsMember() {
+			m.activePane = PaneInput
+			m.input.Focus()
+		}
 		return m, nil
 
 	case "ctrl+o":
@@ -209,7 +211,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "enter":
-		if m.activePane == PaneInput && m.input.Value() != "" {
+		if m.activePane == PaneInput && m.input.Value() != "" && m.channels.IsMember() {
 			body := m.input.Value()
 			log.Debug("send_message", "channel", m.selectedChannel, "body", body)
 			m.client.SendMessage(m.selectedChannel, body)
@@ -217,7 +219,7 @@ func (m ChatModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.messages.AppendMessage(m.selectedChannel, sharkfin.Message{
 				From:   m.username,
 				Body:   body,
-				SentAt: time.Now(),
+				SentAt: time.Now().UTC(),
 			})
 			m.input.Reset()
 			return m, nil
@@ -359,20 +361,12 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			// Click in right pane — check if input area
-			inputTop := contentBottom - ui.InputHeight
-			if msg.Y >= inputTop && msg.Y < contentBottom {
+			// Click in right pane — focus input if member
+			if m.channels.IsMember() {
 				m.activePane = PaneInput
 				m.input.Focus()
-				return m, nil
 			}
-
-			// Click in messages area — focus input (natural chat behavior)
-			if msg.Y < inputTop {
-				m.activePane = PaneInput
-				m.input.Focus()
-				return m, nil
-			}
+			return m, nil
 
 		case tea.MouseActionMotion:
 			if m.dragging {
@@ -453,6 +447,16 @@ func (m *ChatModel) switchChannel() {
 			m.client.RequestHistory(selected, 0, 50)
 		}
 		m.client.RequestUnread(selected)
+		// Disable input for non-member (read-only) channels
+		readOnly := !m.channels.IsMember()
+		m.input.SetReadOnly(readOnly)
+		if readOnly {
+			m.input.Reset()
+			m.input.Blur()
+			if m.activePane == PaneInput {
+				m.activePane = PaneChannels
+			}
+		}
 	}
 }
 

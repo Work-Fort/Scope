@@ -65,6 +65,17 @@ type Message struct {
 	ThreadID *int      `json:"thread_id,omitempty"`
 }
 
+func (m *Message) UnmarshalJSON(data []byte) error {
+	type alias Message
+	var raw alias
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*m = Message(raw)
+	m.SentAt = m.SentAt.UTC()
+	return nil
+}
+
 // HistoryRequest requests message history for a channel.
 type HistoryRequest struct {
 	Channel string `json:"channel"`
@@ -106,6 +117,17 @@ type MessageNewEvent struct {
 	Body     string    `json:"body"`
 	SentAt   time.Time `json:"sent_at"`
 	ThreadID *int      `json:"thread_id,omitempty"`
+}
+
+func (e *MessageNewEvent) UnmarshalJSON(data []byte) error {
+	type alias MessageNewEvent
+	var raw alias
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*e = MessageNewEvent(raw)
+	e.SentAt = e.SentAt.UTC()
+	return nil
 }
 
 // User represents a user from the server.

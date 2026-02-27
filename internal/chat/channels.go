@@ -63,6 +63,13 @@ func (cl *ChannelList) Selected() string {
 	return cl.channels[cl.cursor].Name
 }
 
+func (cl *ChannelList) IsMember() bool {
+	if cl.cursor < 0 || cl.cursor >= len(cl.channels) {
+		return false
+	}
+	return cl.channels[cl.cursor].Member
+}
+
 func (cl *ChannelList) SetChannels(channels []sharkfin.Channel) {
 	cl.channels = channels
 	if cl.cursor >= len(channels) {

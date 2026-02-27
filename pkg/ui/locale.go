@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-// FormatShortDateTime formats a time using the system locale's short date/time style.
+// FormatShortDateTime formats a time in local timezone using the system locale's short date/time style.
 func FormatShortDateTime(t time.Time) string {
-	return t.Format(localeTimeFormat())
+	return t.Local().Format(localeTimeFormat())
 }
 
 func localeTimeFormat() string {

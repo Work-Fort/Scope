@@ -52,6 +52,14 @@ func (ib *InputBar) Reset() {
 	ib.textinput.Reset()
 }
 
+func (ib *InputBar) SetReadOnly(ro bool) {
+	if ro {
+		ib.textinput.Placeholder = "read-only channel"
+	} else {
+		ib.textinput.Placeholder = "type a message..."
+	}
+}
+
 func (ib *InputBar) UpdateTextInput(msg interface{}) {
 	// Type assert to tea.Msg and update
 	ib.textinput, _ = ib.textinput.Update(msg)
