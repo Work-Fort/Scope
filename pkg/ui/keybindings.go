@@ -45,18 +45,9 @@ func (kbs KeyBindingSet) Contains(key string) *KeyBinding {
 
 // Render formats the key binding set as bordered buttons.
 func (kbs KeyBindingSet) Render() string {
-	keyStyle := lipgloss.NewStyle().
-		Foreground(CurrentTheme.Primary).
-		Bold(true)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(CurrentTheme.TextDim)
-
-	btnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(CurrentTheme.Muted).
-		PaddingLeft(1).
-		PaddingRight(1)
+	keyStyle := CurrentTheme.KeyStyle()
+	descStyle := CurrentTheme.KeyDescStyle()
+	btnStyle := CurrentTheme.ButtonStyle()
 
 	var buttons []string
 	for _, kb := range kbs.Bindings {
@@ -70,18 +61,9 @@ func (kbs KeyBindingSet) Render() string {
 // ButtonRegions returns the X start/end positions for each button in the rendered help bar.
 // Used for mouse click hit testing.
 func (kbs KeyBindingSet) ButtonRegions() []ButtonRegion {
-	keyStyle := lipgloss.NewStyle().
-		Foreground(CurrentTheme.Primary).
-		Bold(true)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(CurrentTheme.TextDim)
-
-	btnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(CurrentTheme.Muted).
-		PaddingLeft(1).
-		PaddingRight(1)
+	keyStyle := CurrentTheme.KeyStyle()
+	descStyle := CurrentTheme.KeyDescStyle()
+	btnStyle := CurrentTheme.ButtonStyle()
 
 	var regions []ButtonRegion
 	x := 0

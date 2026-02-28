@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -154,16 +152,10 @@ func (cl ChannelList) View() string {
 		return ui.CurrentTheme.TextDimStyle().Render("  No channels")
 	}
 
-	selectedStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	normalStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text)
-
-	unreadStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text).
-		Bold(true)
+	selectedStyle := ui.CurrentTheme.ListSelectedStyle()
+	normalStyle := ui.CurrentTheme.ListNormalStyle()
+	unreadStyle := ui.CurrentTheme.ListUnreadStyle()
+	mentionStyle := ui.CurrentTheme.ListMentionStyle()
 
 	// Available inner width (pane width minus border chars minus padding)
 	innerW := cl.width - 4
@@ -171,14 +163,10 @@ func (cl ChannelList) View() string {
 		innerW = 1
 	}
 
-	unreadDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent).Render("● ")
-	unreadCountStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Accent)
-
-	mentionStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Secondary).
-		Bold(true)
-	mentionDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Secondary).Render("● ")
-	mentionCountStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Secondary)
+	unreadDot := ui.CurrentTheme.UnreadDot()
+	unreadCountStyle := ui.CurrentTheme.UnreadCountStyle()
+	mentionDot := ui.CurrentTheme.MentionDot()
+	mentionCountStyle := ui.CurrentTheme.MentionCountStyle()
 
 	// Determine visible window
 	visEnd := cl.scrollOffset + cl.height

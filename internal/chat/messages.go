@@ -194,12 +194,8 @@ func (mp *MessagePane) refreshContent() {
 		contentW = 1
 	}
 
-	nameStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	timeStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.TextDim)
+	nameStyle := ui.CurrentTheme.MessageNameStyle()
+	timeStyle := ui.CurrentTheme.MessageTimeStyle()
 
 	var lines []string
 	for _, m := range msgs {
@@ -246,8 +242,8 @@ func (mp MessagePane) renderScrollbar() string {
 		return ""
 	}
 
-	trackStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Muted)
-	thumbStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary)
+	trackStyle := ui.CurrentTheme.ScrollTrackStyle()
+	thumbStyle := ui.CurrentTheme.ScrollThumbStyle()
 
 	totalLines := mp.viewport.TotalLineCount()
 	visibleLines := mp.viewport.VisibleLineCount()

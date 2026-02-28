@@ -1164,20 +1164,16 @@ func (m ChatModel) View() tea.View {
 	chanHeaderBorderColor := ui.CurrentTheme.Muted
 	var chanExtra string
 	if m.disconnected {
-		chanHeaderBorderColor = lipgloss.Color("#E05252")
+		chanHeaderBorderColor = ui.CurrentTheme.Error
 		status := "Reconnecting"
 		if m.reconnectAttempt > 1 {
 			status = fmt.Sprintf("Reconnecting (attempt %d)", m.reconnectAttempt)
 		}
-		chanExtra = lipgloss.NewStyle().Foreground(lipgloss.Color("#E05252")).Render("  " + status)
+		chanExtra = ui.CurrentTheme.ErrorStyle().Render("  " + status)
 	}
-	chanHeaderStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(chanHeaderBorderColor).
-		Width(layout.MessageW).
-		Height(ui.ChannelHeaderH)
+	chanHeaderStyle := ui.CurrentTheme.ChannelHeaderStyle(layout.MessageW, ui.ChannelHeaderH, chanHeaderBorderColor)
 	chanHeader := chanHeaderStyle.Render(
-		lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render(" "+chanLabel) + chanExtra,
+		ui.CurrentTheme.HeaderTitleStyle().Render(" "+chanLabel) + chanExtra,
 	)
 
 	// Message pane
@@ -1194,7 +1190,7 @@ func (m ChatModel) View() tea.View {
 		inputBorderColor = ui.CurrentTheme.Primary
 	}
 	if m.recording != RecordingIdle {
-		inputBorderColor = lipgloss.Color("#E05252") // red = input locked
+		inputBorderColor = ui.CurrentTheme.Error
 	}
 	inputStyle := lipgloss.NewStyle().
 		Border(inputBorder).
@@ -1210,24 +1206,20 @@ func (m ChatModel) View() tea.View {
 	if canWrite && hasText {
 		sendColor = ui.CurrentTheme.Primary
 	}
-	btnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
-		Width(7). // v2: total rendered width (5 content + 2 border)
-		Align(lipgloss.Center)
+	btnStyle := ui.CurrentTheme.ActionButtonStyle(7)
 	// Mic button: orange (ready), green spinner (downloading), red (recording), grey (transcribing)
 	micIcon := "󰍬"
 	micColor := ui.CurrentTheme.Primary
 	switch m.recording {
 	case RecordingDownloading:
 		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
-		micColor = lipgloss.Color("#50C878")
+		micColor = ui.CurrentTheme.Success
 	case RecordingActive:
 		micIcon = "●"
-		micColor = lipgloss.Color("#E05252") // red = recording
+		micColor = ui.CurrentTheme.Error
 	case RecordingTranscribing:
 		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
-		micColor = lipgloss.Color("#E05252")
+		micColor = ui.CurrentTheme.Error
 	}
 	micBorderColor := micColor
 	if m.recording == RecordingTranscribing {
@@ -1255,13 +1247,8 @@ func (m ChatModel) View() tea.View {
 	if layout.Skinny {
 		fullUI = mainContent
 	} else {
-		headerStyle := lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder()).
-			BorderForeground(ui.CurrentTheme.Muted).
-			Width(m.width).
-			Align(lipgloss.Center)
-		header := headerStyle.Render(
-			lipgloss.NewStyle().Foreground(ui.CurrentTheme.Primary).Bold(true).Render("WorkFort"),
+		header := ui.CurrentTheme.HeaderStyle(m.width).Render(
+			ui.CurrentTheme.HeaderTitleStyle().Render("WorkFort"),
 		)
 		helpBar := ChatKeyBindings().Render()
 		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)
@@ -1278,13 +1265,9 @@ func (m ChatModel) View() tea.View {
 
 // renderSidebarTabs renders tab buttons matching the help bar button style.
 func (m ChatModel) renderSidebarTabs(innerW int) string {
-	activeStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-	inactiveStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.TextDim)
-	dotStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Accent)
+	activeStyle := ui.CurrentTheme.TabActiveStyle()
+	inactiveStyle := ui.CurrentTheme.TabInactiveStyle()
+	dotStyle := ui.CurrentTheme.AccentStyle()
 
 	type tabDef struct {
 		label     string
@@ -1304,10 +1287,7 @@ func (m ChatModel) renderSidebarTabs(innerW int) string {
 	if btnContentW < 6 {
 		btnContentW = 6
 	}
-	baseBtnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
-		Align(lipgloss.Center)
+	baseBtnStyle := ui.CurrentTheme.TabBaseStyle()
 
 	var rendered []string
 	for i, t := range tabs {

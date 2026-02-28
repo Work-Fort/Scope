@@ -186,18 +186,9 @@ func (m Modal) buttons() []modalButton {
 }
 
 func renderModalButtons(buttons []modalButton) string {
-	keyStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.TextDim)
-
-	btnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
-		PaddingLeft(1).
-		PaddingRight(1)
+	keyStyle := ui.CurrentTheme.KeyStyle()
+	descStyle := ui.CurrentTheme.KeyDescStyle()
+	btnStyle := ui.CurrentTheme.ButtonStyle()
 
 	var rendered []string
 	for _, b := range buttons {
@@ -243,18 +234,9 @@ func (m *Modal) HitTest(screenX, screenY int) ModalAction {
 	}
 
 	buttons := m.buttons()
-	keyStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.TextDim)
-
-	btnStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(ui.CurrentTheme.Muted).
-		PaddingLeft(1).
-		PaddingRight(1)
+	keyStyle := ui.CurrentTheme.KeyStyle()
+	descStyle := ui.CurrentTheme.KeyDescStyle()
+	btnStyle := ui.CurrentTheme.ButtonStyle()
 
 	x := 0
 	for _, b := range buttons {
@@ -274,12 +256,8 @@ func (m *Modal) View(totalW, totalH int) string {
 		modalW = 62
 	}
 
-	titleStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	errStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#E05252"))
+	titleStyle := ui.CurrentTheme.ModalTitleStyle()
+	errStyle := ui.CurrentTheme.ErrorStyle()
 
 	var title string
 	switch m.Type {
@@ -307,7 +285,7 @@ func (m *Modal) View(totalW, totalH int) string {
 	}
 
 	if m.Type == ModalChannelCreate && m.hint != "" {
-		hintStyle := lipgloss.NewStyle().Foreground(ui.CurrentTheme.TextDim)
+		hintStyle := ui.CurrentTheme.ModalHintStyle()
 		content += "\n" + hintStyle.Render("  "+m.hint) + "\n"
 	}
 
@@ -317,12 +295,7 @@ func (m *Modal) View(totalW, totalH int) string {
 
 	content += "\n" + renderModalButtons(m.buttons())
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.ThickBorder()).
-		BorderForeground(ui.CurrentTheme.Primary).
-		Padding(1, 2).
-		Width(modalW).
-		Render(content)
+	box := ui.CurrentTheme.ModalBoxStyle(modalW).Render(content)
 
 	// Store box position for click hit testing
 	m.boxW = lipgloss.Width(box)
@@ -334,14 +307,9 @@ func (m *Modal) View(totalW, totalH int) string {
 }
 
 func (m *Modal) renderSoundSelector() string {
-	labelStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Secondary).
-		Bold(true)
-	selectedStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-	normalStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text)
+	labelStyle := ui.CurrentTheme.ModalLabelStyle()
+	selectedStyle := ui.CurrentTheme.ListSelectedStyle()
+	normalStyle := ui.CurrentTheme.ListNormalStyle()
 
 	var lines []string
 	lines = append(lines, "  "+labelStyle.Render("Notification Sound"))
@@ -370,17 +338,9 @@ func (m *Modal) renderSoundSelector() string {
 func renderShortcuts() string {
 	groups := AllShortcuts()
 
-	groupStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Secondary).
-		Bold(true)
-
-	keyStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true).
-		Width(24)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text)
+	groupStyle := ui.CurrentTheme.ModalLabelStyle()
+	keyStyle := ui.CurrentTheme.KeyStyle().Width(24)
+	descStyle := ui.CurrentTheme.TextStyle()
 
 	var lines []string
 	for i, g := range groups {

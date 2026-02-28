@@ -5,8 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/lipgloss/v2"
-
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
@@ -174,18 +172,11 @@ func (ul UserList) View() string {
 		return ui.CurrentTheme.TextDimStyle().Render("  No users")
 	}
 
-	selectedStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Primary).
-		Bold(true)
-
-	normalStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Text)
-
-	onlineDot := lipgloss.NewStyle().Foreground(lipgloss.Color("#50C878")).Render("● ")
-	offlineDot := lipgloss.NewStyle().Foreground(ui.CurrentTheme.Muted).Render("○ ")
-
-	unreadCountStyle := lipgloss.NewStyle().
-		Foreground(ui.CurrentTheme.Accent)
+	selectedStyle := ui.CurrentTheme.ListSelectedStyle()
+	normalStyle := ui.CurrentTheme.ListNormalStyle()
+	onlineDot := ui.CurrentTheme.OnlineDot()
+	offlineDot := ui.CurrentTheme.OfflineDot()
+	unreadCountStyle := ui.CurrentTheme.UnreadCountStyle()
 
 	innerW := ul.width - 4
 	if innerW < 1 {
