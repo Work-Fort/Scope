@@ -10,7 +10,6 @@ import (
 
 	chatui "github.com/Work-Fort/WorkFort/internal/chat"
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
 var (
@@ -44,11 +43,6 @@ func runChat(cmd *cobra.Command, args []string) error {
 	}
 	if user == "" {
 		return fmt.Errorf("username is required (--username flag or WORKFORT_USERNAME env)")
-	}
-
-	// Apply time format preference (12h or 24h override)
-	if tf := viper.GetString("time-format"); tf != "" {
-		ui.TimeFormatOverride = tf
 	}
 
 	// Connect to sharkfin

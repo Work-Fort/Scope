@@ -23,6 +23,8 @@ func InitViper() {
 	viper.SetDefault("stt-language", "en")
 	viper.SetDefault("stt-threads", 4)
 	viper.SetDefault("auto-theme", true)
+	viper.SetDefault("time-display.use-24h", false)
+	viper.SetDefault("time-display.show-seconds", false)
 
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))

@@ -4,13 +4,11 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
-// TimeFormatOverride allows forcing 12h or 24h time display.
-// Set to "12h" or "24h" to override locale detection. Empty uses locale default.
-var TimeFormatOverride string
-
-// FormatShortDateTime formats a time in local timezone using the system locale's short date/time style.
+// FormatShortDateTime formats a time in local timezone.
 func FormatShortDateTime(t time.Time) string {
 	return t.Local().Format(localeTimeFormat())
 }
@@ -19,14 +17,35 @@ func localeTimeFormat() string {
 	lang := extractLang(getLocale())
 	datePart := localeDateFormat(lang)
 
-	switch TimeFormatOverride {
-	case "24h":
-		return datePart + " 15:04"
-	case "12h":
-		return datePart + " 3:04 PM"
+	use24h := viper.GetBool("time-display.use-24h")
+	showSec := viper.GetBool("time-display.show-seconds")
+
+	var timePart string
+	if use24h {
+		timePart = "15:04"
+	} else {
+		// Check locale default when not explicitly set
+		if !viper.IsSet("time-display.use-24h") {
+			timePart = localeTimePart(lang)
+		} else {
+			timePart = "3:04 PM"
+		}
 	}
 
-	return datePart + " " + localeTimePart(lang)
+	if showSec {
+		timePart = addSeconds(timePart)
+	}
+
+	return datePart + " " + timePart
+}
+
+// addSeconds inserts :05 (seconds) into the time format string.
+func addSeconds(fmt string) string {
+	// "15:04" → "15:04:05", "3:04 PM" → "3:04:05 PM"
+	if i := strings.Index(fmt, " PM"); i >= 0 {
+		return fmt[:i] + ":05" + fmt[i:]
+	}
+	return fmt + ":05"
 }
 
 func localeDateFormat(lang string) string {
