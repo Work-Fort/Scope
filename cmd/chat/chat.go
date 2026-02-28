@@ -3,7 +3,6 @@ package chat
 import (
 	"fmt"
 
-	_ "github.com/Work-Fort/WorkFort/pkg/termfix" // must be before bubbletea — avoids 5s OSC timeout
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

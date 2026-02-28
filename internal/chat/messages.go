@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/viewport"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/styles"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/styles"
 	"charm.land/lipgloss/v2"
 
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"

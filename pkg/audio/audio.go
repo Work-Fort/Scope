@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/charmbracelet/log"
+	log "charm.land/log/v2"
 	"github.com/gopxl/beep/v2"
 	"github.com/gopxl/beep/v2/speaker"
 	"github.com/gopxl/beep/v2/wav"

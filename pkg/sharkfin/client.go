@@ -7,7 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/gorilla/websocket"
 )
 

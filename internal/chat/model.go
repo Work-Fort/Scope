@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 
 	"github.com/spf13/viper"
 
