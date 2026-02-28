@@ -1,17 +1,39 @@
 [tools]
 go = "latest"
+cmake = "latest"
 
 [env]
 BINARY_NAME = "workfort"
 BUILD_DIR = "build"
 
+[tasks."whisper:setup"]
+description = "Clone and build whisper.cpp static libraries"
+run = """
+WHISPER_TAG="v1.8.3"
+WHISPER_DIR="$PWD/third_party/whisper.cpp"
+if [ ! -d "$WHISPER_DIR" ]; then
+  git clone --depth 1 --branch "$WHISPER_TAG" https://github.com/ggml-org/whisper.cpp.git "$WHISPER_DIR"
+fi
+if [ ! -f "$WHISPER_DIR/build/src/libwhisper.a" ]; then
+  cmake -S "$WHISPER_DIR" -B "$WHISPER_DIR/build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF
+  cmake --build "$WHISPER_DIR/build" --target whisper -- -j$(nproc)
+fi
+"""
+
 [tasks.build]
 description = "Build the workfort binary"
+depends = ["whisper:setup"]
 sources = ["**/*.go", "go.mod", "go.sum"]
 outputs = ["{{env.BUILD_DIR}}/{{env.BINARY_NAME}}"]
 run = """
 mkdir -p ${BUILD_DIR}
+WHISPER_DIR="$PWD/third_party/whisper.cpp"
 VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+C_INCLUDE_PATH="$WHISPER_DIR/include:$WHISPER_DIR/ggml/include" \
+LIBRARY_PATH="$WHISPER_DIR/build/src:$WHISPER_DIR/build/ggml/src" \
+CGO_ENABLED=1 \
 go build -ldflags "-X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
 """
 

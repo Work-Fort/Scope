@@ -17,8 +17,10 @@ import (
 const maxInputLines = 8
 
 type InputBar struct {
-	textarea textarea.Model
-	width    int
+	textarea  textarea.Model
+	width     int
+	sttActive bool // true while STT is replacing text
+	sttStart  int  // rune position where STT text begins
 }
 
 func NewInputBar() InputBar {
@@ -305,6 +307,41 @@ func longestCommonPrefix(strs []string) string {
 		}
 	}
 	return prefix
+}
+
+// BeginSTT marks the current cursor position as the start of STT text.
+// All text from this position onward will be replaced by transcription updates.
+func (ib *InputBar) BeginSTT() {
+	ib.sttActive = true
+	ib.sttStart = len([]rune(ib.textarea.Value()))
+}
+
+// SetSTTText replaces the STT portion of the input (from sttStart onward)
+// with the given transcription text, preserving any prefix typed before
+// recording started.
+func (ib *InputBar) SetSTTText(text string) {
+	if !ib.sttActive {
+		return
+	}
+	runes := []rune(ib.textarea.Value())
+	if ib.sttStart > len(runes) {
+		ib.sttStart = len(runes)
+	}
+	prefix := string(runes[:ib.sttStart])
+	newVal := prefix + text
+	ib.textarea.SetValue(newVal) // SetValue moves cursor to end
+	ib.updateHeight()
+}
+
+// ClearSTTState resets the STT tracking so the input bar accepts normal typing.
+func (ib *InputBar) ClearSTTState() {
+	ib.sttActive = false
+	ib.sttStart = 0
+}
+
+// IsSTTActive reports whether the input bar is in STT mode.
+func (ib *InputBar) IsSTTActive() bool {
+	return ib.sttActive
 }
 
 func (ib InputBar) View() string {

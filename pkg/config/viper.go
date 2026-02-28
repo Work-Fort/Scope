@@ -19,6 +19,9 @@ func InitViper() {
 	viper.SetDefault("sharkfin-host", "ws://127.0.0.1:16000/ws")
 	viper.SetDefault("username", "")
 	viper.SetDefault("notification-sound", "tone")
+	viper.SetDefault("stt-model", "ggml-tiny.en.bin")
+	viper.SetDefault("stt-language", "en")
+	viper.SetDefault("stt-threads", 4)
 
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
