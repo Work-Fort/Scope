@@ -61,7 +61,11 @@ type (
 		err        error
 		generation int
 	}
+	downloadTickMsg struct{}
 )
+
+// dlSpinnerFrames are quarter-fill circles that cycle clockwise.
+var dlSpinnerFrames = []string{"◐", "◓", "◑", "◒"}
 
 // ChatModel is the root Bubble Tea model for the chat UI.
 type ChatModel struct {
@@ -104,6 +108,7 @@ type ChatModel struct {
 	sttGeneration  int              // monotonic counter to discard stale results
 	sttInFlight    bool             // true while a streaming transcription cmd is running
 	recordingStart time.Time        // when recording started (for 30s timeout)
+	downloadFrame  int              // spinner frame index during model download
 
 	disconnected     bool // true when WS connection is lost
 	reconnectAttempt int  // current reconnect attempt number
@@ -353,6 +358,13 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case modelDownloadErrorMsg:
 		log.Error("stt_model_download", "err", msg.err)
 		m.recording = RecordingIdle
+		return m, nil
+
+	case downloadTickMsg:
+		if m.recording == RecordingDownloading || m.recording == RecordingTranscribing {
+			m.downloadFrame++
+			return m, downloadTickCmd()
+		}
 		return m, nil
 
 	case streamTickMsg:
@@ -1174,12 +1186,15 @@ func (m ChatModel) View() tea.View {
 	msgView := m.messages.View()
 	msgPane := msgStyle.Render(msgView)
 
-	// Input bar
+	// Input bar — red border means input is locked (recording or transcribing)
 	inputBorder := lipgloss.NormalBorder()
 	inputBorderColor := ui.CurrentTheme.Muted
 	if m.activePane == PaneInput {
 		inputBorder = lipgloss.ThickBorder()
 		inputBorderColor = ui.CurrentTheme.Primary
+	}
+	if m.recording != RecordingIdle {
+		inputBorderColor = lipgloss.Color("#E05252") // red = input locked
 	}
 	inputStyle := lipgloss.NewStyle().
 		Border(inputBorder).
@@ -1200,15 +1215,25 @@ func (m ChatModel) View() tea.View {
 		BorderForeground(ui.CurrentTheme.Muted).
 		Width(7). // v2: total rendered width (5 content + 2 border)
 		Align(lipgloss.Center)
-	// Mic button color reflects recording state
-	micColor := ui.CurrentTheme.TextDim
+	// Mic button: orange (ready), green spinner (downloading), red (recording), grey (transcribing)
+	micIcon := "󰍬"
+	micColor := ui.CurrentTheme.Primary
 	switch m.recording {
+	case RecordingDownloading:
+		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
+		micColor = lipgloss.Color("#50C878")
 	case RecordingActive:
-		micColor = ui.CurrentTheme.Accent
-	case RecordingDownloading, RecordingTranscribing:
-		micColor = ui.CurrentTheme.Primary
+		micIcon = "●"
+		micColor = lipgloss.Color("#E05252") // red = recording
+	case RecordingTranscribing:
+		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
+		micColor = lipgloss.Color("#E05252")
 	}
-	micBtn := btnStyle.Foreground(micColor).BorderForeground(micColor).Render("󰍬")
+	micBorderColor := micColor
+	if m.recording == RecordingTranscribing {
+		micBorderColor = ui.CurrentTheme.TextDim // grey border, red spinner
+	}
+	micBtn := btnStyle.Foreground(micColor).BorderForeground(micBorderColor).Render(micIcon)
 	sendBtn := btnStyle.BorderForeground(sendColor).Foreground(sendColor).Render("󰒊")
 	btnGroup := lipgloss.JoinHorizontal(lipgloss.Top, micBtn, sendBtn)
 	inputPane := lipgloss.JoinHorizontal(lipgloss.Bottom, inputBox, " ", btnGroup)
@@ -1346,10 +1371,17 @@ func (m ChatModel) toggleMic() (tea.Model, tea.Cmd) {
 	switch m.recording {
 	case RecordingIdle:
 		if m.transcriber == nil {
-			// Need to download/load model first
+			modelName := viper.GetString("stt-model")
+			if stt.ModelCached(modelName) {
+				// Model on disk — load inline, no download spinner
+				log.Debug("stt_model_loading")
+				return m, sttDownloadModelCmd()
+			}
+			// Need to download model — show green spinner
 			m.recording = RecordingDownloading
+			m.downloadFrame = 0
 			log.Debug("stt_download_start")
-			return m, sttDownloadModelCmd()
+			return m, tea.Batch(sttDownloadModelCmd(), downloadTickCmd())
 		}
 		return m.startRecording()
 	case RecordingActive:
@@ -1389,10 +1421,11 @@ func (m ChatModel) startRecording() (tea.Model, tea.Cmd) {
 func (m ChatModel) stopRecording() (tea.Model, tea.Cmd) {
 	samples := m.recorder.Stop()
 	m.recording = RecordingTranscribing
+	m.downloadFrame = 0
 	m.sttInFlight = true
 	gen := m.sttGeneration
 	log.Debug("stt_recording_stop", "samples", len(samples), "generation", gen)
-	return m, sttTranscribeCmd(m.transcriber, samples, true, gen)
+	return m, tea.Batch(sttTranscribeCmd(m.transcriber, samples, true, gen), downloadTickCmd())
 }
 
 // sttDownloadModelCmd returns a Cmd that downloads the whisper model.
@@ -1405,6 +1438,13 @@ func sttDownloadModelCmd() tea.Cmd {
 		}
 		return modelReadyMsg{path: path}
 	}
+}
+
+// downloadTickCmd returns a Cmd that fires a downloadTickMsg every 80ms for spinner animation.
+func downloadTickCmd() tea.Cmd {
+	return tea.Tick(80*time.Millisecond, func(_ time.Time) tea.Msg {
+		return downloadTickMsg{}
+	})
 }
 
 // sttTickCmd returns a Cmd that fires a streamTickMsg after 2.5 seconds.

@@ -11,6 +11,7 @@ import "C"
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/ggerganov/whisper.cpp/bindings/go/pkg/whisper"
 )
@@ -21,8 +22,11 @@ func init() {
 
 // Transcriber wraps a loaded whisper model for speech-to-text transcription.
 // The model is loaded once and reused; a fresh context is created per call
-// to avoid state leaks (contexts are not thread-safe).
+// to avoid state leaks (contexts are not thread-safe). A mutex serializes
+// calls because the ggml graph scheduler is not safe for concurrent use
+// even across separate contexts from the same model.
 type Transcriber struct {
+	mu      sync.Mutex
 	model   whisper.Model
 	lang    string
 	threads uint
@@ -50,6 +54,9 @@ func (t *Transcriber) Transcribe(samples []float32) (string, error) {
 // TranscribeWithCallback runs speech recognition and calls segmentCb for each
 // decoded segment in real time. Returns the full concatenated text.
 func (t *Transcriber) TranscribeWithCallback(samples []float32, segmentCb func(string)) (string, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	ctx, err := t.model.NewContext()
 	if err != nil {
 		return "", fmt.Errorf("stt: create context: %w", err)

@@ -17,6 +17,13 @@ func ModelsDir() string {
 	return filepath.Join(config.GlobalPaths.DataDir, "models")
 }
 
+// ModelCached returns true if the named model file already exists on disk.
+func ModelCached(name string) bool {
+	path := filepath.Join(ModelsDir(), name)
+	_, err := os.Stat(path)
+	return err == nil
+}
+
 // EnsureModel checks whether the named model is cached locally. If not, it
 // downloads from HuggingFace. progressFn is called with values in [0.0, 1.0]
 // during download. Returns the absolute path to the model file.
