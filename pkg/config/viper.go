@@ -22,6 +22,7 @@ func InitViper() {
 	viper.SetDefault("stt-model", "ggml-tiny.en.bin")
 	viper.SetDefault("stt-language", "en")
 	viper.SetDefault("stt-threads", 4)
+	viper.SetDefault("auto-theme", true)
 
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))

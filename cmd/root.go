@@ -9,8 +9,11 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 
+	"github.com/spf13/viper"
+
 	"github.com/Work-Fort/WorkFort/cmd/chat"
 	"github.com/Work-Fort/WorkFort/pkg/config"
+	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
 var (
@@ -32,6 +35,10 @@ var rootCmd = &cobra.Command{
 
 		if err := config.LoadConfig(); err != nil {
 			return err
+		}
+
+		if viper.GetBool("auto-theme") {
+			_ = ui.LoadOmarchyTheme() // silently fall back to default theme
 		}
 
 		useTUI = config.GetUseTUI()
