@@ -55,7 +55,7 @@ func (t *Transcriber) TranscribeWithCallback(samples []float32, segmentCb func(s
 		return "", fmt.Errorf("stt: create context: %w", err)
 	}
 
-	if t.lang != "" {
+	if t.lang != "" && ctx.IsMultilingual() {
 		if err := ctx.SetLanguage(t.lang); err != nil {
 			return "", fmt.Errorf("stt: set language %q: %w", t.lang, err)
 		}
