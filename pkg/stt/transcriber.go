@@ -1,11 +1,23 @@
 package stt
 
+/*
+#include <whisper.h>
+
+// Defined in whisper_log.c — suppresses whisper.cpp's stderr output.
+extern void whisper_noop_log(enum ggml_log_level level, const char *text, void *user_data);
+*/
+import "C"
+
 import (
 	"fmt"
 	"strings"
 
 	"github.com/ggerganov/whisper.cpp/bindings/go/pkg/whisper"
 )
+
+func init() {
+	C.whisper_log_set((C.ggml_log_callback)(C.whisper_noop_log), nil)
+}
 
 // Transcriber wraps a loaded whisper model for speech-to-text transcription.
 // The model is loaded once and reused; a fresh context is created per call
