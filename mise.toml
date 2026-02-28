@@ -33,6 +33,7 @@ WHISPER_DIR="$PWD/third_party/whisper.cpp"
 VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
 C_INCLUDE_PATH="$WHISPER_DIR/include:$WHISPER_DIR/ggml/include" \
 LIBRARY_PATH="$WHISPER_DIR/build/src:$WHISPER_DIR/build/ggml/src" \
+CGO_LDFLAGS="-L$WHISPER_DIR/build/src -L$WHISPER_DIR/build/ggml/src -Wl,-Bstatic -lwhisper -lggml -lggml-base -lggml-cpu -Wl,-Bdynamic -lm -lstdc++ -fopenmp" \
 CGO_ENABLED=1 \
 go build -ldflags "-X github.com/Work-Fort/WorkFort/cmd.Version=${VERSION}" -o ${BUILD_DIR}/${BINARY_NAME} .
 """
