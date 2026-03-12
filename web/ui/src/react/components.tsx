@@ -12,7 +12,11 @@ import type { WfListItem } from '../components/list-item.js';
 import type { WfScrollArea } from '../components/scroll-area.js';
 import type { WfErrorFallback } from '../components/error-fallback.js';
 
-type WfProps<E, P = {}> = P & React.HTMLAttributes<E> & { children?: React.ReactNode };
+type WfProps<E, P = {}> = P & React.HTMLAttributes<E> & {
+  children?: React.ReactNode;
+  /** Allow custom event handler props like onWfClick, onWfChange, etc. */
+  [key: `on${Uppercase<string>}${string}`]: ((...args: unknown[]) => void) | undefined;
+};
 
 /**
  * Separates event props (onX) from attribute props, and attaches event listeners
@@ -69,7 +73,7 @@ function wrapWc<E extends HTMLElement, P extends Record<string, unknown>>(
 ) {
   const Comp = forwardRef<E, WfProps<E, P>>(({ children, ...rest }, ref) => {
     const { ref: wcRef, cleanProps } = useWcEvents<E>(ref, rest as Record<string, unknown>);
-    return React.createElement(tag, { ref: wcRef, ...cleanProps }, children);
+    return React.createElement(tag, { ref: wcRef, ...cleanProps }, children as React.ReactNode);
   });
   Comp.displayName = displayName;
   return Comp;

@@ -18,6 +18,7 @@ export default defineConfig({
         'solid/index': 'src/solid/index.ts',
       },
       formats: ['es'],
+      cssFileName: 'style',
     },
     rollupOptions: {
       external: [
