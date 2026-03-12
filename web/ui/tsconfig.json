@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "jsx": "react-jsx",
+    "paths": {
+      "@workfort/ui": ["./src/index.ts"],
+      "@workfort/ui/auth": ["./src/auth/index.ts"],
+      "@workfort/ui/react": ["./src/react/index.tsx"],
+      "@workfort/ui/vue": ["./src/vue/index.ts"],
+      "@workfort/ui/svelte": ["./src/svelte/index.ts"],
+      "@workfort/ui/solid": ["./src/solid/index.ts"]
+    }
+  },
+  "include": ["src", "tests"]
+}
