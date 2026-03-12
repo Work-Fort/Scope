@@ -1,1 +1,17 @@
 /* src/styles/components.css — grows as components are added */
+
+.wf-panel {
+  display: block;
+  background: var(--wf-bg);
+  border: 1px solid var(--wf-border);
+  border-radius: var(--wf-radius-md);
+  padding: var(--wf-space-md);
+  font-family: var(--wf-font-sans);
+  color: var(--wf-text);
+}
+.wf-panel__label {
+  font-size: var(--wf-font-size-sm);
+  color: var(--wf-text-secondary);
+  margin-bottom: var(--wf-space-sm);
+  font-weight: 600;
+}
