@@ -790,7 +790,7 @@ git commit -m "feat(fortconfig): add domain types and Viper-backed fort registry
 - Create: `internal/infra/httpapi/bff.go`
 - Create: `internal/infra/httpapi/bff_test.go`
 
-**Context:** The BFF converts session cookies to JWTs by calling the auth service's `GET /api/auth/token` endpoint. It caches the JWT keyed by session cookie value. JWTs have a 15-minute lifetime; the cache refreshes at 14 minutes. On 401 from auth, the cache entry is evicted and the session cookie is cleared.
+**Context:** The BFF converts session cookies to JWTs by calling the auth service's `GET /v1/token` endpoint. It caches the JWT keyed by session cookie value. JWTs have a 15-minute lifetime; the cache refreshes at 14 minutes. On 401 from auth, the cache entry is evicted and the session cookie is cleared.
 
 The better-auth session cookie name is `better-auth.session_token`.
 
@@ -1036,7 +1036,7 @@ type TokenConverter struct {
 // to exchange session cookies for JWTs.
 func NewTokenConverter(authServiceURL string) *TokenConverter {
 	return &TokenConverter{
-		authURL:       authServiceURL + "/api/auth/token",
+		authURL:       authServiceURL + "/v1/token",
 		client:        &http.Client{Timeout: 5 * time.Second},
 		tokenLifetime: tokenLifetime,
 		refreshBefore: refreshBefore,
@@ -1049,7 +1049,7 @@ func NewTokenConverter(authServiceURL string) *TokenConverter {
 // cache eviction without time manipulation).
 func NewTokenConverterForTest(authServiceURL string, ttl, refresh time.Duration) *TokenConverter {
 	return &TokenConverter{
-		authURL:       authServiceURL + "/api/auth/token",
+		authURL:       authServiceURL + "/v1/token",
 		client:        &http.Client{Timeout: 5 * time.Second},
 		tokenLifetime: ttl,
 		refreshBefore: refresh,
@@ -1709,7 +1709,7 @@ git commit -m "feat(httpapi): add SPA serving with index.html fallback and dev p
 - Create: `internal/infra/httpapi/handler.go`
 - Create: `internal/infra/httpapi/handler_test.go`
 
-**Context:** The handler wires everything together: service proxies (with BFF auth for non-auth services), shell endpoints (`/api/services`, `/api/config`), and SPA fallback. Auth routes (`/api/auth/*`) are pass-through — no JWT conversion.
+**Context:** The handler wires everything together: service proxies (with BFF auth for non-auth services), shell endpoints (`/api/services`, `/api/config`), and SPA fallback. Auth routes (`/api/auth/*`) use the same strip-prefix pattern but skip JWT conversion.
 
 **Reference:** Read the "Shell endpoints" and "Route behavior" sections of `docs/2026-03-12-go-web-shell-design.md`.
 

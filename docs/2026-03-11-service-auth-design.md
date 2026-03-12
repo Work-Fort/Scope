@@ -63,7 +63,7 @@ The WorkFort CLI proxy acts as a BFF. The browser uses `HttpOnly` session cookie
 Browser                    CLI Proxy (BFF)              Auth Service           Backend Service
   │                            │                            │                      │
   │─── request ───────────────▶│                            │                      │
-  │    (cookie auto-attached)  │── GET /api/auth/token ────▶│                      │
+  │    (cookie auto-attached)  │── GET /v1/token ──────────▶│                      │
   │                            │◀── JWT ────────────────────│                      │
   │                            │── forward request ────────────────────────────────▶│
   │                            │   Authorization: Bearer <JWT>                     │
@@ -74,7 +74,7 @@ Browser                    CLI Proxy (BFF)              Auth Service           B
 The proxy caches the JWT (15-min lifetime, refreshed before expiry). The browser never sees a JWT.
 
 **Proxy route behavior:**
-- `/api/auth/*` — **pass-through**. The proxy forwards requests transparently to the auth service (including cookies). No JWT conversion. This is how login, registration, and session checks work.
+- `/api/auth/*` — **strip-prefix**. The proxy strips `/api/auth` and forwards to the auth service (e.g., `/api/auth/v1/session` → `/v1/session`). Cookies included, no JWT conversion. This is how login, registration, and session checks work.
 - `/api/{service}/*` (sharkfin, nexus, hive) — **BFF conversion**. The proxy reads the session cookie, converts it to a JWT, and forwards with `Authorization: Bearer`.
 
 **Error handling:**
@@ -218,8 +218,8 @@ Lives in the WorkFort CLI repo at `pkg/auth/`. All services import it. Apache 2.
 ### Capabilities
 
 1. **HTTP middleware** — wraps any `http.Handler`, extracts and validates `Authorization: Bearer` header, populates request context with an `Identity`
-2. **JWKS-based JWT validation** — fetches and caches public keys from better-auth's `/api/auth/jwks`, validates tokens locally (no auth server roundtrip per request)
-3. **API key validation** — calls better-auth's `/api/auth/verify-api-key`, caches results briefly
+2. **JWKS-based JWT validation** — fetches and caches public keys from better-auth's `/v1/jwks`, validates tokens locally (no auth server roundtrip per request)
+3. **API key validation** — calls better-auth's `/v1/verify-api-key`, caches results briefly
 4. **Context helpers** — `IdentityFromContext(ctx)` to retrieve the verified identity
 5. **WebSocket support** — validates Bearer token from the upgrade request before accepting the connection
 

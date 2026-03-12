@@ -14,7 +14,7 @@ The WorkFort CLI is purely a UI shell and proxy — it runs no backend logic. Au
 - **XDG compliance**: All configuration under `$XDG_CONFIG_HOME/workfort/config.yaml`.
 - **Service independence**: Each service owns its UI. The shell never contains service-specific UI code.
 - **Apache 2.0 licensing**: The WorkFort CLI (including `pkg/auth/` and `@workfort/ui`) is Apache 2.0 licensed. Service remotes can be any license (proprietary, GPL, MIT).
-- **BFF proxy**: The proxy is NOT transparent for auth — it converts session cookies to JWTs for service routes (`/api/{service}/*`). Auth routes (`/api/auth/*`) are pass-through. See the [service auth design spec](2026-03-11-service-auth-design.md) for details.
+- **BFF proxy**: The proxy converts session cookies to JWTs for service routes (`/api/{service}/*`). Auth routes (`/api/auth/*`) use the same strip-prefix pattern but skip JWT conversion (cookies forwarded directly). See the [service auth design spec](2026-03-11-service-auth-design.md) for details.
 
 ## Stack
 
@@ -316,7 +316,7 @@ export function SidebarContent() {
 
 ### Auth as a service
 
-Authentication is a service in the fort config, not shell infrastructure. The shell proxies `/api/auth/*` like any other service.
+Authentication is a service in the fort config, not shell infrastructure. The shell proxies `/api/auth/*` like any other service — stripping the `/api/auth` prefix and forwarding to the auth service's `/v1/*` endpoints.
 
 ```yaml
 forts:
@@ -342,7 +342,7 @@ How the auth service is deployed (Nexus VM, container, etc.) is a Nexus concern,
 
 ### Auth flow
 
-1. Shell boots, fetches `/api/auth/session` to check for an existing session
+1. Shell boots, fetches `/api/auth/v1/session` to check for an existing session
 2. No session → shell renders the auth service's login UI (loaded via Module Federation, or a minimal built-in fallback)
 3. User authenticates → better-auth sets a session cookie
 4. Shell re-reads session, populates `AuthProvider` context
@@ -351,7 +351,7 @@ How the auth service is deployed (Nexus VM, container, etc.) is a Nexus concern,
 
 ### Auth remote as a special case
 
-The auth service can ship a Module Federation remote like any other service (login form, account settings, OAuth callback pages). However, since auth must be available before other remotes load, the shell includes a minimal fallback login form as a built-in. If the auth service's UI remote loads successfully, it replaces the fallback. If the auth backend itself is unreachable (`/api/auth/session` fails), the shell shows an error page: "Authentication service unavailable. Check that the auth service is running."
+The auth service can ship a Module Federation remote like any other service (login form, account settings, OAuth callback pages). However, since auth must be available before other remotes load, the shell includes a minimal fallback login form as a built-in. If the auth service's UI remote loads successfully, it replaces the fallback. If the auth backend itself is unreachable (`/api/auth/v1/session` fails), the shell shows an error page: "Authentication service unavailable. Check that the auth service is running."
 
 ## Domain Model
 

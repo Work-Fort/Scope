@@ -180,7 +180,7 @@ import { AuthClient } from '@workfort/ui/auth';
 const auth = new AuthClient();
 
 // Lifecycle
-await auth.init();           // Fetches session from GET /api/auth/session
+await auth.init();           // Fetches session from GET /api/auth/v1/session
 await auth.refresh();        // Re-fetches session (e.g., after tab becomes visible)
 await auth.logout();         // Clears session, redirects to login
 
@@ -224,7 +224,7 @@ The `User` interface maps the better-auth session endpoint response (camelCase f
 ### How It Works
 
 1. Shell creates a singleton `AuthClient` and calls `init()` on boot
-2. `init()` calls `GET /api/auth/session` (BFF proxy sends the session cookie automatically)
+2. `init()` calls `GET /api/auth/v1/session` (BFF proxy strips `/api/auth`, forwards `GET /v1/session` to the auth service with cookies)
 3. If the session is valid, stores `User` and `Session` in memory, emits `change`
 4. If unauthorized (401), sets state to `null` — the shell shows the login UI
 5. On `logout()`, calls the better-auth signout endpoint, clears state, emits `logout`

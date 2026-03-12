@@ -1780,8 +1780,8 @@ import { AuthInitError } from './types.js';
 
 type Listener<T> = (data: T) => void;
 
-const SESSION_ENDPOINT = '/api/auth/session';
-const SIGNOUT_ENDPOINT = '/api/auth/sign-out';
+const SESSION_ENDPOINT = '/api/auth/v1/session';
+const SIGNOUT_ENDPOINT = '/api/auth/v1/sign-out';
 const VISIBILITY_THRESHOLD_MS = 5 * 60 * 1000;
 
 export class AuthClient {

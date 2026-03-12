@@ -12,7 +12,7 @@ Install and enable these better-auth plugins:
 
 | Plugin | Purpose | Required by |
 |--------|---------|-------------|
-| **JWT** | Issues JWTs from sessions, exposes `/api/auth/jwks` | `pkg/auth/jwt` middleware (Go services) |
+| **JWT** | Issues JWTs from sessions, exposes `/v1/jwks` | `pkg/auth/jwt` middleware (Go services) |
 | **Bearer** | Enables `Authorization: Bearer` header auth | BFF proxy, CLI |
 | **API Key** | API keys for agents and service-to-service auth | `pkg/auth/apikey` middleware |
 | **Admin** | Programmatic identity creation (agents, services) | Hive agent provisioning, manual setup |
@@ -73,12 +73,12 @@ The `pkg/auth/` middleware calls two endpoints. These are provided by better-aut
 
 | Endpoint | Method | Plugin | Consumer |
 |----------|--------|--------|----------|
-| `/api/auth/jwks` | GET | JWT | `pkg/auth/jwt` fetches public keys for local JWT validation |
-| `/api/auth/verify-api-key` | POST | API Key | `pkg/auth/apikey` verifies API keys |
-| `/api/auth/token` | GET | JWT + Bearer | BFF proxy converts session cookie → JWT |
-| `/api/auth/session` | GET | Core | Shell checks session on boot, CLI checks auth state |
+| `/v1/jwks` | GET | JWT | `pkg/auth/jwt` fetches public keys for local JWT validation |
+| `/v1/verify-api-key` | POST | API Key | `pkg/auth/apikey` verifies API keys |
+| `/v1/token` | GET | JWT + Bearer | BFF proxy converts session cookie → JWT |
+| `/v1/session` | GET | Core | Shell checks session on boot, CLI checks auth state |
 
-### `/api/auth/verify-api-key` request/response format
+### `/v1/verify-api-key` request/response format
 
 Request:
 ```json
@@ -133,7 +133,7 @@ Configure the API Key plugin's prefix if it supports it, or enforce this convent
 - **Session lifetime:** Your call, but something reasonable (7-30 days). The CLI re-authenticates via `workfort login` when it expires.
 - **Cookie name:** Use better-auth's default (typically `better-auth.session_token`)
 
-The BFF proxy reads the session cookie and forwards it to `/api/auth/token` to get a JWT. The browser only ever sees the cookie, never a JWT.
+The BFF proxy reads the session cookie, strips the `/api/auth` prefix, and forwards to the auth service's `/v1/token` to get a JWT. The browser only ever sees the cookie, never a JWT.
 
 ---
 
@@ -172,15 +172,15 @@ Agent identities are created later via Hive (manual for now, automated by Substr
 
 Once running, verify these work:
 
-- [ ] `GET /api/auth/jwks` returns a JSON Web Key Set
+- [ ] `GET /v1/jwks` returns a JSON Web Key Set
 - [ ] Create a user with `username`, `displayName`, and `type` fields
 - [ ] Log in, get a session cookie
-- [ ] `GET /api/auth/token` (with session cookie) returns a JWT containing `sub`, `username`, `name`, `display_name`, `type` claims
+- [ ] `GET /v1/token` (with session cookie) returns a JWT containing `sub`, `username`, `name`, `display_name`, `type` claims
 - [ ] Create an API key with metadata containing `username`, `name`, `display_name`, `type`
-- [ ] `POST /api/auth/verify-api-key` with the key returns the identity with metadata
+- [ ] `POST /v1/verify-api-key` with the key returns the identity with metadata
 - [ ] Device authorization flow works (if OAuth providers are configured)
 
-The Go middleware test suite (`go test ./pkg/auth/...`) validates parsing of these formats. If you want to integration-test against a live auth service, point the JWT validator at your `/api/auth/jwks` and sign a real token.
+The Go middleware test suite (`go test ./pkg/auth/...`) validates parsing of these formats. If you want to integration-test against a live auth service, point the JWT validator at your `/v1/jwks` and sign a real token.
 
 ---
 
@@ -188,4 +188,4 @@ The Go middleware test suite (`go test ./pkg/auth/...`) validates parsing of the
 
 - **BFF proxy logic** — that's in the CLI, not the auth service
 - **Authorization (who can do what)** — each service handles its own permissions. The auth service only does authentication (who are you).
-- **The `@workfort/ui` auth module** — that's a frontend wrapper around your session endpoint. It just calls `/api/auth/session`.
+- **The `@workfort/ui` auth module** — that's a frontend wrapper around your session endpoint. It calls `/api/auth/v1/session` through the BFF proxy (which strips `/api/auth` and forwards `/v1/session`).

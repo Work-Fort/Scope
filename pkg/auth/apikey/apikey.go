@@ -33,7 +33,7 @@ type cachedKey struct {
 }
 
 // New creates an API key validator that verifies keys against the given URL.
-// The verifyURL should be the full endpoint (e.g., "http://127.0.0.1:3000/api/auth/verify-api-key").
+// The verifyURL should be the full endpoint (e.g., "http://127.0.0.1:3000/v1/verify-api-key").
 func New(verifyURL string, cacheTTL time.Duration) *Validator {
 	return &Validator{
 		verifyURL: verifyURL,

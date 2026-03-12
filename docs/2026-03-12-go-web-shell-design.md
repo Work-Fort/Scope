@@ -222,7 +222,7 @@ internal/infra/httpapi/
 
 | Route pattern | Behavior |
 |---------------|----------|
-| `/api/auth/*` | **Pass-through** — forwards request with cookies intact, no JWT conversion |
+| `/api/auth/*` | **Strip-prefix** — strips `/api/auth`, forwards to auth service with cookies intact, no JWT conversion |
 | `/api/{service}/*` | **BFF conversion** — reads session cookie, converts to JWT, forwards with `Authorization: Bearer` |
 | `/api/{service}/ui/*` | **BFF conversion** — same as above, proxied to service's `/ui/*` |
 | `/api/services` | **Shell endpoint** — returns enabled services with metadata |
@@ -248,7 +248,7 @@ type cachedToken struct {
 Behavior:
 1. Extract session cookie from incoming request
 2. Check cache — if token exists and has >1 minute remaining, use it
-3. Cache miss or near-expiry: forward session cookie to auth service's `GET /api/auth/token`, receive JWT
+3. Cache miss or near-expiry: forward session cookie to auth service's `GET /v1/token`, receive JWT
 4. Cache the JWT, keyed by session cookie value
 5. Attach `Authorization: Bearer <JWT>` to the forwarded request
 
@@ -261,9 +261,9 @@ Cache eviction on 401 ensures stale entries never survive a server-side session 
 
 JWT lifetime is 15 minutes (per auth design spec). Cache refreshes at 14 minutes.
 
-### Auth route pass-through
+### Auth route handling
 
-`/api/auth/*` requests are forwarded transparently — cookies included, no JWT conversion. This is how login, registration, session checks, and JWKS endpoints work. The auth service sees the raw browser request.
+`/api/auth/*` requests are handled the same as other services: the proxy strips the `/api/auth` prefix and forwards to the auth service (e.g., `/api/auth/v1/session` → `/v1/session`). Cookies are included, no JWT conversion. This is how login, registration, session checks, and JWKS endpoints work.
 
 ### Reverse proxy
 

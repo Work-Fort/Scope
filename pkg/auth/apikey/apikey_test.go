@@ -16,7 +16,7 @@ func testAPIKeyServer(t *testing.T, callCount *atomic.Int32) *httptest.Server {
 	t.Helper()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/auth/verify-api-key", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /v1/verify-api-key", func(w http.ResponseWriter, r *http.Request) {
 		callCount.Add(1)
 
 		var body struct {
@@ -73,7 +73,7 @@ func TestValidator_ValidKey(t *testing.T) {
 	var calls atomic.Int32
 	srv := testAPIKeyServer(t, &calls)
 
-	v := New(srv.URL+"/api/auth/verify-api-key", 1*time.Minute)
+	v := New(srv.URL+"/v1/verify-api-key", 1*time.Minute)
 
 	id, err := v.Validate(context.Background(), "wf_valid_key")
 	if err != nil {
@@ -94,7 +94,7 @@ func TestValidator_InvalidKey(t *testing.T) {
 	var calls atomic.Int32
 	srv := testAPIKeyServer(t, &calls)
 
-	v := New(srv.URL+"/api/auth/verify-api-key", 1*time.Minute)
+	v := New(srv.URL+"/v1/verify-api-key", 1*time.Minute)
 
 	_, err := v.Validate(context.Background(), "wf_bogus")
 	if err == nil {
@@ -106,7 +106,7 @@ func TestValidator_CachesResult(t *testing.T) {
 	var calls atomic.Int32
 	srv := testAPIKeyServer(t, &calls)
 
-	v := New(srv.URL+"/api/auth/verify-api-key", 1*time.Minute)
+	v := New(srv.URL+"/v1/verify-api-key", 1*time.Minute)
 
 	// First call hits the server.
 	id1, err := v.Validate(context.Background(), "wf_valid_key")
@@ -135,7 +135,7 @@ func TestValidator_CacheExpires(t *testing.T) {
 	var calls atomic.Int32
 	srv := testAPIKeyServer(t, &calls)
 
-	v := New(srv.URL+"/api/auth/verify-api-key", 10*time.Millisecond)
+	v := New(srv.URL+"/v1/verify-api-key", 10*time.Millisecond)
 
 	_, err := v.Validate(context.Background(), "wf_valid_key")
 	if err != nil {
@@ -159,7 +159,7 @@ func TestValidator_AgentKey(t *testing.T) {
 	var calls atomic.Int32
 	srv := testAPIKeyServer(t, &calls)
 
-	v := New(srv.URL+"/api/auth/verify-api-key", 1*time.Minute)
+	v := New(srv.URL+"/v1/verify-api-key", 1*time.Minute)
 
 	id, err := v.Validate(context.Background(), "wf-agent_valid")
 	if err != nil {

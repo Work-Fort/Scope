@@ -41,8 +41,8 @@ type Options struct {
 func DefaultOptions(authServiceURL string) Options {
 	return Options{
 		AuthServiceURL:      authServiceURL,
-		JWKSURL:             authServiceURL + "/api/auth/jwks",
-		VerifyAPIKeyURL:     authServiceURL + "/api/auth/verify-api-key",
+		JWKSURL:             authServiceURL + "/v1/jwks",
+		VerifyAPIKeyURL:     authServiceURL + "/v1/verify-api-key",
 		JWKSRefreshInterval: 5 * time.Minute,
 		APIKeyCacheTTL:      30 * time.Second,
 	}
