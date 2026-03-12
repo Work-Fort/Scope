@@ -20,6 +20,9 @@ type Middleware func(http.Handler) http.Handler
 //	mw := auth.NewFromValidators(jwtV, akV)
 //	mux.Handle("/v1/", mw(apiHandler))
 func NewFromValidators(validators ...Validator) Middleware {
+	if len(validators) == 0 {
+		panic("auth: at least one validator required")
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, ok := extractBearer(r)
@@ -62,5 +65,5 @@ func extractBearer(r *http.Request) (string, bool) {
 func writeError(w http.ResponseWriter, status int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
