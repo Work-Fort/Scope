@@ -15,3 +15,20 @@
   margin-bottom: var(--wf-space-sm);
   font-weight: 600;
 }
+
+/* Button */
+.wf-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+  padding: var(--wf-space-sm) var(--wf-space-md);
+  border: 1px solid var(--wf-border);
+  border-radius: var(--wf-radius-sm);
+  background: transparent;
+  color: var(--wf-text);
+  font-family: var(--wf-font-sans);
+  font-size: var(--wf-font-size-sm);
+  cursor: pointer;
+}
+.wf-button[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.wf-button--filled { background: var(--wf-accent); border-color: var(--wf-accent); color: white; }
