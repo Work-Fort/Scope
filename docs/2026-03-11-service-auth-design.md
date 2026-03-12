@@ -250,14 +250,17 @@ type Identity struct {
 ### Usage by a service
 
 ```go
-import "github.com/Work-Fort/WorkFort/pkg/auth"
+import (
+    "github.com/Work-Fort/WorkFort/pkg/auth"
+    "github.com/Work-Fort/WorkFort/pkg/auth/jwt"
+    "github.com/Work-Fort/WorkFort/pkg/auth/apikey"
+)
 
 func main() {
-    authMiddleware := auth.New(auth.Options{
-        AuthServiceURL:      "http://127.0.0.1:3000",
-        JWKSRefreshInterval: 5 * time.Minute,
-        APIKeyCacheTTL:      30 * time.Second,
-    })
+    opts := auth.DefaultOptions("http://127.0.0.1:3000")
+    jwtV, err := jwt.New(ctx, opts.JWKSURL, opts.JWKSRefreshInterval)
+    akV := apikey.New(opts.VerifyAPIKeyURL, opts.APIKeyCacheTTL)
+    authMiddleware := auth.NewFromValidators(jwtV, akV)
 
     mux := http.NewServeMux()
     mux.Handle("GET /v1/health", healthHandler)         // public
@@ -267,7 +270,7 @@ func main() {
 
 // Inside a handler:
 func handleListVMs(w http.ResponseWriter, r *http.Request) {
-    id := auth.IdentityFromContext(r.Context())
+    id, _ := auth.IdentityFromContext(r.Context())
     // id.ID, id.Username, id.DisplayName, id.Type
 }
 ```
