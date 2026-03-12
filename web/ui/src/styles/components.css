@@ -32,3 +32,52 @@
 }
 .wf-button[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 .wf-button--filled { background: var(--wf-accent); border-color: var(--wf-accent); color: white; }
+
+/* Badge */
+.wf-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25em;
+  height: 1.25em;
+  padding: 0 var(--wf-space-xs, 0.25rem);
+  border-radius: var(--wf-radius-lg, 9999px);
+  background: var(--wf-accent, #6366f1);
+  color: #fff;
+  font-size: var(--wf-font-size-xs, 0.75rem);
+  font-family: var(--wf-font-sans, system-ui);
+  line-height: 1;
+}
+.wf-badge:empty { display: none; }
+
+/* StatusDot */
+.wf-status-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--wf-text-muted, #6b7280);
+}
+.wf-status-dot--online { background: #22c55e; }
+.wf-status-dot--away { background: #eab308; }
+.wf-status-dot--offline { background: var(--wf-text-muted, #6b7280); }
+
+/* Skeleton */
+.wf-skeleton {
+  display: block;
+  background: var(--wf-bg-secondary, #f3f4f6);
+  border-radius: var(--wf-radius-sm, 0.25rem);
+  animation: wf-skeleton-pulse 1.5s ease-in-out infinite;
+}
+@keyframes wf-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Divider */
+.wf-divider {
+  display: block;
+  height: 1px;
+  background: var(--wf-border, #e5e7eb);
+  margin: var(--wf-space-sm, 0.5rem) 0;
+}
