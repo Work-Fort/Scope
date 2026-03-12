@@ -130,3 +130,32 @@
   display: flex;
   align-items: center;
 }
+
+/* ScrollArea */
+.wf-scroll-area {
+  display: block;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--wf-border, #e5e7eb) transparent;
+}
+.wf-scroll-area::-webkit-scrollbar { width: 6px; }
+.wf-scroll-area::-webkit-scrollbar-track { background: transparent; }
+.wf-scroll-area::-webkit-scrollbar-thumb {
+  background: var(--wf-border, #e5e7eb);
+  border-radius: 3px;
+}
+
+/* ErrorFallback */
+.wf-error-fallback {
+  display: block;
+  padding: var(--wf-space-md, 0.75rem);
+  color: var(--wf-text, #111827);
+}
+.wf-error-fallback__title {
+  font-weight: 600;
+  margin-bottom: var(--wf-space-xs, 0.25rem);
+}
+.wf-error-fallback__message {
+  color: var(--wf-text-secondary, #4b5563);
+  font-size: var(--wf-font-size-sm, 0.8125rem);
+}
