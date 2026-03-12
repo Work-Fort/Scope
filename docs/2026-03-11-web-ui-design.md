@@ -13,6 +13,8 @@ The WorkFort CLI is purely a UI shell and proxy — it runs no backend logic. Au
 - **Single binary distribution**: The shell SPA is embedded via `go:embed`. No external files at runtime.
 - **XDG compliance**: All configuration under `$XDG_CONFIG_HOME/workfort/config.yaml`.
 - **Service independence**: Each service owns its UI. The shell never contains service-specific UI code.
+- **Apache 2.0 licensing**: The WorkFort CLI (including `pkg/auth/` and `@workfort/ui`) is Apache 2.0 licensed. Service remotes can be any license (proprietary, GPL, MIT).
+- **BFF proxy**: The proxy is NOT transparent for auth — it converts session cookies to JWTs for service routes (`/api/{service}/*`). Auth routes (`/api/auth/*`) are pass-through. See the [service auth design spec](2026-03-11-service-auth-design.md) for details.
 
 ## Stack
 
