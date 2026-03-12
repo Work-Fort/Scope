@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -9,12 +10,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
 
-	"github.com/spf13/viper"
-
-	"github.com/Work-Fort/WorkFort/pkg/audio"
-	"github.com/Work-Fort/WorkFort/pkg/config"
 	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
-	"github.com/Work-Fort/WorkFort/pkg/stt"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
@@ -26,7 +22,7 @@ const (
 	PaneInput
 )
 
-const inputBtnW = 15 // width reserved for two bordered action buttons beside input
+const inputBtnW = 8 // width reserved for bordered send button beside input
 
 // SidebarTab identifies which sidebar list is visible.
 type SidebarTab int
@@ -36,36 +32,6 @@ const (
 	TabDMs
 	TabUsers
 )
-
-// RecordingState tracks the current state of voice recording.
-type RecordingState int
-
-const (
-	RecordingIdle         RecordingState = iota
-	RecordingDownloading                        // model downloading
-	RecordingActive                             // mic is on, capturing audio
-	RecordingTranscribing                       // final transcription in progress
-)
-
-// STT tea messages — lowercase to keep them package-private.
-type (
-	modelReadyMsg         struct{ path string }
-	modelDownloadErrorMsg struct{ err error }
-	streamSegmentMsg      struct {
-		text       string
-		final      bool
-		generation int
-	}
-	streamTickMsg      struct{ generation int }
-	transcribeErrorMsg struct {
-		err        error
-		generation int
-	}
-	downloadTickMsg struct{}
-)
-
-// dlSpinnerFrames are quarter-fill circles that cycle clockwise.
-var dlSpinnerFrames = []string{"◐", "◓", "◑", "◒"}
 
 // ChatModel is the root Bubble Tea model for the chat UI.
 type ChatModel struct {
@@ -98,17 +64,7 @@ type ChatModel struct {
 	lastMouseY    int       // last known mouse Y position from tea.MouseMsg
 	lastMouseTime time.Time // when last mouse event was received
 
-	notifSound     audio.Sound // current notification sound
 	pendingJoinCh  string      // channel name to select after join completes
-
-	// STT (speech-to-text) state
-	recording      RecordingState
-	recorder       *stt.Recorder
-	transcriber    *stt.Transcriber // lazy-loaded on first mic press
-	sttGeneration  int              // monotonic counter to discard stale results
-	sttInFlight    bool             // true while a streaming transcription cmd is running
-	recordingStart time.Time        // when recording started (for 30s timeout)
-	downloadFrame  int              // spinner frame index during model download
 
 	disconnected     bool // true when WS connection is lost
 	reconnectAttempt int  // current reconnect attempt number
@@ -132,7 +88,6 @@ func NewModel(client *sharkfin.Client, username string) ChatModel {
 		activePane:       PaneChannels,
 		username:         username,
 		historyExhausted: make(map[string]bool),
-		notifSound:       audio.Sound(viper.GetString("notification-sound")),
 	}
 }
 
@@ -158,7 +113,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 
 	case tea.PasteMsg:
-		if m.activePane == PaneInput && m.modal == nil && m.recording == RecordingIdle {
+		if m.activePane == PaneInput && m.modal == nil {
 			prevH := m.input.Height()
 			m.input.InsertString(msg.Content)
 			if m.input.Height() != prevH {
@@ -250,7 +205,7 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.messages.AppendMessage(msg.Channel, newMsg)
 		if msg.Channel != m.selectedChannel {
-			audio.Play(m.notifSound)
+			os.Stderr.WriteString("\a")
 			isMention := containsUser(msg.Mentions, m.username)
 			if msg.ChannelType == "dm" {
 				if isMention {
@@ -339,83 +294,6 @@ func (m ChatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	// --- STT messages ---
-
-	case modelReadyMsg:
-		log.Debug("stt_model_ready", "path", msg.path)
-		lang := viper.GetString("stt-language")
-		threads := uint(viper.GetInt("stt-threads"))
-		t, err := stt.NewTranscriber(msg.path, lang, threads)
-		if err != nil {
-			log.Error("stt_transcriber_init", "err", err)
-			m.recording = RecordingIdle
-			return m, nil
-		}
-		m.transcriber = t
-		// Auto-start recording now that model is loaded
-		return m.startRecording()
-
-	case modelDownloadErrorMsg:
-		log.Error("stt_model_download", "err", msg.err)
-		m.recording = RecordingIdle
-		return m, nil
-
-	case downloadTickMsg:
-		if m.recording == RecordingDownloading || m.recording == RecordingTranscribing {
-			m.downloadFrame++
-			return m, downloadTickCmd()
-		}
-		return m, nil
-
-	case streamTickMsg:
-		if msg.generation != m.sttGeneration || m.recording != RecordingActive {
-			return m, nil
-		}
-		// Check 30s timeout
-		if time.Since(m.recordingStart) >= 30*time.Second {
-			return m.stopRecording()
-		}
-		if m.sttInFlight {
-			// Previous transcription still running — schedule next tick
-			return m, sttTickCmd(m.sttGeneration)
-		}
-		m.sttInFlight = true
-		samples := m.recorder.Snapshot()
-		gen := m.sttGeneration
-		return m, tea.Batch(
-			sttTranscribeCmd(m.transcriber, samples, false, gen),
-			sttTickCmd(gen),
-		)
-
-	case streamSegmentMsg:
-		if msg.generation != m.sttGeneration {
-			return m, nil // stale result
-		}
-		if msg.text != "" {
-			prevH := m.input.Height()
-			m.input.SetSTTText(msg.text)
-			if m.input.Height() != prevH {
-				m.updateLayout()
-			}
-		}
-		if msg.final {
-			m.input.ClearSTTState()
-			m.recording = RecordingIdle
-			m.sttInFlight = false
-			return m, nil
-		}
-		m.sttInFlight = false
-		return m, nil
-
-	case transcribeErrorMsg:
-		if msg.generation != m.sttGeneration {
-			return m, nil
-		}
-		log.Error("stt_transcribe", "err", msg.err)
-		m.input.ClearSTTState()
-		m.recording = RecordingIdle
-		m.sttInFlight = false
-		return m, nil
 	}
 
 	return m, nil
@@ -432,15 +310,6 @@ func (m ChatModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+q":
 		return m, tea.Quit
-
-	case "ctrl+m":
-		return m.toggleMic()
-
-	case "ctrl+,", "ctrl+.":
-		modal := NewSettingsModal(m.notifSound)
-		m.modal = &modal
-		m.input.Blur()
-		return m, nil
 
 	case "ctrl+r":
 		m.sidebarHidden = !m.sidebarHidden
@@ -541,21 +410,21 @@ func (m ChatModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "alt+enter":
-		if m.activePane == PaneInput && m.recording == RecordingIdle {
+		if m.activePane == PaneInput {
 			m.input.InsertNewline()
 			m.updateLayout()
 			return m, nil
 		}
 
 	case "ctrl+v":
-		if m.activePane == PaneInput && m.recording == RecordingIdle {
+		if m.activePane == PaneInput {
 			m.input.Paste()
 			m.updateLayout()
 			return m, nil
 		}
 
 	case "enter":
-		if m.activePane == PaneInput && m.recording == RecordingIdle && m.trySendMessage() {
+		if m.activePane == PaneInput && m.trySendMessage() {
 			return m, nil
 		}
 		if m.activePane == PaneChannels {
@@ -579,7 +448,7 @@ func (m ChatModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			leaked = true
 		}
 	}
-	if m.activePane == PaneInput && !leaked && m.recording == RecordingIdle {
+	if m.activePane == PaneInput && !leaked {
 		prevH := m.input.Height()
 		m.input.UpdateTextInput(msg)
 		if m.input.Height() != prevH {
@@ -599,14 +468,12 @@ func (m ChatModel) handleModalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.input.Focus()
 		return m, nil
 
-	case "ctrl+s", "ctrl+d", "ctrl+n", "ctrl+u", "ctrl+,", "ctrl+.":
+	case "ctrl+s", "ctrl+d", "ctrl+n", "ctrl+u":
 		toggleType := map[string]ModalType{
 			"ctrl+s": ModalShortcuts,
 			"ctrl+d": ModalDMOpen,
 			"ctrl+n": ModalChannelCreate,
 			"ctrl+u": ModalUserInvite,
-			"ctrl+,": ModalSettings,
-			"ctrl+.": ModalSettings,
 		}[key]
 		if m.modal.Type == toggleType {
 			m.modal = nil
@@ -615,31 +482,11 @@ func (m ChatModel) handleModalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
-		if m.modal.Type == ModalSettings {
-			m.submitModal()
-			m.modal = nil
-			m.input.Focus()
-			return m, nil
-		}
 		if m.modal.Value() != "" {
 			m.submitModal()
 			m.modal = nil
 		}
 		return m, nil
-
-	case "up", "k":
-		if m.modal.Type == ModalSettings {
-			m.modal.SoundCursorUp()
-			audio.Play(m.modal.SelectedSound())
-			return m, nil
-		}
-
-	case "down", "j":
-		if m.modal.Type == ModalSettings {
-			m.modal.SoundCursorDown()
-			audio.Play(m.modal.SelectedSound())
-			return m, nil
-		}
 
 	case "tab":
 		if m.modal.Type == ModalChannelCreate {
@@ -650,7 +497,7 @@ func (m ChatModel) handleModalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.modal.Type != ModalShortcuts && m.modal.Type != ModalSettings {
+	if m.modal.Type != ModalShortcuts {
 		m.modal.UpdateTextInput(msg)
 		// Clear hint when typing in channel modal
 		if m.modal.Type == ModalChannelCreate {
@@ -684,11 +531,6 @@ func (m *ChatModel) submitModal() {
 		m.client.InviteUser(m.selectedChannel, m.modal.Value())
 	case ModalDMOpen:
 		m.client.DMOpen(m.modal.Value())
-	case ModalSettings:
-		m.notifSound = m.modal.SelectedSound()
-		if err := config.SaveSetting("notification-sound", string(m.notifSound)); err != nil {
-			log.Error("failed to save notification sound setting", "err", err)
-		}
 	}
 }
 
@@ -700,16 +542,10 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Modal click handling
 	if m.modal != nil {
 		if _, ok := msg.(tea.MouseClickMsg); ok && mouse.Button == tea.MouseLeft {
-			// Sound selector click
-			if idx := m.modal.SoundHitTest(mouse.X, mouse.Y); idx >= 0 {
-				m.modal.soundCursor = idx
-				audio.Play(m.modal.SelectedSound())
-				return m, nil
-			}
 			action := m.modal.HitTest(mouse.X, mouse.Y)
 			switch action {
 			case ModalActionSubmit:
-				if m.modal.Type == ModalSettings || m.modal.Value() != "" {
+				if m.modal.Value() != "" {
 					m.submitModal()
 					m.modal = nil
 					m.input.Focus()
@@ -844,25 +680,17 @@ func (m ChatModel) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// Check for action button clicks (bordered mic/send beside input)
+		// Check for send button click (bordered button beside input)
 		rightPaneX := layout.SidebarW + ui.PaneGap
 		if layout.Skinny || m.sidebarHidden {
 			rightPaneX = 0
 		}
 		btnAreaX := rightPaneX + layout.MessageW - inputBtnW
 		inputBottom := contentTop + layout.ContentH
-		// Buttons are 3 rows tall (border+content+border), bottom-aligned
+		// Button is 3 rows tall (border+content+border), bottom-aligned
 		btnTop := inputBottom - 3
 		if mouse.X >= btnAreaX && mouse.Y >= btnTop && mouse.Y < inputBottom {
-			// Each bordered button is 7 wide (border+Width(5)+border)
-			// 1 space gap before buttons, so send starts at offset 1+7=8
-			if mouse.X >= btnAreaX+8 {
-				if m.recording == RecordingIdle {
-					m.trySendMessage()
-				}
-			} else {
-				return m.toggleMic()
-			}
+			m.trySendMessage()
 			return m, nil
 		}
 
@@ -910,8 +738,6 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "ctrl+q":
 		return m, tea.Quit
-	case "ctrl+m":
-		return m.toggleMic()
 	case "ctrl+a":
 		switch m.sidebarTab {
 		case TabChannels:
@@ -970,10 +796,6 @@ func (m ChatModel) dispatchAction(key string) (tea.Model, tea.Cmd) {
 		m.input.Blur()
 	case "ctrl+u":
 		modal := NewModal(ModalUserInvite)
-		m.modal = &modal
-		m.input.Blur()
-	case "ctrl+,", "ctrl+.":
-		modal := NewSettingsModal(m.notifSound)
 		m.modal = &modal
 		m.input.Blur()
 	case "ctrl+up":
@@ -1182,15 +1004,12 @@ func (m ChatModel) View() tea.View {
 	msgView := m.messages.View()
 	msgPane := msgStyle.Render(msgView)
 
-	// Input bar — red border means input is locked (recording or transcribing)
+	// Input bar
 	inputBorder := lipgloss.NormalBorder()
 	inputBorderColor := ui.CurrentTheme.Muted
 	if m.activePane == PaneInput {
 		inputBorder = lipgloss.ThickBorder()
 		inputBorderColor = ui.CurrentTheme.Primary
-	}
-	if m.recording != RecordingIdle {
-		inputBorderColor = ui.CurrentTheme.Error
 	}
 	inputStyle := lipgloss.NewStyle().
 		Border(inputBorder).
@@ -1199,7 +1018,7 @@ func (m ChatModel) View() tea.View {
 		Height(m.input.Height())
 	inputBox := inputStyle.Render(m.input.View())
 
-	// Action buttons (mic + send) beside input, bordered like help bar
+	// Send button beside input, bordered like help bar
 	canWrite := m.sidebarTab == TabDMs || m.sidebarTab == TabUsers || m.channels.IsMember()
 	hasText := m.input.Value() != ""
 	sendColor := ui.CurrentTheme.Muted
@@ -1207,28 +1026,8 @@ func (m ChatModel) View() tea.View {
 		sendColor = ui.CurrentTheme.Primary
 	}
 	btnStyle := ui.CurrentTheme.ActionButtonStyle(7)
-	// Mic button: orange (ready), green spinner (downloading), red (recording), grey (transcribing)
-	micIcon := "󰍬"
-	micColor := ui.CurrentTheme.Primary
-	switch m.recording {
-	case RecordingDownloading:
-		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
-		micColor = ui.CurrentTheme.Success
-	case RecordingActive:
-		micIcon = "●"
-		micColor = ui.CurrentTheme.Error
-	case RecordingTranscribing:
-		micIcon = dlSpinnerFrames[m.downloadFrame%len(dlSpinnerFrames)]
-		micColor = ui.CurrentTheme.Error
-	}
-	micBorderColor := micColor
-	if m.recording == RecordingTranscribing {
-		micBorderColor = ui.CurrentTheme.TextDim // grey border, red spinner
-	}
-	micBtn := btnStyle.Foreground(micColor).BorderForeground(micBorderColor).Render(micIcon)
 	sendBtn := btnStyle.BorderForeground(sendColor).Foreground(sendColor).Render("󰒊")
-	btnGroup := lipgloss.JoinHorizontal(lipgloss.Top, micBtn, sendBtn)
-	inputPane := lipgloss.JoinHorizontal(lipgloss.Bottom, inputBox, " ", btnGroup)
+	inputPane := lipgloss.JoinHorizontal(lipgloss.Bottom, inputBox, " ", sendBtn)
 
 	// Compose right side
 	rightPane := lipgloss.JoinVertical(lipgloss.Left, chanHeader, msgPane, inputPane)
@@ -1344,105 +1143,6 @@ func isLeakedMouseSeq(msg tea.KeyPressMsg) bool {
 		}
 	}
 	return false
-}
-
-// toggleMic handles Ctrl+M or mic button click.
-func (m ChatModel) toggleMic() (tea.Model, tea.Cmd) {
-	switch m.recording {
-	case RecordingIdle:
-		if m.transcriber == nil {
-			modelName := viper.GetString("stt-model")
-			if stt.ModelCached(modelName) {
-				// Model on disk — load inline, no download spinner
-				log.Debug("stt_model_loading")
-				return m, sttDownloadModelCmd()
-			}
-			// Need to download model — show green spinner
-			m.recording = RecordingDownloading
-			m.downloadFrame = 0
-			log.Debug("stt_download_start")
-			return m, tea.Batch(sttDownloadModelCmd(), downloadTickCmd())
-		}
-		return m.startRecording()
-	case RecordingActive:
-		return m.stopRecording()
-	case RecordingDownloading, RecordingTranscribing:
-		// Busy — ignore
-	}
-	return m, nil
-}
-
-// startRecording begins audio capture and starts the streaming tick loop.
-func (m ChatModel) startRecording() (tea.Model, tea.Cmd) {
-	if m.recorder == nil {
-		rec, err := stt.NewRecorder()
-		if err != nil {
-			log.Error("stt_recorder_init", "err", err)
-			m.recording = RecordingIdle
-			return m, nil
-		}
-		m.recorder = rec
-	}
-	if err := m.recorder.Start(); err != nil {
-		log.Error("stt_recorder_start", "err", err)
-		m.recording = RecordingIdle
-		return m, nil
-	}
-	m.recording = RecordingActive
-	m.recordingStart = time.Now()
-	m.sttGeneration++
-	m.sttInFlight = false
-	m.input.BeginSTT()
-	log.Debug("stt_recording_start", "generation", m.sttGeneration)
-	return m, sttTickCmd(m.sttGeneration)
-}
-
-// stopRecording stops audio capture and runs a final transcription pass.
-func (m ChatModel) stopRecording() (tea.Model, tea.Cmd) {
-	samples := m.recorder.Stop()
-	m.recording = RecordingTranscribing
-	m.downloadFrame = 0
-	m.sttInFlight = true
-	gen := m.sttGeneration
-	log.Debug("stt_recording_stop", "samples", len(samples), "generation", gen)
-	return m, tea.Batch(sttTranscribeCmd(m.transcriber, samples, true, gen), downloadTickCmd())
-}
-
-// sttDownloadModelCmd returns a Cmd that downloads the whisper model.
-func sttDownloadModelCmd() tea.Cmd {
-	return func() tea.Msg {
-		modelName := viper.GetString("stt-model")
-		path, err := stt.EnsureModel(modelName, nil)
-		if err != nil {
-			return modelDownloadErrorMsg{err: err}
-		}
-		return modelReadyMsg{path: path}
-	}
-}
-
-// downloadTickCmd returns a Cmd that fires a downloadTickMsg every 80ms for spinner animation.
-func downloadTickCmd() tea.Cmd {
-	return tea.Tick(80*time.Millisecond, func(_ time.Time) tea.Msg {
-		return downloadTickMsg{}
-	})
-}
-
-// sttTickCmd returns a Cmd that fires a streamTickMsg after 2.5 seconds.
-func sttTickCmd(generation int) tea.Cmd {
-	return tea.Tick(2500*time.Millisecond, func(_ time.Time) tea.Msg {
-		return streamTickMsg{generation: generation}
-	})
-}
-
-// sttTranscribeCmd returns a Cmd that transcribes audio samples.
-func sttTranscribeCmd(t *stt.Transcriber, samples []float32, final bool, generation int) tea.Cmd {
-	return func() tea.Msg {
-		text, err := t.Transcribe(samples)
-		if err != nil {
-			return transcribeErrorMsg{err: err, generation: generation}
-		}
-		return streamSegmentMsg{text: text, final: final, generation: generation}
-	}
 }
 
 func (m *ChatModel) tryModalComplete() {

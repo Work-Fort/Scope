@@ -9,9 +9,7 @@ func ChatKeyBindings() ui.KeyBindingSet {
 			{Key: "Ctrl+n", Keys: []string{"ctrl+n"}, Description: "new channel"},
 			{Key: "Ctrl+d", Keys: []string{"ctrl+d"}, Description: "new dm"},
 			{Key: "Ctrl+u", Keys: []string{"ctrl+u"}, Description: "invite user"},
-			{Key: "Ctrl+m", Keys: []string{"ctrl+m"}, Description: "mic"},
 		{Key: "Ctrl+s", Keys: []string{"ctrl+s"}, Description: "shortcuts"},
-			{Key: "Ctrl+,", Keys: []string{"ctrl+,", "ctrl+."}, Description: "settings"},
 			{Key: "Ctrl+q", Keys: []string{"ctrl+q"}, Description: "quit"},
 		},
 	}
@@ -36,12 +34,10 @@ func AllShortcuts() []ShortcutGroup {
 			Items: []ShortcutItem{
 				{Key: "Enter", Description: "send message"},
 				{Key: "Alt+Enter", Description: "new line"},
-				{Key: "Ctrl+m", Description: "toggle voice input"},
 			{Key: "Tab", Description: "@mention completion"},
 				{Key: "Ctrl+n", Description: "go to channel"},
 				{Key: "Ctrl+d", Description: "open DM"},
 				{Key: "Ctrl+u", Description: "invite user"},
-				{Key: "Ctrl+,", Description: "settings"},
 			},
 		},
 		{

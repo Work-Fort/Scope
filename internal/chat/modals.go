@@ -7,7 +7,6 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/lipgloss/v2"
 
-	"github.com/Work-Fort/WorkFort/pkg/audio"
 	"github.com/Work-Fort/WorkFort/pkg/ui"
 )
 
@@ -20,7 +19,6 @@ const (
 	ModalUserInvite
 	ModalDMOpen
 	ModalShortcuts
-	ModalSettings
 )
 
 // ModalAction identifies a clickable modal button action.
@@ -51,9 +49,6 @@ type Modal struct {
 	boxY      int // screen Y of the rendered modal box
 	boxW      int
 	boxH      int
-	// Settings state
-	soundCursor int           // index into audio.AllSounds()
-	soundChoice audio.Sound   // currently selected sound
 }
 
 func NewModal(modalType ModalType) Modal {
@@ -89,44 +84,6 @@ func NewModal(modalType ModalType) Modal {
 		public:    true,
 	}
 	return m
-}
-
-// NewSettingsModal creates a settings modal with the given current sound.
-func NewSettingsModal(currentSound audio.Sound) Modal {
-	m := NewModal(ModalSettings)
-	m.soundChoice = currentSound
-	sounds := audio.AllSounds()
-	for i, s := range sounds {
-		if s == currentSound {
-			m.soundCursor = i
-			break
-		}
-	}
-	return m
-}
-
-// SoundCursorUp moves the sound selector up.
-func (m *Modal) SoundCursorUp() {
-	if m.soundCursor > 0 {
-		m.soundCursor--
-	}
-}
-
-// SoundCursorDown moves the sound selector down.
-func (m *Modal) SoundCursorDown() {
-	sounds := audio.AllSounds()
-	if m.soundCursor < len(sounds)-1 {
-		m.soundCursor++
-	}
-}
-
-// SelectedSound returns the sound at the current cursor.
-func (m *Modal) SelectedSound() audio.Sound {
-	sounds := audio.AllSounds()
-	if m.soundCursor < len(sounds) {
-		return sounds[m.soundCursor]
-	}
-	return audio.SoundTone
 }
 
 func (m *Modal) TogglePublic() {
@@ -176,11 +133,6 @@ func (m Modal) buttons() []modalButton {
 		return []modalButton{
 			{key: "Esc", label: "close", action: ModalActionCancel},
 		}
-	case ModalSettings:
-		return []modalButton{
-			{key: "Enter", label: "save", action: ModalActionSubmit},
-			{key: "Esc", label: "cancel", action: ModalActionCancel},
-		}
 	}
 	return nil
 }
@@ -204,22 +156,6 @@ func renderModalButtons(buttons []modalButton) string {
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
-}
-
-// SoundHitTest checks if screen coordinates land on a sound selector item.
-// Returns the index (0-based) or -1 if no hit.
-func (m *Modal) SoundHitTest(screenX, screenY int) int {
-	if m.Type != ModalSettings {
-		return -1
-	}
-	// Sound items start after: border(1) + padding(1) + title(1) + blank(1) + label(1) + blank(1) = 6 rows
-	soundStart := m.boxY + 6
-	sounds := audio.AllSounds()
-	idx := screenY - soundStart
-	if idx >= 0 && idx < len(sounds) && screenX >= m.boxX && screenX < m.boxX+m.boxW {
-		return idx
-	}
-	return -1
 }
 
 // HitTest checks if screen coordinates (x, y) land on a modal button.
@@ -269,8 +205,6 @@ func (m *Modal) View(totalW, totalH int) string {
 		title = "Direct Message"
 	case ModalShortcuts:
 		title = "Keyboard Shortcuts"
-	case ModalSettings:
-		title = "Settings"
 	}
 
 	var content string
@@ -278,8 +212,6 @@ func (m *Modal) View(totalW, totalH int) string {
 
 	if m.Type == ModalShortcuts {
 		content += renderShortcuts()
-	} else if m.Type == ModalSettings {
-		content += m.renderSoundSelector()
 	} else {
 		content += m.textinput.View() + "\n"
 	}
@@ -304,35 +236,6 @@ func (m *Modal) View(totalW, totalH int) string {
 	m.boxY = (totalH - m.boxH) / 2
 
 	return lipgloss.Place(totalW, totalH, lipgloss.Center, lipgloss.Center, box)
-}
-
-func (m *Modal) renderSoundSelector() string {
-	labelStyle := ui.CurrentTheme.ModalLabelStyle()
-	selectedStyle := ui.CurrentTheme.ListSelectedStyle()
-	normalStyle := ui.CurrentTheme.ListNormalStyle()
-
-	var lines []string
-	lines = append(lines, "  "+labelStyle.Render("Notification Sound"))
-	lines = append(lines, "")
-
-	sounds := audio.AllSounds()
-	for i, s := range sounds {
-		cursor := "  "
-		style := normalStyle
-		if i == m.soundCursor {
-			cursor = "  "
-			style = selectedStyle
-		}
-		label := s.Label()
-		if i == m.soundCursor {
-			label = "> " + label
-		} else {
-			label = "  " + label
-		}
-		lines = append(lines, cursor+style.Render(label))
-	}
-	lines = append(lines, "")
-	return strings.Join(lines, "\n") + "\n"
 }
 
 func renderShortcuts() string {
