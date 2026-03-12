@@ -82,9 +82,9 @@ Each service:
 
 ### Gateway abstraction
 
-The shell's proxy layer abstracts the routing:
-- **Local forts**: CLI proxies directly to service URLs (e.g., `http://127.0.0.1:16000`)
-- **Remote forts**: CLI proxies through a single gateway URL
+The shell's proxy layer abstracts the routing based on the fort's `local` flag:
+- **`local: true`**: CLI proxies directly to each service's configured URL (e.g., `http://127.0.0.1:16000`)
+- **`local: false`**: CLI proxies all traffic through the fort's `gateway` URL
 - **Future**: An inlet/outlet gateway (VPN-like tunnel) replaces direct proxy for production
 
 The frontend and service remotes are identical in both modes — they always talk to `/api/{service}/*` relative paths.
@@ -355,21 +355,23 @@ The auth service can ship a Module Federation remote like any other service (log
 
 ### Fort
 
-A Fort is a named collection of services behind a single gateway. Users can belong to multiple forts and switch between them.
+A Fort is a named collection of services. Users can belong to multiple forts and switch between them. Whether the CLI proxies directly to service URLs or through a remote gateway is determined by the `Local` flag — not by the fort's name.
 
 ```go
 // internal/domain/web.go
 
 type Fort struct {
     Name     string
-    Gateway  string    // Single origin URL for remote forts; empty for local
+    Local    bool      // true = CLI proxies directly to each service URL
+                       // false = CLI proxies through Gateway
+    Gateway  string    // Single origin URL (only used when Local is false)
     Services []Service
 }
 
 type Service struct {
     Name     string   // "auth", "sharkfin", "nexus", "hive"
     PathBase string   // Derived: "/api/" + Name
-    URL      string   // Direct backend URL (local fort only)
+    URL      string   // Direct backend URL (only used when fort is local)
     WSPaths  []string // Paths that accept WebSocket upgrade (whitelist)
     Enabled  bool
 }
@@ -385,10 +387,12 @@ type FortRegistry interface {
 
 `WSPaths` is a whitelist: only these paths accept WebSocket upgrade. Others return `400`. Paths are matched against the suffix after the `/api/{service}` prefix is stripped — e.g., `/api/sharkfin/presence` is matched against `"/presence"` in the whitelist.
 
-### Fort roles
+### Fort modes
 
-- **Local fort**: The WorkFort CLI *is* the gateway. `workfort web` starts an HTTP server, serves the shell SPA, and proxies to local service URLs. No separate gateway.
-- **Remote fort**: The CLI connects *to* an existing gateway. Individual service `URL` fields are not used — the gateway handles internal routing.
+The `local` flag controls how the CLI routes traffic:
+
+- **`local: true`**: The CLI proxies directly to each service's `url`. Each service must have a `url` configured. No gateway needed.
+- **`local: false`**: The CLI proxies all traffic through the fort's `gateway` URL. Individual service `url` fields are ignored — the gateway handles internal routing.
 
 ## Configuration
 
@@ -399,6 +403,7 @@ active-fort: local
 
 forts:
   local:
+    local: true       # CLI proxies directly to each service URL
     services:
       auth:
         url: "http://127.0.0.1:3000"
@@ -415,6 +420,7 @@ forts:
         enabled: false
 
   acme-corp:
+    local: false      # CLI proxies through the gateway
     gateway: "https://fort.acme.com"
     services:
       auth:
@@ -432,6 +438,7 @@ forts:
 
 ```go
 viper.SetDefault("active-fort", "local")
+viper.SetDefault("forts.local.local", true)
 viper.SetDefault("forts.local.services.auth.url", "http://127.0.0.1:3000")
 viper.SetDefault("forts.local.services.auth.enabled", true)
 viper.SetDefault("forts.local.services.sharkfin.url", "http://127.0.0.1:16000")
