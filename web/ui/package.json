@@ -8,10 +8,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./auth": {
-      "types": "./dist/auth/index.d.ts",
-      "default": "./dist/auth/index.js"
-    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
@@ -37,6 +33,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@workfort/auth": "^0.0.1",
     "lit": "^3.2.0"
   },
   "peerDependencies": {

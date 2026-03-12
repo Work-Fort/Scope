@@ -1,6 +1,6 @@
 import { readable, derived } from 'svelte/store';
-import { getAuthClient } from '../auth/index.js';
-import type { User } from '../auth/types.js';
+import { getAuthClient } from '@workfort/auth';
+import type { User } from '@workfort/auth';
 
 // getAuthClient() is called lazily inside the readable's start function,
 // not at module scope. This avoids side-effecting the singleton on import

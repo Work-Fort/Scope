@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { _resetAuthClient, getAuthClient } from '../../src/auth/index.js';
+import { _resetAuthClient, getAuthClient } from '@workfort/auth';
 import { auth } from '../../src/svelte/auth.js';
 
 const MOCK_USER = { id: '1', username: 'kazw', name: 'Kaz Walker', displayName: 'Kaz', type: 'user' as const };

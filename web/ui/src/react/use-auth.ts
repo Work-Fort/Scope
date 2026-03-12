@@ -1,6 +1,6 @@
 import { useSyncExternalStore, useCallback } from 'react';
-import { getAuthClient } from '../auth/index.js';
-import type { User } from '../auth/types.js';
+import { getAuthClient } from '@workfort/auth';
+import type { User } from '@workfort/auth';
 
 export function useAuth(): { user: User | null; isAuthenticated: boolean } {
   const client = getAuthClient();

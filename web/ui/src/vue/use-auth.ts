@@ -1,6 +1,6 @@
 import { ref, readonly, onUnmounted } from 'vue';
-import { getAuthClient } from '../auth/index.js';
-import type { User } from '../auth/types.js';
+import { getAuthClient } from '@workfort/auth';
+import type { User } from '@workfort/auth';
 
 export function useAuth() {
   const client = getAuthClient();

@@ -11,7 +11,6 @@ export default defineConfig({
     lib: {
       entry: {
         index: 'src/index.ts',
-        'auth/index': 'src/auth/index.ts',
         'react/index': 'src/react/index.tsx',
         'vue/index': 'src/vue/index.ts',
         'svelte/index': 'src/svelte/index.ts',
@@ -22,6 +21,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
+        '@workfort/auth',
         'lit',
         /^lit\//,
         'react',

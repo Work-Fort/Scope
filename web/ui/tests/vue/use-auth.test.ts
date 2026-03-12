@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { nextTick } from 'vue';
-import { _resetAuthClient, getAuthClient } from '../../src/auth/index.js';
+import { _resetAuthClient, getAuthClient } from '@workfort/auth';
 import { useAuth } from '../../src/vue/use-auth.js';
 
 const MOCK_USER = { id: '1', username: 'kazw', name: 'Kaz Walker', displayName: 'Kaz', type: 'user' as const };

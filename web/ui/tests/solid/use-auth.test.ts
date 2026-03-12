@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createRoot } from 'solid-js';
-import { _resetAuthClient, getAuthClient } from '../../src/auth/index.js';
+import { _resetAuthClient, getAuthClient } from '@workfort/auth';
 import { useAuth } from '../../src/solid/use-auth.js';
 
 const MOCK_USER = { id: '1', username: 'kazw', name: 'Kaz Walker', displayName: 'Kaz', type: 'user' as const };
