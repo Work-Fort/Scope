@@ -1,0 +1,23 @@
+:root {
+  --wf-bg: #1a1a2e;
+  --wf-bg-secondary: #16213e;
+  --wf-text: #e0e0e0;
+  --wf-text-secondary: #a0a0a0;
+  --wf-text-muted: #606060;
+  --wf-border: #2a2a4a;
+  --wf-accent: #5865f2;
+  --wf-space-xs: 4px;
+  --wf-space-sm: 8px;
+  --wf-space-md: 12px;
+  --wf-space-lg: 16px;
+  --wf-space-xl: 24px;
+  --wf-font-sans: system-ui, -apple-system, sans-serif;
+  --wf-font-mono: 'SF Mono', 'Fira Code', monospace;
+  --wf-font-size-xs: 0.75rem;
+  --wf-font-size-sm: 0.875rem;
+  --wf-font-size-base: 1rem;
+  --wf-font-size-lg: 1.125rem;
+  --wf-radius-sm: 4px;
+  --wf-radius-md: 6px;
+  --wf-radius-lg: 8px;
+}
