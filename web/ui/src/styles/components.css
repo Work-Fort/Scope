@@ -103,3 +103,30 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* List */
+.wf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* ListItem */
+.wf-list-item {
+  display: flex;
+  align-items: center;
+  padding: var(--wf-space-sm, 0.5rem) var(--wf-space-md, 0.75rem);
+  cursor: pointer;
+  color: var(--wf-text, #111827);
+  border-radius: var(--wf-radius-sm, 0.25rem);
+}
+.wf-list-item:hover { background: var(--wf-bg-secondary, #f3f4f6); }
+.wf-list-item--active { background: var(--wf-bg-secondary, #f3f4f6); }
+.wf-list-item__trailing {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
