@@ -1,5 +1,7 @@
 # `@workfort/ui` — Headless Component Library Implementation Plan
 
+> **SUPERSEDED** — This plan is superseded by `docs/2026-03-12-workfort-ui-wc-design.md`, which redesigns `@workfort/ui` as framework-agnostic Lit Web Components with framework adapters for React, Vue, Svelte, and SolidJS. The SolidJS-only approach described here was replaced to support WorkFort's goal of letting teams use any tech stack. Kept for historical reference.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a headless SolidJS component library themed via CSS custom properties, published as `@workfort/ui` for type safety. At runtime, Module Federation resolves it from the shell as a singleton.
