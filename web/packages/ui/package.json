@@ -6,9 +6,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
       "default": "./dist/index.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": {
+      "development": "./src/styles/index.css",
+      "default": "./dist/style.css"
+    }
   },
   "files": ["dist"],
   "scripts": {
