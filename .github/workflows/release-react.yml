@@ -1,0 +1,126 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Release React Package
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web/packages/react/**'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v3
+
+      - name: Install and build
+        run: cd web && pnpm install && pnpm --filter @workfort/react build
+
+      - name: Test
+        run: cd web && pnpm --filter @workfort/react test
+
+  tag:
+    name: Create SDK Tag
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      changelog: ${{ steps.tag_version.outputs.changelog }}
+      should_release: ${{ steps.check_tag.outputs.should_release }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and create tag
+        id: tag_version
+        uses: Work-Fort/github-tag-action@v6.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: false
+          release_branches: master
+          tag_prefix: react-v
+          paths: web/packages/react/**
+
+      - name: Check if new tag was created
+        id: check_tag
+        run: |
+          if [ -n "$TAG" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          TAG: ${{ steps.tag_version.outputs.new_tag }}
+
+  release:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: tag
+    if: needs.tag.outputs.should_release == 'true'
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.tag.outputs.new_tag }}
+
+      - uses: jdx/mise-action@v3
+
+      - name: Build and publish
+        env:
+          TAG: ${{ needs.tag.outputs.new_tag }}
+        run: |
+          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          cd web
+          pnpm install
+          cd packages/react
+          npm pkg set version="$VERSION"
+          pnpm run build
+          npm publish --provenance --access public
+          npm pack
+          mv workfort-react-*.tgz ../../..
+
+      - name: Create release notes
+        env:
+          TAG: ${{ needs.tag.outputs.new_tag }}
+          CHANGELOG: ${{ needs.tag.outputs.changelog }}
+        run: |
+          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          cat > release-notes.md << EOF
+          # @workfort/react v${VERSION}
+
+          ## What's Changed
+
+          ${CHANGELOG}
+
+          ## Installation
+
+          \`\`\`bash
+          npm install @workfort/react@${VERSION}
+          \`\`\`
+
+          ---
+
+          Built automatically by Scope CI
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.tag.outputs.new_tag }}
+          name: React SDK ${{ needs.tag.outputs.new_tag }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          files: workfort-react-*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
