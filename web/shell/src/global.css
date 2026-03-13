@@ -77,3 +77,8 @@ html, body, #app {
   justify-content: center;
   height: 100%;
 }
+
+.shell-nav__tab--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
