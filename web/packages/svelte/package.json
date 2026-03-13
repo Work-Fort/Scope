@@ -1,5 +1,5 @@
 {
-  "name": "@workfort/svelte",
+  "name": "@workfort/ui-svelte",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -11,7 +11,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "vitest run",

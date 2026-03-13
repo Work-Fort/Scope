@@ -22,10 +22,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/react build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-react build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/react test
+        run: cd web && pnpm --filter @workfort/ui-react test
 
   tag:
     name: Create SDK Tag
@@ -48,7 +48,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: react-v
+          tag_prefix: ui-react-v
           paths: web/packages/react/**
 
       - name: Check if new tag was created
@@ -79,7 +79,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-react-v||')
           cd web
           pnpm install
           cd packages/react
@@ -87,16 +87,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-react-*.tgz ../../..
+          mv workfort-ui-react-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-react-v||')
           cat > release-notes.md << EOF
-          # @workfort/react v${VERSION}
+          # @workfort/ui-react v${VERSION}
 
           ## What's Changed
 
@@ -105,7 +105,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/react@${VERSION}
+          npm install @workfort/ui-react@${VERSION}
           \`\`\`
 
           ---
@@ -121,6 +121,6 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-react-*.tgz
+          files: workfort-ui-react-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

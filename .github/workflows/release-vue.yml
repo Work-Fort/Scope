@@ -22,10 +22,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/vue build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-vue build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/vue test
+        run: cd web && pnpm --filter @workfort/ui-vue test
 
   tag:
     name: Create SDK Tag
@@ -48,7 +48,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: vue-v
+          tag_prefix: ui-vue-v
           paths: web/packages/vue/**
 
       - name: Check if new tag was created
@@ -79,7 +79,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^vue-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-vue-v||')
           cd web
           pnpm install
           cd packages/vue
@@ -87,16 +87,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-vue-*.tgz ../../..
+          mv workfort-ui-vue-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^vue-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-vue-v||')
           cat > release-notes.md << EOF
-          # @workfort/vue v${VERSION}
+          # @workfort/ui-vue v${VERSION}
 
           ## What's Changed
 
@@ -105,7 +105,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/vue@${VERSION}
+          npm install @workfort/ui-vue@${VERSION}
           \`\`\`
 
           ---
@@ -121,6 +121,6 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-vue-*.tgz
+          files: workfort-ui-vue-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

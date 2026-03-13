@@ -6,7 +6,7 @@
 
 **Spec:** `docs/2026-03-12-workfort-ui-wc-design.md` — see "Amendment: Package Split" section.
 
-**Architecture:** pnpm workspace at `web/` with packages under `web/packages/{ui,react,vue,svelte,solid}/`. Core Lit Web Components in `@workfort/ui`. Framework adapters in `@workfort/react`, `@workfort/vue`, `@workfort/svelte`, `@workfort/solid`. Each framework package peer-depends on `@workfort/ui` and hard-depends on `@workfort/auth`. Follows passport monorepo conventions.
+**Architecture:** pnpm workspace at `web/` with packages under `web/packages/{ui,react,vue,svelte,solid}/`. Core Lit Web Components in `@workfort/ui`. Framework adapters in `@workfort/ui-react`, `@workfort/ui-vue`, `@workfort/ui-svelte`, `@workfort/ui-solid`. Each framework package peer-depends on `@workfort/ui` and hard-depends on `@workfort/auth`. Follows passport monorepo conventions.
 
 **Tech Stack:** pnpm workspaces, TypeScript, Vite (ui + react), tsc (vue/svelte/solid), vitest, happy-dom
 
@@ -31,24 +31,24 @@
 | `web/packages/ui/tsconfig.build.json` | TypeScript config for build (excludes tests) |
 | `web/packages/ui/vite.config.ts` | Vite library build: single entry, CSS bundling, externalize `lit` |
 | `web/packages/ui/vitest.config.ts` | Vitest config: happy-dom, test pattern |
-| `web/packages/react/package.json` | `@workfort/react` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `react` |
+| `web/packages/react/package.json` | `@workfort/ui-react` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `react` |
 | `web/packages/react/tsconfig.json` | TypeScript config with `jsx: react-jsx` |
 | `web/packages/react/tsconfig.build.json` | Build config (excludes tests) |
 | `web/packages/react/vite.config.ts` | Vite build with React plugin, externalize `@workfort/ui`, `@workfort/auth`, `react` |
 | `web/packages/react/vitest.config.ts` | Vitest with React plugin |
-| `web/packages/vue/package.json` | `@workfort/vue` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `vue` |
+| `web/packages/vue/package.json` | `@workfort/ui-vue` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `vue` |
 | `web/packages/vue/tsconfig.json` | TypeScript config with `outDir: dist`, `declaration: true` |
 | `web/packages/vue/vitest.config.ts` | Vitest config |
-| `web/packages/svelte/package.json` | `@workfort/svelte` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `svelte` |
+| `web/packages/svelte/package.json` | `@workfort/ui-svelte` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `svelte` |
 | `web/packages/svelte/tsconfig.json` | TypeScript config with `outDir: dist`, `declaration: true` |
 | `web/packages/svelte/vitest.config.ts` | Vitest config |
-| `web/packages/solid/package.json` | `@workfort/solid` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `solid-js` |
+| `web/packages/solid/package.json` | `@workfort/ui-solid` metadata, deps: `@workfort/auth`, peers: `@workfort/ui`, `solid-js` |
 | `web/packages/solid/tsconfig.json` | TypeScript config with `outDir: dist`, `declaration: true` |
 | `web/packages/solid/vitest.config.ts` | Vitest config |
-| `.github/workflows/release-react.yml` | npm publish workflow for `@workfort/react`, tag prefix `react-v` |
-| `.github/workflows/release-vue.yml` | npm publish workflow for `@workfort/vue`, tag prefix `vue-v` |
-| `.github/workflows/release-svelte.yml` | npm publish workflow for `@workfort/svelte`, tag prefix `svelte-v` |
-| `.github/workflows/release-solid.yml` | npm publish workflow for `@workfort/solid`, tag prefix `solid-v` |
+| `.github/workflows/release-react.yml` | npm publish workflow for `@workfort/ui-react`, tag prefix `ui-react-v` |
+| `.github/workflows/release-vue.yml` | npm publish workflow for `@workfort/ui-vue`, tag prefix `ui-vue-v` |
+| `.github/workflows/release-svelte.yml` | npm publish workflow for `@workfort/ui-svelte`, tag prefix `ui-svelte-v` |
+| `.github/workflows/release-solid.yml` | npm publish workflow for `@workfort/ui-solid`, tag prefix `ui-solid-v` |
 
 ### Files to move (no modifications needed unless noted)
 
@@ -316,7 +316,7 @@ git commit -m "feat: create @workfort/ui core package in workspace"
 
 ## Chunk 2: Framework Packages
 
-### Task 3: Create `@workfort/react` package
+### Task 3: Create `@workfort/ui-react` package
 
 **Files:**
 - Create: `web/packages/react/package.json`
@@ -337,7 +337,7 @@ mkdir -p web/packages/react/src web/packages/react/tests
 
 ```json
 {
-  "name": "@workfort/react",
+  "name": "@workfort/ui-react",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -543,7 +543,7 @@ Expected: `@workfort/ui` resolved via workspace link, React + testing library in
 - [ ] **Step 13: Run tests**
 
 ```bash
-cd web && pnpm --filter @workfort/react test
+cd web && pnpm --filter @workfort/ui-react test
 ```
 
 Expected: All 5 React tests pass (4 component tests + 1 use-auth test).
@@ -551,7 +551,7 @@ Expected: All 5 React tests pass (4 component tests + 1 use-auth test).
 - [ ] **Step 14: Run build**
 
 ```bash
-cd web && pnpm --filter @workfort/react build
+cd web && pnpm --filter @workfort/ui-react build
 ```
 
 Expected: `web/packages/react/dist/index.js` exists.
@@ -560,12 +560,12 @@ Expected: `web/packages/react/dist/index.js` exists.
 
 ```bash
 git add web/packages/react/ web/pnpm-lock.yaml
-git commit -m "feat: create @workfort/react package with component wrappers and hooks"
+git commit -m "feat: create @workfort/ui-react package with component wrappers and hooks"
 ```
 
 ---
 
-### Task 4: Create `@workfort/vue` package
+### Task 4: Create `@workfort/ui-vue` package
 
 **Files:**
 - Create: `web/packages/vue/package.json`
@@ -584,7 +584,7 @@ mkdir -p web/packages/vue/src web/packages/vue/tests
 
 ```json
 {
-  "name": "@workfort/vue",
+  "name": "@workfort/ui-vue",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -688,7 +688,7 @@ cd web && pnpm install
 - [ ] **Step 8: Run tests**
 
 ```bash
-cd web && pnpm --filter @workfort/vue test
+cd web && pnpm --filter @workfort/ui-vue test
 ```
 
 Expected: 1 Vue auth test passes.
@@ -696,7 +696,7 @@ Expected: 1 Vue auth test passes.
 - [ ] **Step 9: Run build**
 
 ```bash
-cd web && pnpm --filter @workfort/vue build
+cd web && pnpm --filter @workfort/ui-vue build
 ```
 
 Expected: `web/packages/vue/dist/index.js` and `web/packages/vue/dist/index.d.ts` exist.
@@ -705,12 +705,12 @@ Expected: `web/packages/vue/dist/index.js` and `web/packages/vue/dist/index.d.ts
 
 ```bash
 git add web/packages/vue/ web/pnpm-lock.yaml
-git commit -m "feat: create @workfort/vue package with auth and theme composables"
+git commit -m "feat: create @workfort/ui-vue package with auth and theme composables"
 ```
 
 ---
 
-### Task 5: Create `@workfort/svelte` package
+### Task 5: Create `@workfort/ui-svelte` package
 
 **Files:**
 - Create: `web/packages/svelte/package.json`
@@ -729,7 +729,7 @@ mkdir -p web/packages/svelte/src web/packages/svelte/tests
 
 ```json
 {
-  "name": "@workfort/svelte",
+  "name": "@workfort/ui-svelte",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -833,7 +833,7 @@ cd web && pnpm install
 - [ ] **Step 8: Run tests**
 
 ```bash
-cd web && pnpm --filter @workfort/svelte test
+cd web && pnpm --filter @workfort/ui-svelte test
 ```
 
 Expected: 1 Svelte auth test passes.
@@ -841,7 +841,7 @@ Expected: 1 Svelte auth test passes.
 - [ ] **Step 9: Run build**
 
 ```bash
-cd web && pnpm --filter @workfort/svelte build
+cd web && pnpm --filter @workfort/ui-svelte build
 ```
 
 Expected: `web/packages/svelte/dist/index.js` and `web/packages/svelte/dist/index.d.ts` exist.
@@ -850,12 +850,12 @@ Expected: `web/packages/svelte/dist/index.js` and `web/packages/svelte/dist/inde
 
 ```bash
 git add web/packages/svelte/ web/pnpm-lock.yaml
-git commit -m "feat: create @workfort/svelte package with auth and theme stores"
+git commit -m "feat: create @workfort/ui-svelte package with auth and theme stores"
 ```
 
 ---
 
-### Task 6: Create `@workfort/solid` package
+### Task 6: Create `@workfort/ui-solid` package
 
 **Files:**
 - Create: `web/packages/solid/package.json`
@@ -874,7 +874,7 @@ mkdir -p web/packages/solid/src web/packages/solid/tests
 
 ```json
 {
-  "name": "@workfort/solid",
+  "name": "@workfort/ui-solid",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -978,7 +978,7 @@ cd web && pnpm install
 - [ ] **Step 8: Run tests**
 
 ```bash
-cd web && pnpm --filter @workfort/solid test
+cd web && pnpm --filter @workfort/ui-solid test
 ```
 
 Expected: 1 Solid auth test passes.
@@ -986,7 +986,7 @@ Expected: 1 Solid auth test passes.
 - [ ] **Step 9: Run build**
 
 ```bash
-cd web && pnpm --filter @workfort/solid build
+cd web && pnpm --filter @workfort/ui-solid build
 ```
 
 Expected: `web/packages/solid/dist/index.js` and `web/packages/solid/dist/index.d.ts` exist.
@@ -995,7 +995,7 @@ Expected: `web/packages/solid/dist/index.js` and `web/packages/solid/dist/index.
 
 ```bash
 git add web/packages/solid/ web/pnpm-lock.yaml
-git commit -m "feat: create @workfort/solid package with auth and theme hooks"
+git commit -m "feat: create @workfort/ui-solid package with auth and theme hooks"
 ```
 
 ---
@@ -1200,10 +1200,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/react build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-react build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/react test
+        run: cd web && pnpm --filter @workfort/ui-react test
 
   tag:
     name: Create SDK Tag
@@ -1226,7 +1226,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: react-v
+          tag_prefix: ui-react-v
           paths: web/packages/react/**
 
       - name: Check if new tag was created
@@ -1257,7 +1257,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-react-v||')
           cd web
           pnpm install
           cd packages/react
@@ -1265,16 +1265,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-react-*.tgz ../../..
+          mv workfort-ui-react-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^react-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-react-v||')
           cat > release-notes.md << EOF
-          # @workfort/react v${VERSION}
+          # @workfort/ui-react v${VERSION}
 
           ## What's Changed
 
@@ -1283,7 +1283,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/react@${VERSION}
+          npm install @workfort/ui-react@${VERSION}
           \`\`\`
 
           ---
@@ -1299,7 +1299,7 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-react-*.tgz
+          files: workfort-ui-react-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -1310,11 +1310,11 @@ Same structure as `release-react.yml` with these substitutions:
 - Name: `Release Vue Package`
 - Path: `web/packages/vue/**`
 - Tag prefix: `vue-v`
-- Filter: `@workfort/vue`
-- Sed: `sed 's|^vue-v||'`
-- Pack prefix: `workfort-vue-*.tgz`
+- Filter: `@workfort/ui-vue`
+- Sed: `sed 's|^ui-vue-v||'`
+- Pack prefix: `workfort-ui-vue-*.tgz`
 - Release name: `Vue SDK`
-- Package name in notes: `@workfort/vue`
+- Package name in notes: `@workfort/ui-vue`
 
 ```yaml
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -1341,10 +1341,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/vue build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-vue build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/vue test
+        run: cd web && pnpm --filter @workfort/ui-vue test
 
   tag:
     name: Create SDK Tag
@@ -1367,7 +1367,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: vue-v
+          tag_prefix: ui-vue-v
           paths: web/packages/vue/**
 
       - name: Check if new tag was created
@@ -1398,7 +1398,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^vue-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-vue-v||')
           cd web
           pnpm install
           cd packages/vue
@@ -1406,16 +1406,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-vue-*.tgz ../../..
+          mv workfort-ui-vue-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^vue-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-vue-v||')
           cat > release-notes.md << EOF
-          # @workfort/vue v${VERSION}
+          # @workfort/ui-vue v${VERSION}
 
           ## What's Changed
 
@@ -1424,7 +1424,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/vue@${VERSION}
+          npm install @workfort/ui-vue@${VERSION}
           \`\`\`
 
           ---
@@ -1440,7 +1440,7 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-vue-*.tgz
+          files: workfort-ui-vue-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -1451,11 +1451,11 @@ Same structure with substitutions:
 - Name: `Release Svelte Package`
 - Path: `web/packages/svelte/**`
 - Tag prefix: `svelte-v`
-- Filter: `@workfort/svelte`
-- Sed: `sed 's|^svelte-v||'`
-- Pack prefix: `workfort-svelte-*.tgz`
+- Filter: `@workfort/ui-svelte`
+- Sed: `sed 's|^ui-svelte-v||'`
+- Pack prefix: `workfort-ui-svelte-*.tgz`
 - Release name: `Svelte SDK`
-- Package name in notes: `@workfort/svelte`
+- Package name in notes: `@workfort/ui-svelte`
 
 ```yaml
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -1482,10 +1482,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/svelte build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-svelte build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/svelte test
+        run: cd web && pnpm --filter @workfort/ui-svelte test
 
   tag:
     name: Create SDK Tag
@@ -1508,7 +1508,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: svelte-v
+          tag_prefix: ui-svelte-v
           paths: web/packages/svelte/**
 
       - name: Check if new tag was created
@@ -1539,7 +1539,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^svelte-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-svelte-v||')
           cd web
           pnpm install
           cd packages/svelte
@@ -1547,16 +1547,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-svelte-*.tgz ../../..
+          mv workfort-ui-svelte-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^svelte-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-svelte-v||')
           cat > release-notes.md << EOF
-          # @workfort/svelte v${VERSION}
+          # @workfort/ui-svelte v${VERSION}
 
           ## What's Changed
 
@@ -1565,7 +1565,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/svelte@${VERSION}
+          npm install @workfort/ui-svelte@${VERSION}
           \`\`\`
 
           ---
@@ -1581,7 +1581,7 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-svelte-*.tgz
+          files: workfort-ui-svelte-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -1592,11 +1592,11 @@ Same structure with substitutions:
 - Name: `Release Solid Package`
 - Path: `web/packages/solid/**`
 - Tag prefix: `solid-v`
-- Filter: `@workfort/solid`
-- Sed: `sed 's|^solid-v||'`
-- Pack prefix: `workfort-solid-*.tgz`
+- Filter: `@workfort/ui-solid`
+- Sed: `sed 's|^ui-solid-v||'`
+- Pack prefix: `workfort-ui-solid-*.tgz`
 - Release name: `Solid SDK`
-- Package name in notes: `@workfort/solid`
+- Package name in notes: `@workfort/ui-solid`
 
 ```yaml
 # SPDX-License-Identifier: GPL-3.0-or-later
@@ -1623,10 +1623,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/solid build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-solid build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/solid test
+        run: cd web && pnpm --filter @workfort/ui-solid test
 
   tag:
     name: Create SDK Tag
@@ -1649,7 +1649,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: solid-v
+          tag_prefix: ui-solid-v
           paths: web/packages/solid/**
 
       - name: Check if new tag was created
@@ -1680,7 +1680,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^solid-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-solid-v||')
           cd web
           pnpm install
           cd packages/solid
@@ -1688,16 +1688,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-solid-*.tgz ../../..
+          mv workfort-ui-solid-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^solid-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-solid-v||')
           cat > release-notes.md << EOF
-          # @workfort/solid v${VERSION}
+          # @workfort/ui-solid v${VERSION}
 
           ## What's Changed
 
@@ -1706,7 +1706,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/solid@${VERSION}
+          npm install @workfort/ui-solid@${VERSION}
           \`\`\`
 
           ---
@@ -1722,7 +1722,7 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-solid-*.tgz
+          files: workfort-ui-solid-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -1819,9 +1819,9 @@ cd web && pnpm install && pnpm test && pnpm build
 
 Expected output:
 - `@workfort/ui`: 27 tests pass, `dist/index.js` + `dist/style.css` built
-- `@workfort/react`: 5 tests pass, `dist/index.js` built
-- `@workfort/vue`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
-- `@workfort/svelte`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
-- `@workfort/solid`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
+- `@workfort/ui-react`: 5 tests pass, `dist/index.js` built
+- `@workfort/ui-vue`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
+- `@workfort/ui-svelte`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
+- `@workfort/ui-solid`: 1 test passes, `dist/index.js` + `dist/index.d.ts` built
 
 Total: 35 tests pass, 5 packages build successfully.

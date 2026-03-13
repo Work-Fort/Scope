@@ -22,10 +22,10 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/svelte build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui-svelte build
 
       - name: Test
-        run: cd web && pnpm --filter @workfort/svelte test
+        run: cd web && pnpm --filter @workfort/ui-svelte test
 
   tag:
     name: Create SDK Tag
@@ -48,7 +48,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: false
           release_branches: master
-          tag_prefix: svelte-v
+          tag_prefix: ui-svelte-v
           paths: web/packages/svelte/**
 
       - name: Check if new tag was created
@@ -79,7 +79,7 @@ jobs:
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^svelte-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-svelte-v||')
           cd web
           pnpm install
           cd packages/svelte
@@ -87,16 +87,16 @@ jobs:
           pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-svelte-*.tgz ../../..
+          mv workfort-ui-svelte-*.tgz ../../..
 
       - name: Create release notes
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
           CHANGELOG: ${{ needs.tag.outputs.changelog }}
         run: |
-          VERSION=$(echo "$TAG" | sed 's|^svelte-v||')
+          VERSION=$(echo "$TAG" | sed 's|^ui-svelte-v||')
           cat > release-notes.md << EOF
-          # @workfort/svelte v${VERSION}
+          # @workfort/ui-svelte v${VERSION}
 
           ## What's Changed
 
@@ -105,7 +105,7 @@ jobs:
           ## Installation
 
           \`\`\`bash
-          npm install @workfort/svelte@${VERSION}
+          npm install @workfort/ui-svelte@${VERSION}
           \`\`\`
 
           ---
@@ -121,6 +121,6 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
-          files: workfort-svelte-*.tgz
+          files: workfort-ui-svelte-*.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

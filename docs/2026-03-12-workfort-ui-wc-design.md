@@ -597,10 +597,10 @@ The monolithic `@workfort/ui` is replaced by 5 independent npm packages in a pnp
 | Package | Contents | Dependencies | Peer Dependencies |
 |---------|----------|-------------|-------------------|
 | `@workfort/ui` | Core Lit Web Components + CSS tokens | `lit` | — |
-| `@workfort/react` | React component wrappers + `useAuth()` + `useTheme()` hooks | `@workfort/auth` | `@workfort/ui`, `react` |
-| `@workfort/vue` | `useAuth()` + `useTheme()` composables | `@workfort/auth` | `@workfort/ui`, `vue` |
-| `@workfort/svelte` | Auth + theme Svelte stores | `@workfort/auth` | `@workfort/ui`, `svelte` |
-| `@workfort/solid` | `useAuth()` + `useTheme()` Solid primitives | `@workfort/auth` | `@workfort/ui`, `solid-js` |
+| `@workfort/ui-react` | React component wrappers + `useAuth()` + `useTheme()` hooks | `@workfort/auth` | `@workfort/ui`, `react` |
+| `@workfort/ui-vue` | `useAuth()` + `useTheme()` composables | `@workfort/auth` | `@workfort/ui`, `vue` |
+| `@workfort/ui-svelte` | Auth + theme Svelte stores | `@workfort/auth` | `@workfort/ui`, `svelte` |
+| `@workfort/ui-solid` | `useAuth()` + `useTheme()` Solid primitives | `@workfort/auth` | `@workfort/ui`, `solid-js` |
 
 Consumer imports change:
 
@@ -612,8 +612,8 @@ import { auth } from '@workfort/ui/svelte';
 
 // After (separate packages):
 import { WfPanel } from '@workfort/ui';
-import { Panel, useAuth } from '@workfort/react';
-import { auth } from '@workfort/svelte';
+import { Panel, useAuth } from '@workfort/ui-react';
+import { auth } from '@workfort/ui-svelte';
 ```
 
 `@workfort/ui` remains the core — framework packages depend on it as a peer dependency. The Web Components, CSS tokens, light DOM rendering, and theme contract are all unchanged.
@@ -623,7 +623,7 @@ import { auth } from '@workfort/svelte';
 - **Package Structure** (line 28): Single package → workspace with 5 packages
 - **Auth Package** (line 169): `@workfort/ui/auth` no longer exists — see `@workfort/auth` in the passport repo
 - **Singleton Pattern** (line 260): Constraint removed — auth singleton managed by `@workfort/auth`
-- **Framework Adapters** (line 286): Import paths change from `@workfort/ui/{framework}` to `@workfort/{framework}`
+- **Framework Adapters** (line 286): Import paths change from `@workfort/ui/{framework}` to `@workfort/ui-{framework}`
 - **Build and Workspace** (line 449): Single Vite build → pnpm workspace with per-package builds
 
 ### Implementation plan

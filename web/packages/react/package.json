@@ -1,5 +1,5 @@
 {
-  "name": "@workfort/react",
+  "name": "@workfort/ui-react",
   "version": "0.0.1",
   "type": "module",
   "license": "Apache-2.0",
@@ -9,7 +9,9 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "test": "vitest run"
