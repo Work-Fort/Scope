@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"strings"
 )
 
 // Handler returns an http.Handler that serves an embedded Vite build
@@ -20,8 +21,10 @@ import (
 // (e.g., the result of fs.Sub(embedFS, "web/dist")).
 func Handler(fsys fs.FS) http.Handler {
 	hasRemoteEntry := fileExists(fsys, "remoteEntry.js")
+	fileServer := http.StripPrefix("/ui/", http.FileServer(http.FS(fsys)))
 
 	mux := http.NewServeMux()
+
 	mux.HandleFunc("GET /ui/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if hasRemoteEntry {
@@ -33,7 +36,21 @@ func Handler(fsys fs.FS) http.Handler {
 		}
 	})
 
-	// File serving will be added in Task 2.
+	mux.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
+		// Set cache headers based on path pattern BEFORE calling the file server.
+		// http.FileServer does not set or overwrite Cache-Control on success.
+		// On error (404, 416), Go 1.23+ strips Cache-Control, which is correct —
+		// we don't want to cache error responses.
+		path := strings.TrimPrefix(r.URL.Path, "/ui/")
+		if strings.HasPrefix(path, "assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+
+		fileServer.ServeHTTP(w, r)
+	})
+
 	return mux
 }
 
