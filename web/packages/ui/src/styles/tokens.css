@@ -21,3 +21,13 @@
   --wf-radius-md: 6px;
   --wf-radius-lg: 8px;
 }
+
+[data-theme="light"] {
+  --wf-bg: #ffffff;
+  --wf-bg-secondary: #f5f5f4;
+  --wf-text: #0a0a0b;
+  --wf-text-secondary: #525252;
+  --wf-text-muted: #a3a3a3;
+  --wf-border: #e5e5e4;
+  --wf-accent: #5865f2;
+}
