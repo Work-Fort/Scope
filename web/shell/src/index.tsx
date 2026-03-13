@@ -1,5 +1,6 @@
 import '@workfort/ui';
 import '@workfort/ui/style.css';
+import './global.css';
 import { render } from 'solid-js/web';
 import App from './app';
 
