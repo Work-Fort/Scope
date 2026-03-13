@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import React from 'react';
 import { render, cleanup } from '@testing-library/react';
-import '../../src/index.js';
-import { Panel, Button, Badge } from '../../src/react/index.js';
+import '@workfort/ui';
+import { Panel, Button, Badge } from '../src/index.js';
 
 describe('React component wrappers', () => {
   afterEach(cleanup);

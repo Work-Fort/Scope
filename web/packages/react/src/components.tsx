@@ -1,16 +1,10 @@
 import React, { forwardRef, useRef, useCallback } from 'react';
-import '../index.js';
+import '@workfort/ui';
 
-import type { WfPanel } from '../components/panel.js';
-import type { WfButton } from '../components/button.js';
-import type { WfBadge } from '../components/badge.js';
-import type { WfStatusDot } from '../components/status-dot.js';
-import type { WfSkeleton } from '../components/skeleton.js';
-import type { WfTextInput } from '../components/text-input.js';
-import type { WfList } from '../components/list.js';
-import type { WfListItem } from '../components/list-item.js';
-import type { WfScrollArea } from '../components/scroll-area.js';
-import type { WfErrorFallback } from '../components/error-fallback.js';
+import type {
+  WfPanel, WfButton, WfBadge, WfStatusDot, WfSkeleton,
+  WfTextInput, WfList, WfListItem, WfScrollArea, WfErrorFallback,
+} from '@workfort/ui';
 
 type WfProps<E, P = {}> = P & React.HTMLAttributes<E> & {
   children?: React.ReactNode;

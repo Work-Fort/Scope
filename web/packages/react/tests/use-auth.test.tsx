@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import React from 'react';
 import { render, cleanup, act } from '@testing-library/react';
-import { useAuth } from '../../src/react/use-auth.js';
+import { useAuth } from '../src/use-auth.js';
 import { _resetAuthClient, getAuthClient } from '@workfort/auth';
 
 const MOCK_USER = {
