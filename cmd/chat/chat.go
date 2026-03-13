@@ -16,7 +16,7 @@ var (
 	username     string
 )
 
-func NewChatCmd() *cobra.Command {
+func New() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "chat",
 		Short: "Open the chat TUI",

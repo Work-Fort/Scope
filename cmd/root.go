@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/Work-Fort/Scope/cmd/chat"
+	"github.com/Work-Fort/Scope/cmd/web"
 	"github.com/Work-Fort/Scope/pkg/config"
 	"github.com/Work-Fort/Scope/pkg/ui"
 )
@@ -67,7 +68,8 @@ func GetDebugLogger() *log.Logger {
 func init() {
 	config.InitViper()
 
-	rootCmd.AddCommand(chat.NewChatCmd())
+	rootCmd.AddCommand(chat.New())
+	rootCmd.AddCommand(web.New())
 
 	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "debug", "Log level (debug, info, warn, error, disabled)")
 	rootCmd.PersistentFlags().BoolVar(&useTUI, "use-tui", true, "Enable TUI mode")
