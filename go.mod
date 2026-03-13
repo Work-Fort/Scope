@@ -1,4 +1,4 @@
-module github.com/Work-Fort/WorkFort
+module github.com/Work-Fort/Scope
 
 go 1.25.0
 

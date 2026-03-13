@@ -1,0 +1,133 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Release UI Package
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web/ui/**'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install and build
+        working-directory: web/ui
+        run: npm ci && npm run build
+
+      - name: Test
+        working-directory: web/ui
+        run: npm test
+
+  tag:
+    name: Create SDK Tag
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      changelog: ${{ steps.tag_version.outputs.changelog }}
+      should_release: ${{ steps.check_tag.outputs.should_release }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version and create tag
+        id: tag_version
+        uses: Work-Fort/github-tag-action@v6.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          release_branches: master
+          tag_prefix: ui-v
+          paths: web/ui/**
+
+      - name: Check if new tag was created
+        id: check_tag
+        run: |
+          if [ -n "$TAG" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          TAG: ${{ steps.tag_version.outputs.new_tag }}
+
+  release:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    needs: tag
+    if: needs.tag.outputs.should_release == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.tag.outputs.new_tag }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Build and publish
+        env:
+          TAG: ${{ needs.tag.outputs.new_tag }}
+        working-directory: web/ui
+        run: |
+          VERSION=$(echo "$TAG" | sed 's|^ui-v||')
+          npm ci
+          npm pkg set version="$VERSION"
+          npm run build
+          npm publish --provenance --access public
+          npm pack
+          mv workfort-ui-*.tgz ../../
+
+      - name: Create release notes
+        env:
+          TAG: ${{ needs.tag.outputs.new_tag }}
+          CHANGELOG: ${{ needs.tag.outputs.changelog }}
+        run: |
+          VERSION=$(echo "$TAG" | sed 's|^ui-v||')
+          cat > release-notes.md << EOF
+          # @workfort/ui v${VERSION}
+
+          ## What's Changed
+
+          ${CHANGELOG}
+
+          ## Installation
+
+          \`\`\`bash
+          npm install @workfort/ui@${VERSION}
+          \`\`\`
+
+          ---
+
+          Built automatically by Scope CI
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.tag.outputs.new_tag }}
+          name: UI SDK ${{ needs.tag.outputs.new_tag }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          files: workfort-ui-*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

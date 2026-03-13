@@ -10,8 +10,8 @@ import (
 	rw "github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 
-	"github.com/Work-Fort/WorkFort/pkg/clipboard"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/pkg/clipboard"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 
 const maxInputLines = 8

@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/pkg/sharkfin"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 
 type UserList struct {

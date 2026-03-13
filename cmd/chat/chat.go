@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	chatui "github.com/Work-Fort/WorkFort/internal/chat"
-	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
+	chatui "github.com/Work-Fort/Scope/internal/chat"
+	"github.com/Work-Fort/Scope/pkg/sharkfin"
 )
 
 var (

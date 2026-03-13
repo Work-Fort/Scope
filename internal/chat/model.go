@@ -10,8 +10,8 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
 
-	"github.com/Work-Fort/WorkFort/pkg/sharkfin"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/pkg/sharkfin"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 
 // Pane identifies which panel has focus.
@@ -1047,7 +1047,7 @@ func (m ChatModel) View() tea.View {
 		fullUI = mainContent
 	} else {
 		header := ui.CurrentTheme.HeaderStyle(m.width).Render(
-			ui.CurrentTheme.HeaderTitleStyle().Render("WorkFort"),
+			ui.CurrentTheme.HeaderTitleStyle().Render("Scope"),
 		)
 		helpBar := ChatKeyBindings().Render()
 		fullUI = lipgloss.JoinVertical(lipgloss.Left, header, mainContent, helpBar)

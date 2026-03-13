@@ -7,7 +7,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"charm.land/lipgloss/v2"
 
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 
 // ModalType identifies which modal is active.

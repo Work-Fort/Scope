@@ -1,6 +1,6 @@
 package chat
 
-import "github.com/Work-Fort/WorkFort/pkg/ui"
+import "github.com/Work-Fort/Scope/pkg/ui"
 
 // ChatKeyBindings returns the bindings shown in the bottom help bar.
 func ChatKeyBindings() ui.KeyBindingSet {

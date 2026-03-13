@@ -11,9 +11,9 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/WorkFort/cmd/chat"
-	"github.com/Work-Fort/WorkFort/pkg/config"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/cmd/chat"
+	"github.com/Work-Fort/Scope/pkg/config"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 
 var (
@@ -26,8 +26,8 @@ var (
 
 var rootCmd = &cobra.Command{
 	Use:   "workfort",
-	Short: "WorkFort CLI",
-	Long:  "The WorkFort command-line interface for team collaboration.",
+	Short: "Scope CLI",
+	Long:  "The Scope command-line interface for team collaboration.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.InitDirs(); err != nil {
 			return err
