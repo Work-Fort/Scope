@@ -5,7 +5,7 @@ on:
   push:
     branches: [master]
     paths-ignore:
-      - 'web/ui/**'
+      - 'web/**'
 
 permissions:
   contents: write

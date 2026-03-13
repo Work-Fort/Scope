@@ -5,7 +5,7 @@ on:
   push:
     branches: [master]
     paths:
-      - 'web/ui/**'
+      - 'web/packages/ui/**'
 
 permissions:
   contents: write
@@ -15,22 +15,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+      - uses: jdx/mise-action@v3
 
       - name: Install and build
-        working-directory: web/ui
-        run: npm ci && npm run build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui build
 
       - name: Test
-        working-directory: web/ui
-        run: npm test
+        run: cd web && pnpm --filter @workfort/ui test
 
   tag:
     name: Create SDK Tag
@@ -42,7 +37,7 @@ jobs:
       should_release: ${{ steps.check_tag.outputs.should_release }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -51,10 +46,10 @@ jobs:
         uses: Work-Fort/github-tag-action@v6.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
+          default_bump: false
           release_branches: master
           tag_prefix: ui-v
-          paths: web/ui/**
+          paths: web/packages/ui/**
 
       - name: Check if new tag was created
         id: check_tag
@@ -74,27 +69,25 @@ jobs:
     if: needs.tag.outputs.should_release == 'true'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.tag.outputs.new_tag }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+      - uses: jdx/mise-action@v3
 
       - name: Build and publish
         env:
           TAG: ${{ needs.tag.outputs.new_tag }}
-        working-directory: web/ui
         run: |
           VERSION=$(echo "$TAG" | sed 's|^ui-v||')
-          npm ci
+          cd web
+          pnpm install
+          cd packages/ui
           npm pkg set version="$VERSION"
-          npm run build
+          pnpm run build
           npm publish --provenance --access public
           npm pack
-          mv workfort-ui-*.tgz ../../
+          mv workfort-ui-*.tgz ../../..
 
       - name: Create release notes
         env:
