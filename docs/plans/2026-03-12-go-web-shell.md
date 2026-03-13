@@ -4,9 +4,9 @@
 
 **Goal:** Build the Go-side infrastructure for serving the WorkFort web UI — shared frontend serving package, BFF proxy, fort config, and the `workfort web` command.
 
-**Architecture:** Bottom-up build order. `pkg/frontend/` (shared embed+serve) first, then domain types, fort config adapter, HTTP handler layer (proxy, BFF, SPA), composition root (`cmd/web/`), and finally CGo build gating. Each layer is independently testable.
+**Architecture:** Bottom-up build order. `pkg/frontend/` (shared embed+serve) first, then domain types, fort config adapter, HTTP handler layer (proxy, BFF, SPA), composition root (`cmd/web/`), and finally command registration. Each layer is independently testable.
 
-**Tech Stack:** Go 1.25, `net/http`, `httputil.ReverseProxy`, `gorilla/websocket`, `lestrrat-go/jwx/v2`, `spf13/cobra`, `spf13/viper`
+**Tech Stack:** Go 1.25, `net/http`, `httputil.ReverseProxy`, `gorilla/websocket`, `spf13/cobra`, `spf13/viper`
 
 **Specs:**
 - `docs/2026-03-12-go-web-shell-design.md` — primary spec
@@ -21,6 +21,7 @@
 - `spa.go` instead of `embed.go` — clearer name since `embed.go` now exists in `cmd/web/` for the embed directive
 - `ws.go` split from `proxy.go` — WebSocket proxying is a distinct concern with different dependencies (gorilla/websocket)
 - `NewServiceProxy(svc, local, gatewayURL)` exported with extra params — spec shows `newServiceProxy(service)` but the implementation needs `local` and `gatewayURL` to handle both routing modes, and it's exported because tests in `httpapi_test` call it directly
+- Fort config defaults are placed in `pkg/config/viper.go`'s `InitViper()` instead of `cmd/root.go` init, following the existing codebase convention where all defaults live
 
 ```
 pkg/
@@ -52,10 +53,16 @@ internal/
 cmd/
   web/
     web.go                 # New() *cobra.Command — composition root, flags, server lifecycle
+    embed.go               # //go:embed directive for web_dist/
+    placeholder/
+      index.html           # Placeholder for embed to compile before SPA is built
   chat/
     chat.go                # Rename: NewChatCmd() → New()
-  root.go                  # Remove chat import, add web import
-  root_cgo.go              # //go:build cgo — imports and registers chat command
+  root.go                  # Add web import alongside existing chat import
+
+pkg/
+  config/
+    viper.go               # Modified: add fort defaults to InitViper()
 ```
 
 ---
@@ -82,7 +89,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/Work-Fort/WorkFort/pkg/frontend"
+	"github.com/Work-Fort/Scope/pkg/frontend"
 )
 
 func TestHealthProbe_OK(t *testing.T) {
@@ -533,8 +540,8 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
-	"github.com/Work-Fort/WorkFort/internal/infra/fortconfig"
+	"github.com/Work-Fort/Scope/internal/domain"
+	"github.com/Work-Fort/Scope/internal/infra/fortconfig"
 )
 
 func setupViper(t *testing.T) {
@@ -696,7 +703,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
+	"github.com/Work-Fort/Scope/internal/domain"
 )
 
 // Compile-time interface check.
@@ -807,9 +814,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 func TestTokenConverter_Success(t *testing.T) {
@@ -1158,8 +1164,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/domain"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 func TestProxy_PathStripping(t *testing.T) {
@@ -1261,7 +1267,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
+	"github.com/Work-Fort/Scope/internal/domain"
 )
 
 // NewServiceProxy creates an http.Handler that proxies requests to a service.
@@ -1343,7 +1349,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 func TestWSProxy_WhitelistedPath(t *testing.T) {
@@ -1561,7 +1567,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 func TestSPA_StaticFile(t *testing.T) {
@@ -1725,8 +1731,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/domain"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 func newTestFort() domain.Fort {
@@ -1938,7 +1944,7 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/Work-Fort/WorkFort/internal/domain"
+	"github.com/Work-Fort/Scope/internal/domain"
 )
 
 // Service metadata for nav tabs — presentation concern, not domain.
@@ -2185,8 +2191,8 @@ import (
 	"charm.land/log/v2"
 	"github.com/spf13/cobra"
 
-	"github.com/Work-Fort/WorkFort/internal/infra/fortconfig"
-	"github.com/Work-Fort/WorkFort/internal/infra/httpapi"
+	"github.com/Work-Fort/Scope/internal/infra/fortconfig"
+	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
 var (
@@ -2325,14 +2331,13 @@ git add cmd/web/web.go cmd/web/embed.go cmd/web/placeholder/index.html
 git commit -m "feat(web): add workfort web command with BFF proxy and SPA serving"
 ```
 
-### Task 11: CGo Build Gating and Command Registration
+### Task 11: Command Registration
 
 **Files:**
 - Modify: `cmd/root.go`
-- Create: `cmd/root_cgo.go`
 - Modify: `cmd/chat/chat.go`
 
-**Context:** Move the chat command registration behind a `//go:build cgo` tag so that `CGO_ENABLED=0` builds exclude it. The web command is registered unconditionally. Rename `NewChatCmd()` to `New()` for consistency.
+**Context:** Register the web command alongside the existing chat command. No CGo gating needed — CGo dependencies have been removed. Rename `NewChatCmd()` to `New()` for consistency with the web package.
 
 **Reference:** Read `cmd/root.go` (current state) and `cmd/chat/chat.go`.
 
@@ -2347,24 +2352,9 @@ to:
 func New() *cobra.Command {
 ```
 
-- [ ] **Step 2: Create `cmd/root_cgo.go` with build tag**
+- [ ] **Step 2: Update `cmd/root.go` — add web import, update chat reference**
 
-```go
-// cmd/root_cgo.go
-//go:build cgo
-
-package cmd
-
-import "github.com/Work-Fort/WorkFort/cmd/chat"
-
-func init() {
-	rootCmd.AddCommand(chat.New())
-}
-```
-
-- [ ] **Step 3: Update `cmd/root.go` — remove chat import, add web import**
-
-Remove the chat import and registration. Add the web command:
+Add the web command import and registration alongside chat:
 
 ```go
 // cmd/root.go — updated imports
@@ -2378,37 +2368,32 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/WorkFort/cmd/web"
-	"github.com/Work-Fort/WorkFort/pkg/config"
-	"github.com/Work-Fort/WorkFort/pkg/ui"
+	"github.com/Work-Fort/Scope/cmd/chat"
+	"github.com/Work-Fort/Scope/cmd/web"
+	"github.com/Work-Fort/Scope/pkg/config"
+	"github.com/Work-Fort/Scope/pkg/ui"
 )
 ```
 
-In `init()`, replace `rootCmd.AddCommand(chat.NewChatCmd())` with:
+In `init()`, update the chat registration and add web:
 ```go
+	rootCmd.AddCommand(chat.New())
 	rootCmd.AddCommand(web.New())
 ```
 
-- [ ] **Step 4: Verify CGo build works**
+- [ ] **Step 3: Verify build works**
 
 Run: `go build .`
-Expected: Success — both chat and web commands registered (CGo enabled by default on Linux)
+Expected: Success — both chat and web commands registered
 
-- [ ] **Step 5: Verify non-CGo build works**
-
-Run: `CGO_ENABLED=0 go build .`
-Expected: Success — only web command registered, chat excluded
-
-Note: This may fail if other packages (like `pkg/stt`) are imported unconditionally from somewhere other than `cmd/chat/`. The expected CGo import chain is: `cmd/chat/` → `internal/chat/` → `pkg/stt/` (whisper.cpp CGo). If the `CGO_ENABLED=0` build fails, trace imports with `go list -deps ./cmd/chat/` and ensure the chain doesn't leak into `cmd/root.go`. Other packages (`pkg/audio/`) may also use CGo — check with `go list -f '{{.CgoFiles}}' ./...`.
-
-- [ ] **Step 6: Run all tests**
+- [ ] **Step 4: Run all tests**
 
 Run: `go test ./... -race -count=1`
 Expected: PASS — all tests across all packages pass
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add cmd/root.go cmd/root_cgo.go cmd/chat/chat.go
-git commit -m "refactor(cmd): gate chat behind CGo build tag, add web command"
+git add cmd/root.go cmd/chat/chat.go
+git commit -m "refactor(cmd): register web command, rename chat.NewChatCmd to chat.New"
 ```

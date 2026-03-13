@@ -9,7 +9,7 @@ The WorkFort CLI is purely a UI shell and proxy — it runs no backend logic. Au
 ## Constraints
 
 - **Cross-platform**: Windows, macOS, Linux.
-- **Fully static binary**: `CGO_ENABLED=0`, no dynamic linking. The shell has zero backend dependencies — it only proxies and serves the SPA.
+- **Fully static binary**: no CGo dependencies, no dynamic linking. The shell has zero backend dependencies — it only proxies and serves the SPA.
 - **Single binary distribution**: The shell SPA is embedded via `go:embed`. No external files at runtime.
 - **XDG compliance**: All configuration under `$XDG_CONFIG_HOME/workfort/config.yaml`.
 - **Service independence**: Each service owns its UI. The shell never contains service-specific UI code.
@@ -502,7 +502,7 @@ cmd/
 
 ### Cobra integration
 
-`cmd/web/web.go` exports `NewWebCmd() *cobra.Command`, registered in `cmd/root.go`. As a prerequisite, the chat command import must be gated behind `//go:build cgo` (in a new `cmd/root_cgo.go`) so that `CGO_ENABLED=0` builds exclude it — `pkg/stt` has CGo dependencies that prevent static linking. This gating does not exist in the current codebase and must be added as part of the implementation plan.
+`cmd/web/web.go` exports `NewWebCmd() *cobra.Command`, registered in `cmd/root.go` alongside the existing chat command. No build gating is needed — CGo dependencies have been removed from the codebase.
 
 ### Proxy behavior
 

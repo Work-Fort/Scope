@@ -18,7 +18,7 @@ This spec covers the Go implementation only. The frontend SPA and `@workfort/ui`
 ## Constraints
 
 - **Standard library HTTP** — `net/http` and `httputil` for HTTP. `gorilla/websocket` (already in `go.mod`) for WebSocket proxying. No third-party HTTP frameworks.
-- **Static binary** — `CGO_ENABLED=0` must produce a working binary with `workfort web`. The `chat` command (which depends on CGo via `pkg/stt`) is excluded via build tags.
+- **Static binary** — `CGO_ENABLED=0` produces a working binary. No CGo dependencies exist in the codebase.
 - **Single binary** — the shell SPA is embedded via `go:embed`. No external files at runtime.
 - **BFF pattern** — the browser never sees a JWT. Session cookies are converted server-side.
 - **Shell-only BFF** — the cookie-to-JWT conversion lives in the shell's proxy code, not in a shared package. Only the CLI does BFF.
@@ -378,25 +378,11 @@ The command wires all layers together:
 
 ---
 
-## CGo Build Gating
+## Command Registration
 
-The chat command imports `pkg/stt` which uses whisper.cpp via CGo. For `CGO_ENABLED=0` builds (static binary distribution), the chat command must be excluded.
+> **Note:** CGo dependencies (whisper.cpp, pkg/stt) have been removed. No build gating is needed — both `chat` and `web` commands are registered unconditionally.
 
-### Changes
-
-1. **New file: `cmd/root_cgo.go`** with `//go:build cgo`
-   - Imports `cmd/chat`
-   - Registers the chat command: `rootCmd.AddCommand(chat.New())`
-
-2. **Rename in `cmd/chat/chat.go`**: `NewChatCmd()` → `New()`
-
-3. **`cmd/root.go`**: remove the direct chat command import and registration (moved to `root_cgo.go`)
-
-4. **Web command** stays in `cmd/root.go` — works with or without CGo
-
-Result:
-- `CGO_ENABLED=1 go build` → binary has both `web` and `chat` commands
-- `CGO_ENABLED=0 go build` → binary has only `web` command (and any other non-CGo commands)
+Register the web command alongside chat in `cmd/root.go`. Rename `NewChatCmd()` → `New()` for consistency.
 
 ---
 
@@ -436,8 +422,7 @@ cmd/
     web.go               # Composition root: New() *cobra.Command
   chat/
     chat.go              # Renamed: New() (was NewChatCmd)
-  root.go                # Web command registered here
-  root_cgo.go            # //go:build cgo — chat command registered here
+  root.go                # Both chat and web commands registered here
   main.go
 ```
 
@@ -459,5 +444,5 @@ cmd/
 - **bff_test.go**: mock auth service, verify cookie-to-JWT conversion, caching, error cases (auth down, expired session)
 - **handler_test.go**: integration test of the full mux — verify routing to correct handler per path pattern
 
-### CGo gating
-- Verified by CI: `CGO_ENABLED=0 go build` succeeds and the binary runs `workfort web`
+### Command registration
+- Verified by CI: `go build` succeeds and the binary runs both `workfort chat` and `workfort web`
