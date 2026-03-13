@@ -1,0 +1,34 @@
+{
+  "name": "@workfort/svelte",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "prepublishOnly": "tsc"
+  },
+  "dependencies": {
+    "@workfort/auth": "^0.0.1"
+  },
+  "peerDependencies": {
+    "@workfort/ui": "^0.0.1",
+    "svelte": "^4.0.0 || ^5.0.0"
+  },
+  "devDependencies": {
+    "@workfort/ui": "workspace:*",
+    "svelte": "^5.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "happy-dom": "^15.0.0"
+  }
+}
