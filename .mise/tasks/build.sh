@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#MISE description="Build the workfort binary"
+#MISE sources=["**/*.go", "go.mod", "go.sum"]
+#MISE outputs=["build/workfort"]
+set -euo pipefail
+
+mkdir -p build
+VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "dev")
+go build -ldflags "-X github.com/Work-Fort/Scope/cmd.Version=${VERSION}" -o build/workfort .
+echo "✓ Build complete"
