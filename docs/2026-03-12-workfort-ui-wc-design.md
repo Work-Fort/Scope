@@ -571,3 +571,61 @@ The existing SolidJS implementation plan (`docs/plans/2026-03-11-workfort-ui.md`
 | Auth/theme | SolidJS context providers | Framework-agnostic core + adapter hooks |
 | npm package | 1 | 1 (with sub-path exports for auth + 4 adapters) |
 | Build output | SolidJS library (ESM) | Custom Elements (ESM) + adapter sub-paths |
+
+---
+
+## Amendment: Package Split (2026-03-12)
+
+> This section amends the package structure described above. The original spec specified a single `@workfort/ui` package with sub-path exports. That decision has been reversed.
+
+### What changed
+
+**Auth moved to `@workfort/auth` in the passport repo.** The `@workfort/ui/auth` sub-path described in this spec no longer exists. All framework adapters now import from `@workfort/auth` as an external dependency.
+
+### Why the single-package design no longer applies
+
+The singleton justification (line 276 above) stated:
+
+> "If the package were split into separate npm packages, this guarantee would break (each package could get its own module instance). The single-package design is load-bearing here."
+
+This was correct when `AuthClient` lived inside `@workfort/ui`. Now that auth is `@workfort/auth` — a separate npm package — the singleton is already managed across package boundaries. npm deduplication ensures all packages that depend on `@workfort/auth@^0.0.1` resolve to the same module instance. The constraint that made single-package load-bearing is gone.
+
+### New package structure
+
+The monolithic `@workfort/ui` is replaced by 5 independent npm packages in a pnpm workspace under `web/`:
+
+| Package | Contents | Dependencies | Peer Dependencies |
+|---------|----------|-------------|-------------------|
+| `@workfort/ui` | Core Lit Web Components + CSS tokens | `lit` | — |
+| `@workfort/react` | React component wrappers + `useAuth()` + `useTheme()` hooks | `@workfort/auth` | `@workfort/ui`, `react` |
+| `@workfort/vue` | `useAuth()` + `useTheme()` composables | `@workfort/auth` | `@workfort/ui`, `vue` |
+| `@workfort/svelte` | Auth + theme Svelte stores | `@workfort/auth` | `@workfort/ui`, `svelte` |
+| `@workfort/solid` | `useAuth()` + `useTheme()` Solid primitives | `@workfort/auth` | `@workfort/ui`, `solid-js` |
+
+Consumer imports change:
+
+```
+// Before (sub-path exports):
+import { WfPanel } from '@workfort/ui';
+import { Panel, useAuth } from '@workfort/ui/react';
+import { auth } from '@workfort/ui/svelte';
+
+// After (separate packages):
+import { WfPanel } from '@workfort/ui';
+import { Panel, useAuth } from '@workfort/react';
+import { auth } from '@workfort/svelte';
+```
+
+`@workfort/ui` remains the core — framework packages depend on it as a peer dependency. The Web Components, CSS tokens, light DOM rendering, and theme contract are all unchanged.
+
+### Sections of this spec affected
+
+- **Package Structure** (line 28): Single package → workspace with 5 packages
+- **Auth Package** (line 169): `@workfort/ui/auth` no longer exists — see `@workfort/auth` in the passport repo
+- **Singleton Pattern** (line 260): Constraint removed — auth singleton managed by `@workfort/auth`
+- **Framework Adapters** (line 286): Import paths change from `@workfort/ui/{framework}` to `@workfort/{framework}`
+- **Build and Workspace** (line 449): Single Vite build → pnpm workspace with per-package builds
+
+### Implementation plan
+
+See `docs/plans/2026-03-12-ui-package-split.md`.

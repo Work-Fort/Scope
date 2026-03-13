@@ -1,5 +1,7 @@
 # @workfort/ui Web Components Implementation Plan
 
+> **SUPERSEDED** — The single-package structure in this plan is superseded by `docs/plans/2026-03-12-ui-package-split.md`, which splits `@workfort/ui` into 5 independent npm packages (`@workfort/ui`, `@workfort/react`, `@workfort/vue`, `@workfort/svelte`, `@workfort/solid`). The auth singleton constraint that justified the single-package design was removed when auth moved to `@workfort/auth` in the passport repo. See the "Amendment: Package Split" section in `docs/2026-03-12-workfort-ui-wc-design.md` for the full rationale. Kept for historical reference.
+
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build `@workfort/ui`, a Lit-based Web Components library with a framework-agnostic auth client and adapters for React, Vue, Svelte, and SolidJS.
