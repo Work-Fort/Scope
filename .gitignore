@@ -2,4 +2,4 @@ build/
 third_party/
 .superpowers/
 node_modules/
-web/ui/dist/
+web/packages/*/dist/
