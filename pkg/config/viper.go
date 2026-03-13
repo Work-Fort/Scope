@@ -22,6 +22,19 @@ func InitViper() {
 	viper.SetDefault("time-display.use-24h", false)
 	viper.SetDefault("time-display.show-seconds", false)
 
+	// Fort defaults
+	viper.SetDefault("active-fort", "local")
+	viper.SetDefault("forts.local.local", true)
+	viper.SetDefault("forts.local.services.auth.url", "http://127.0.0.1:3000")
+	viper.SetDefault("forts.local.services.auth.enabled", true)
+	viper.SetDefault("forts.local.services.sharkfin.url", "http://127.0.0.1:16000")
+	viper.SetDefault("forts.local.services.sharkfin.enabled", true)
+	viper.SetDefault("forts.local.services.sharkfin.ws-paths", []string{"/ws", "/presence"})
+	viper.SetDefault("forts.local.services.nexus.url", "http://127.0.0.1:9600")
+	viper.SetDefault("forts.local.services.nexus.enabled", true)
+	viper.SetDefault("forts.local.services.hive.url", "http://127.0.0.1:17000")
+	viper.SetDefault("forts.local.services.hive.enabled", false)
+
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
