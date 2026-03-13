@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#MISE description="Build shell SPA and prepare for Go embed"
+set -euo pipefail
+
+echo "Building shell SPA..."
+(cd web/shell && pnpm build)
+
+echo "Staging SPA for Go embed..."
+rm -rf cmd/web/placeholder
+cp -r web/shell/dist cmd/web/placeholder
+
+echo "✓ Shell SPA built and staged for embed"
