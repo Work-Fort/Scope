@@ -73,7 +73,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// SPA handler.
 	var spaFS fs.FS
 	if !dev {
-		sub, err := fs.Sub(webFS, "placeholder")
+		sub, err := fs.Sub(webFS, "dist")
 		if err != nil {
 			return fmt.Errorf("embedded SPA: %w", err)
 		}

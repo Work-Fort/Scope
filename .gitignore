@@ -2,5 +2,3 @@
 third_party/
 .superpowers/
 node_modules/
-.__mf__temp/
-dist/
