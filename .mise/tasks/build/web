@@ -3,6 +3,11 @@
 #MISE description="Build shell SPA and prepare for Go embed"
 set -euo pipefail
 
+if [ ! -d "web/shell/node_modules" ]; then
+  echo "Run 'cd web && pnpm install' first" >&2
+  exit 1
+fi
+
 echo "Building shell SPA..."
 (cd web/shell && pnpm build)
 

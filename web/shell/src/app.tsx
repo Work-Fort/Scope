@@ -22,6 +22,7 @@ const App: Component = () => {
     return enabled?.route ?? '/';
   });
 
+  // Defined inside App since it needs handleModule. Safe because App renders once.
   const ServicePage: Component = () => {
     const params = useParams<{ service: string }>();
     const svc = createMemo(() =>
