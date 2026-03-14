@@ -36,7 +36,7 @@ func New() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&bind, "bind", "127.0.0.1", "Listen address")
-	cmd.Flags().IntVar(&port, "port", 8080, "Listen port")
+	cmd.Flags().IntVar(&port, "port", 16100, "Listen port")
 	cmd.Flags().BoolVar(&dev, "dev", false, "Proxy SPA to Vite dev server")
 	cmd.Flags().StringVar(&devURL, "dev-url", "http://localhost:5173", "Vite dev server URL (used with --dev)")
 	cmd.Flags().BoolVar(&noOpen, "no-open", false, "Don't auto-open browser")
