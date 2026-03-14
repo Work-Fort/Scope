@@ -15,10 +15,11 @@ html, body, #app {
 
 .shell-layout {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   grid-template-columns: 240px 1fr;
   grid-template-areas:
-    "nav nav"
+    "banners banners"
+    "nav     nav"
     "sidebar content";
   height: 100%;
 }
@@ -26,8 +27,13 @@ html, body, #app {
 .shell-layout--no-sidebar {
   grid-template-columns: 1fr;
   grid-template-areas:
+    "banners"
     "nav"
     "content";
+}
+
+.shell-banners {
+  grid-area: banners;
 }
 
 .shell-nav {
