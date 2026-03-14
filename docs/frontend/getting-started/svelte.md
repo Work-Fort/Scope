@@ -144,7 +144,9 @@ export function HeaderActions() {
 }
 ```
 
-The shell validates that your module exports both `default` and `manifest`. It calls `default(props)` with `connected` state and reads `manifest` for routing and layout. `SidebarContent` and `HeaderActions` are optional.
+Unlike SolidJS and React (which export component constructors), Svelte's entry exports a factory function that returns an `HTMLElement`. This satisfies the `ServiceModule` contract — the shell accepts either a framework component or a DOM element from `default(props)`.
+
+`SidebarContent` and `HeaderActions` follow the same pattern: plain functions returning DOM elements.
 
 See [Service Frontend Contract](../service-contract.md) for the full `ServiceModule` spec.
 
