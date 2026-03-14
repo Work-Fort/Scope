@@ -1,0 +1,140 @@
+/* primitives.css — Tier 1: raw scales. No semantic meaning. */
+
+:root {
+  /* ── Stone palette ── */
+  --wf-stone-50: #fafaf9;
+  --wf-stone-100: #f5f5f4;
+  --wf-stone-200: #e7e5e4;
+  --wf-stone-300: #d6d3d1;
+  --wf-stone-400: #a8a29e;
+  --wf-stone-500: #78716c;
+  --wf-stone-600: #57534e;
+  --wf-stone-700: #44403c;
+  --wf-stone-800: #292524;
+  --wf-stone-900: #1c1917;
+  --wf-stone-950: #0c0a09;
+
+  /* ── Red palette (status: error) ── */
+  --wf-red-50: #fef2f2;
+  --wf-red-100: #fee2e2;
+  --wf-red-200: #fecaca;
+  --wf-red-300: #fca5a5;
+  --wf-red-400: #f87171;
+  --wf-red-500: #ef4444;
+  --wf-red-600: #dc2626;
+  --wf-red-700: #b91c1c;
+  --wf-red-800: #991b1b;
+  --wf-red-900: #7f1d1d;
+  --wf-red-950: #450a0a;
+
+  /* ── Amber palette (status: warning) ── */
+  --wf-amber-50: #fffbeb;
+  --wf-amber-100: #fef3c7;
+  --wf-amber-200: #fde68a;
+  --wf-amber-300: #fcd34d;
+  --wf-amber-400: #fbbf24;
+  --wf-amber-500: #f59e0b;
+  --wf-amber-600: #d97706;
+  --wf-amber-700: #b45309;
+  --wf-amber-800: #92400e;
+  --wf-amber-900: #78350f;
+  --wf-amber-950: #451a03;
+
+  /* ── Green palette (status: success) ── */
+  --wf-green-50: #f0fdf4;
+  --wf-green-100: #dcfce7;
+  --wf-green-200: #bbf7d0;
+  --wf-green-300: #86efac;
+  --wf-green-400: #4ade80;
+  --wf-green-500: #22c55e;
+  --wf-green-600: #16a34a;
+  --wf-green-700: #15803d;
+  --wf-green-800: #166534;
+  --wf-green-900: #14532d;
+  --wf-green-950: #052e16;
+
+  /* ── Blue palette (status: info) ── */
+  --wf-blue-50: #eff6ff;
+  --wf-blue-100: #dbeafe;
+  --wf-blue-200: #bfdbfe;
+  --wf-blue-300: #93c5fd;
+  --wf-blue-400: #60a5fa;
+  --wf-blue-500: #3b82f6;
+  --wf-blue-600: #2563eb;
+  --wf-blue-700: #1d4ed8;
+  --wf-blue-800: #1e40af;
+  --wf-blue-900: #1e3a8a;
+  --wf-blue-950: #172554;
+
+  /* ── Spacing (numeric, rem-based) ── */
+  --wf-space-1: 0.25rem;
+  --wf-space-2: 0.5rem;
+  --wf-space-3: 0.75rem;
+  --wf-space-4: 1rem;
+  --wf-space-5: 1.25rem;
+  --wf-space-6: 1.5rem;
+  --wf-space-8: 2rem;
+  --wf-space-10: 2.5rem;
+  --wf-space-12: 3rem;
+  --wf-space-16: 4rem;
+  --wf-space-20: 5rem;
+  --wf-space-24: 6rem;
+
+  /* ── Typography — sizes ── */
+  --wf-text-xs: 0.75rem;
+  --wf-text-sm: 0.8125rem;
+  --wf-text-base: 0.875rem;
+  --wf-text-md: 1rem;
+  --wf-text-lg: 1.125rem;
+  --wf-text-xl: 1.25rem;
+  --wf-text-2xl: 1.5rem;
+  --wf-text-3xl: 1.875rem;
+  --wf-text-4xl: 2.25rem;
+
+  /* ── Typography — weights ── */
+  --wf-weight-normal: 400;
+  --wf-weight-medium: 500;
+  --wf-weight-semibold: 600;
+  --wf-weight-bold: 700;
+
+  /* ── Typography — line heights ── */
+  --wf-leading-tight: 1.25;
+  --wf-leading-normal: 1.5;
+  --wf-leading-relaxed: 1.75;
+
+  /* ── Typography — font stacks ── */
+  --wf-font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --wf-font-mono: ui-monospace, 'SF Mono', 'Fira Code', monospace;
+
+  /* ── Border radius ── */
+  --wf-radius-none: 0;
+  --wf-radius-xs: 4px;
+  --wf-radius-sm: 6px;
+  --wf-radius-md: 8px;
+  --wf-radius-lg: 12px;
+  --wf-radius-xl: 16px;
+  --wf-radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --wf-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --wf-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --wf-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --wf-shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.2);
+
+  /* ── Z-index layers ── */
+  --wf-z-dropdown: 100;
+  --wf-z-sticky: 200;
+  --wf-z-modal: 300;
+  --wf-z-toast: 400;
+  --wf-z-tooltip: 500;
+
+  /* ── Motion — durations ── */
+  --wf-duration-fast: 100ms;
+  --wf-duration-normal: 200ms;
+  --wf-duration-slow: 300ms;
+
+  /* ── Motion — easings ── */
+  --wf-ease-in: cubic-bezier(0.4, 0, 1, 0.2);
+  --wf-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --wf-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
