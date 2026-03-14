@@ -12,6 +12,11 @@
       "default": "./dist/index.js"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Work-Fort/Scope",
+    "directory": "web/packages/solid"
+  },
   "files": [
     "dist"
   ],

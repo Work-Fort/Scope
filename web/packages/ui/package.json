@@ -14,6 +14,11 @@
       "default": "./dist/style.css"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Work-Fort/Scope",
+    "directory": "web/packages/ui"
+  },
   "files": ["dist"],
   "scripts": {
     "build": "vite build",
