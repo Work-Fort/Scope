@@ -107,6 +107,10 @@ func (fr *FortRouter) fortDispatch(w http.ResponseWriter, r *http.Request) {
 	inst.handler.ServeHTTP(w, r)
 }
 
+// getInstance returns an active FortInstance, reinitializing it if idle.
+// The idle check and singleflight.Do are not atomic — a concurrent cleanup
+// could set cancel=nil between Load and isIdle, causing a redundant (but
+// harmless) reinit that the singleflight deduplicates.
 func (fr *FortRouter) getInstance(ctx context.Context, name string) (*FortInstance, error) {
 	if v, ok := fr.instances.Load(name); ok {
 		inst := v.(*FortInstance)
@@ -167,6 +171,11 @@ func (fr *FortRouter) StartIdleCleanup(ctx context.Context, maxIdle time.Duratio
 		for {
 			select {
 			case <-ctx.Done():
+				// Stop all active instances on shutdown.
+				fr.instances.Range(func(_, value any) bool {
+					value.(*FortInstance).stopPolling()
+					return true
+				})
 				return
 			case <-ticker.C:
 				now := time.Now().Unix()

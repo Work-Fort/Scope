@@ -37,7 +37,7 @@ func TestRegistry_Fort(t *testing.T) {
 }
 
 func TestValidFortName(t *testing.T) {
-	valid := []string{"local", "acme-corp", "a", "a1", "test-fort-123"}
+	valid := []string{"local", "acme-corp", "a", "1", "a1", "test-fort-123"}
 	invalid := []string{"-leading", "trailing-", "UPPER", "has space", "has/slash", "has..dots", ""}
 
 	for _, name := range valid {

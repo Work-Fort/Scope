@@ -4,8 +4,6 @@ export interface FortInfo {
   gateway?: string;
 }
 
-export interface FortsResponse extends Array<FortInfo> {}
-
 export interface ServiceInfo {
   name: string;
   label: string;
