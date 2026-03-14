@@ -36,7 +36,7 @@ const App: Component = () => {
       <>
         {svc() ? (
           svc()!.ui ? (
-            <ServiceMount name={svc()!.name} label={svc()!.label} onModule={handleModule} />
+            <ServiceMount name={svc()!.name} label={svc()!.label} connected={svc()!.connected} onModule={handleModule} />
           ) : (
             <Unavailable label={svc()!.label} />
           )
