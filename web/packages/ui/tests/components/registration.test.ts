@@ -16,6 +16,11 @@ const EXPECTED = [
   'wf-input',
   'wf-textarea',
   'wf-select',
+  'wf-checkbox',
+  'wf-checkbox-group',
+  'wf-radio',
+  'wf-radio-group',
+  'wf-toggle',
 ];
 
 describe('@workfort/ui registration', () => {
