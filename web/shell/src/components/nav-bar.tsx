@@ -1,24 +1,25 @@
 import { For, Show, type Component } from 'solid-js';
-import { useNavigate, useLocation } from '@solidjs/router';
-import { services } from '../stores/services';
+import { useNavigate, useLocation, useParams } from '@solidjs/router';
+import { services, fortName } from '../stores/services';
 import { toggleTheme } from '../stores/theme';
 import { useTheme } from '@workfort/ui-solid';
 
 const NavBar: Component = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams<{ fort: string }>();
   const theme = useTheme();
 
   return (
     <nav class="shell-nav">
-      <span class="shell-nav__brand">WorkFort</span>
+      <span class="shell-nav__brand">{fortName() || 'WorkFort'}</span>
       <wf-list class="shell-nav__tabs">
         <For each={services().filter((s) => s.enabled)}>
           {(svc) => (
             <wf-list-item
-              active={location.pathname.startsWith(svc.route)}
+              active={location.pathname.includes(svc.route)}
               class={!svc.ui ? 'shell-nav__tab--disabled' : ''}
-              on:wf-select={() => navigate(svc.route)}
+              on:wf-select={() => navigate(`/forts/${params.fort}${svc.route}`)}
             >
               <Show when={svc.ui}>
                 <wf-status-dot status={svc.connected ? 'online' : 'offline'} />
