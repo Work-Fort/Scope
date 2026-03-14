@@ -8,15 +8,14 @@ const POLL_INTERVAL = 30_000;
 
 const [serviceList, setServiceList] = createSignal<ServiceInfo[]>([]);
 const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
-const [fort, setFort] = createSignal('');
+const [currentFort, setCurrentFort] = createSignal('');
 
 let prevConnected = new Map<string, boolean>();
 
 function handlePollResult(res: ServicesResponse): void {
-  setFort(res.fort);
+  setCurrentFort(res.fort);
   setConflictList(res.conflicts ?? []);
 
-  // Detect state transitions for toasts.
   const nextConnected = new Map<string, boolean>();
   for (const svc of res.services) {
     nextConnected.set(svc.name, svc.connected);
@@ -39,10 +38,8 @@ function handlePollResult(res: ServicesResponse): void {
   }
   prevConnected = nextConnected;
 
-  // Register any newly discovered remotes.
   registerNewRemotes(res.services);
 
-  // Update conflict banners — add new, remove stale.
   const activeConflictKeys = new Set((res.conflicts ?? []).map((c) => `conflict:${c.name}`));
   for (const conflict of res.conflicts ?? []) {
     addBanner(
@@ -69,11 +66,20 @@ function handlePollResult(res: ServicesResponse): void {
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
+let activeFort: string | null = null;
 
-export function startPolling(): void {
-  fetchServices().then(handlePollResult).catch(console.error);
+export function startPolling(fort: string): void {
+  // If fort changed, reset state.
+  if (activeFort !== fort) {
+    stopPolling();
+    prevConnected = new Map();
+    setServiceList([]);
+    setConflictList([]);
+  }
+  activeFort = fort;
+  fetchServices(fort).then(handlePollResult).catch(console.error);
   intervalId = setInterval(() => {
-    fetchServices().then(handlePollResult).catch(console.error);
+    fetchServices(fort).then(handlePollResult).catch(console.error);
   }, POLL_INTERVAL);
 }
 
@@ -82,8 +88,9 @@ export function stopPolling(): void {
     clearInterval(intervalId);
     intervalId = null;
   }
+  activeFort = null;
 }
 
 export const services = serviceList;
 export const conflicts = conflictList;
-export const fortName = fort;
+export const fortName = currentFort;
