@@ -156,7 +156,7 @@ At 24 forts with ~4 services each, 3 active + 21 idle: 3 polling goroutines, ~12
 | File | Change |
 |------|--------|
 | `internal/infra/httpapi/handler.go` | Remove SPA handling (moved to FortRouter). Handler routes stay as `/api/*` — fort prefix already stripped before dispatch. Accept fort name parameter for cookie path scoping. |
-| `internal/infra/httpapi/bff.go` | `bffMiddleware` and `writeAuthError` receive fort name for cookie path scoping (`Path=/forts/{fort}/`). |
+| `internal/infra/httpapi/handler.go` | `bffMiddleware` and `writeAuthError` receive fort name for cookie path scoping (`Path=/forts/{fort}/`). Use `NewAuthProxy` for auth routes. SPA disabled by passing `nil` for `spaFS`. |
 | `internal/infra/httpapi/proxy.go` | Auth proxy gets `ModifyResponse` to rewrite `Set-Cookie` headers with `Path=/forts/{fort}/`. |
 | `internal/domain/web.go` | Add `Fort(name string) (Fort, bool)` to `FortRegistry` interface. Remove `Active()` and `SetActive()`. |
 | `internal/infra/fortconfig/registry.go` | Implement `Fort(name)`. Remove `Active()`/`SetActive()`. |
