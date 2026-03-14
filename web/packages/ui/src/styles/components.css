@@ -81,7 +81,7 @@
 /* Skeleton */
 .wf-skeleton {
   display: block;
-  background: var(--wf-color-bg-secondary);
+  background: var(--wf-color-bg-elevated);
   border-radius: var(--wf-radius-sm);
   animation: wf-skeleton-pulse 1.5s ease-in-out infinite;
 }
