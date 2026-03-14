@@ -13,6 +13,8 @@ import './components/list-item.js';
 import './components/scroll-area.js';
 import './components/error-fallback.js';
 import './components/banner.js';
+import './components/toast.js';
+import './components/toast-container.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -26,4 +28,6 @@ export { WfListItem } from './components/list-item.js';
 export { WfScrollArea } from './components/scroll-area.js';
 export { WfErrorFallback } from './components/error-fallback.js';
 export { WfBanner } from './components/banner.js';
+export { WfToast } from './components/toast.js';
+export { WfToastContainer } from './components/toast-container.js';
 export { WfElement } from './base.js';
