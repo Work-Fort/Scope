@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+// Manifest describes the frontend module for service-discovery purposes.
+type Manifest struct {
+	Name    string   `json:"name"`
+	Label   string   `json:"label"`
+	Route   string   `json:"route"`
+	WSPaths []string `json:"ws_paths,omitempty"`
+}
+
 // Handler returns an http.Handler that serves an embedded Vite build
 // as a Module Federation remote.
 //
@@ -19,20 +27,25 @@ import (
 //
 // The fsys must be rooted at the Vite build output directory
 // (e.g., the result of fs.Sub(embedFS, "web/dist")).
-func Handler(fsys fs.FS) http.Handler {
+func Handler(fsys fs.FS, m Manifest) http.Handler {
 	hasRemoteEntry := fileExists(fsys, "remoteEntry.js")
 	fileServer := http.StripPrefix("/ui/", http.FileServer(http.FS(fsys)))
 
 	mux := http.NewServeMux()
 
+	type healthResponse struct {
+		Status string `json:"status"`
+		Manifest
+	}
+
 	mux.HandleFunc("GET /ui/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if hasRemoteEntry {
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			_ = json.NewEncoder(w).Encode(healthResponse{Status: "ok", Manifest: m})
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "unavailable"})
+			_ = json.NewEncoder(w).Encode(healthResponse{Status: "unavailable", Manifest: m})
 		}
 	})
 
