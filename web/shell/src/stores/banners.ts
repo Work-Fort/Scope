@@ -22,17 +22,19 @@ export function addBanner(
 ): void {
   setBanners((prev) => {
     if (prev.find((b) => b.key === key)) return prev;
-    dismissed.delete(key);
+    if (dismissed.has(key)) return prev;
     return [...prev, { key, variant, headline, details, source }];
   });
 }
 
 export function removeBanner(key: string): void {
+  dismissed.delete(key);
   setBanners((prev) => prev.filter((b) => b.key !== key));
 }
 
 export function dismissBanner(key: string): void {
   dismissed.add(key);
+  setBanners((prev) => prev.filter((b) => b.key !== key));
 }
 
 export function isBannerDismissed(key: string): boolean {

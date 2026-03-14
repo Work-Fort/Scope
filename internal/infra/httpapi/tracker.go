@@ -118,6 +118,14 @@ func (t *ServiceTracker) probeOne(ctx context.Context, serviceURL string, notify
 		frontend.Manifest
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil || health.Name == "" {
+		// Reachable but not responding correctly — mark disconnected if known.
+		t.mu.Lock()
+		for i := range t.services {
+			if t.services[i].URL == serviceURL && !t.services[i].hasWS {
+				t.services[i].Connected = false
+			}
+		}
+		t.mu.Unlock()
 		return
 	}
 
