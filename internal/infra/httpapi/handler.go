@@ -48,9 +48,8 @@ func registerOneServiceRoute(mux *http.ServeMux, svc TrackedService, tracker *Se
 	prefix := "/api/" + svc.Name + "/"
 
 	if svc.Name == "auth" {
-		// Auth routes are pass-through — no BFF conversion.
-		proxy := NewServiceProxy(svc.Name, svc.URL, fort.Local, fort.Gateway)
-		mux.Handle(prefix, proxy)
+		proxy := NewAuthProxy(svc.Name, svc.URL, fort.Local, fort.Gateway, fort.Name)
+		mux.Handle("/api/auth/", proxy)
 		return
 	}
 
@@ -70,12 +69,12 @@ func registerOneServiceRoute(mux *http.ServeMux, svc TrackedService, tracker *Se
 		})
 	}
 
-	mux.Handle(prefix, bffMiddleware(tc, proxy, wsHandler))
+	mux.Handle(prefix, bffMiddleware(fort.Name, tc, proxy, wsHandler))
 }
 
 // bffMiddleware wraps a service proxy with BFF token conversion.
 // WebSocket upgrade requests are routed to the wsHandler if available.
-func bffMiddleware(tc *TokenConverter, proxy http.Handler, wsHandler http.Handler) http.Handler {
+func bffMiddleware(fortName string, tc *TokenConverter, proxy http.Handler, wsHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for WebSocket upgrade.
 		if wsHandler != nil && isWebSocketUpgrade(r) {
@@ -83,7 +82,7 @@ func bffMiddleware(tc *TokenConverter, proxy http.Handler, wsHandler http.Handle
 			if tc != nil {
 				token, err := tc.Token(r)
 				if err != nil {
-					writeAuthError(w, err)
+					writeAuthError(w, err, fortName)
 					return
 				}
 				r.Header.Set("Authorization", "Bearer "+token)
@@ -102,7 +101,7 @@ func bffMiddleware(tc *TokenConverter, proxy http.Handler, wsHandler http.Handle
 
 		token, err := tc.Token(r)
 		if err != nil {
-			writeAuthError(w, err)
+			writeAuthError(w, err, fortName)
 			return
 		}
 
@@ -112,16 +111,16 @@ func bffMiddleware(tc *TokenConverter, proxy http.Handler, wsHandler http.Handle
 	})
 }
 
-func writeAuthError(w http.ResponseWriter, err error) {
+func writeAuthError(w http.ResponseWriter, err error, fortName string) {
 	w.Header().Set("Content-Type", "application/json")
 	switch err {
 	case errNoSession, errSessionExpired:
 		w.WriteHeader(http.StatusUnauthorized)
-		// Clear session cookie on expiry.
 		if err == errSessionExpired {
 			http.SetCookie(w, &http.Cookie{
 				Name:   sessionCookieName,
 				Value:  "",
+				Path:   "/forts/" + fortName + "/",
 				MaxAge: -1,
 			})
 		}
