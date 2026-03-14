@@ -259,3 +259,67 @@
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* ── Combobox ── */
+.wf-combobox {
+  display: block;
+  position: relative;
+  font-family: var(--wf-font-sans);
+}
+
+.wf-combobox__listbox {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--wf-color-bg-elevated);
+  border: 1px solid var(--wf-color-border);
+  border-radius: var(--wf-radius-md);
+  box-shadow: var(--wf-shadow-md);
+  z-index: var(--wf-z-dropdown);
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wf-combobox--open .wf-combobox__listbox {
+  display: block;
+}
+
+.wf-combobox__option {
+  padding: var(--wf-space-sm) var(--wf-space-md);
+  cursor: pointer;
+  font-size: var(--wf-text-sm);
+  color: var(--wf-color-text);
+}
+
+.wf-combobox__option:hover,
+.wf-combobox__option--highlighted {
+  background: var(--wf-color-bg-secondary);
+}
+
+.wf-combobox__option--selected {
+  font-weight: var(--wf-weight-semibold);
+}
+
+.wf-combobox--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Date Picker ── */
+.wf-date-picker .wf-field__input {
+  cursor: pointer;
+}
+
+.wf-date-picker .wf-field__input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.wf-date-picker .wf-field__input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

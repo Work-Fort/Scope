@@ -23,6 +23,8 @@ const EXPECTED = [
   'wf-toggle',
   'wf-slider',
   'wf-file-upload',
+  'wf-combobox',
+  'wf-date-picker',
 ];
 
 describe('@workfort/ui registration', () => {
