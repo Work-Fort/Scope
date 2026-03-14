@@ -32,12 +32,10 @@ Create `vite.config.ts`:
 ```ts
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import UnoCSS from 'unocss/vite';
 import { federation } from '@module-federation/vite';
 
 export default defineConfig({
   plugins: [
-    UnoCSS(),
     react(),
     federation({
       name: 'my-service',
@@ -46,8 +44,8 @@ export default defineConfig({
         './index': './src/index.tsx',
       },
       shared: {
-        '@workfort/ui': { singleton: true, eager: true },
-        '@workfort/auth': { singleton: true, eager: true, import: false },
+        '@workfort/ui': { singleton: true, import: false },
+        '@workfort/auth': { singleton: true, import: false },
       },
     }),
   ],
@@ -58,17 +56,15 @@ export default defineConfig({
 });
 ```
 
-Note: `import: false` on `@workfort/auth` ensures the remote doesn't load it before the shell provides the shared singleton.
+Both shared packages use `import: false` so the remote consumes the shell's singletons instead of bundling its own copies.
 
 ## 4. Entry Module
 
 Create `src/index.tsx`:
 
 ```tsx
-import React from 'react';
 import { Panel, Button } from '@workfort/ui-react';
 import { useAuth } from '@workfort/ui-react';
-import type { ServiceModule } from '@workfort/shell';
 
 export const manifest = {
   name: 'my-service',
@@ -77,28 +73,25 @@ export const manifest = {
   minWidth: 320,
 };
 
-const MyServicePanel: React.FC<{ connected: boolean }> = ({ connected }) => {
+export default function MyService(props: { connected: boolean }) {
   const { user, isAuthenticated } = useAuth();
 
   return (
-    <Panel>
-      <div className="p-4 space-y-4">
-        <h2 className="text-lg font-semibold">My Service</h2>
+    <Panel label={manifest.label}>
+      <div style={{ padding: '1rem' }}>
         {isAuthenticated ? (
-          <p>Welcome, {user?.name || 'User'}!</p>
+          <p>Welcome, {user?.displayName || 'User'}!</p>
         ) : (
           <p>Not authenticated.</p>
         )}
+        <p>Service is {props.connected ? 'online' : 'offline'}</p>
         <Button onWfClick={() => console.log('Clicked!')}>
           Action
         </Button>
       </div>
     </Panel>
   );
-};
-
-const index: ServiceModule['default'] = (props) => <MyServicePanel {...props} />;
-export default index;
+}
 ```
 
 **Key differences from SolidJS:**
