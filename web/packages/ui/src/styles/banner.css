@@ -36,8 +36,10 @@
 .wf-banner__headline {
   flex: 1;
   font-weight: var(--wf-weight-semibold);
-  color: var(--wf-color-text);
 }
+.wf-banner--error .wf-banner__headline { color: var(--wf-color-error); }
+.wf-banner--warning .wf-banner__headline { color: var(--wf-color-warning); }
+.wf-banner--info .wf-banner__headline { color: var(--wf-color-text); }
 
 .wf-banner__actions {
   display: flex;
