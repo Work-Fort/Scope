@@ -1,4 +1,4 @@
-import { For, type Component } from 'solid-js';
+import { For, Show, type Component } from 'solid-js';
 import { useNavigate, useLocation } from '@solidjs/router';
 import { services } from '../stores/services';
 import { toggleTheme } from '../stores/theme';
@@ -20,6 +20,9 @@ const NavBar: Component = () => {
               class={!svc.ui ? 'shell-nav__tab--disabled' : ''}
               on:wf-select={() => navigate(svc.route)}
             >
+              <Show when={svc.ui}>
+                <wf-status-dot status={svc.connected ? 'online' : 'offline'} />
+              </Show>
               {svc.label}
             </wf-list-item>
           )}

@@ -88,3 +88,7 @@ html, body, #app {
   opacity: 0.4;
   cursor: default;
 }
+
+.shell-nav__tabs wf-status-dot {
+  margin-right: var(--wf-space-xs);
+}
