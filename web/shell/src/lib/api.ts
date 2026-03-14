@@ -4,11 +4,19 @@ export interface ServiceInfo {
   route: string;
   enabled: boolean;
   ui: boolean;
+  connected: boolean;
+}
+
+export interface Conflict {
+  url: string;
+  name: string;
+  reason: string;
 }
 
 export interface ServicesResponse {
   fort: string;
   services: ServiceInfo[];
+  conflicts: Conflict[];
 }
 
 export interface ConfigResponse {

@@ -1,30 +1,27 @@
 import { init, registerRemotes, loadRemote } from '@module-federation/runtime';
 import type { ServiceInfo } from './api';
 
-let initialized = false;
-
-// Bootstrap the MF runtime once (required before registerRemotes).
+// Bootstrap MF runtime once.
 init({ name: 'shell', remotes: [] });
 
-export function initRemotes(services: ServiceInfo[]): void {
-  if (initialized) return;
+const registeredNames = new Set<string>();
 
-  const remotes = services
-    .filter((s) => s.enabled && s.ui)
+export function registerNewRemotes(services: ServiceInfo[]): void {
+  const newRemotes = services
+    .filter((s) => s.enabled && s.ui && !registeredNames.has(s.name))
     .map((s) => ({
       name: s.name,
       entry: `/api/${s.name}/ui/remoteEntry.js`,
     }));
 
-  if (remotes.length > 0) {
-    registerRemotes(remotes);
+  if (newRemotes.length > 0) {
+    registerRemotes(newRemotes);
+    newRemotes.forEach((r) => registeredNames.add(r.name));
   }
-
-  initialized = true;
 }
 
 export interface ServiceModule {
-  default: () => any;
+  default: (props: { connected: boolean }) => any;
   manifest: { name: string; label: string; route: string; minWidth?: number };
   SidebarContent?: () => any;
   HeaderActions?: () => any;

@@ -1,6 +1,6 @@
-import { type Component, createSignal, createMemo } from 'solid-js';
+import { type Component, createSignal, createMemo, onMount, onCleanup } from 'solid-js';
 import { Router, Route, Navigate, useParams } from '@solidjs/router';
-import { services } from './stores/services';
+import { services, startPolling, stopPolling } from './stores/services';
 import './stores/theme';
 import ShellLayout from './components/shell-layout';
 import ServiceMount from './components/service-mount';
@@ -8,6 +8,9 @@ import Unavailable from './components/unavailable';
 import type { ServiceModule } from './lib/remotes';
 
 const App: Component = () => {
+  onMount(() => startPolling());
+  onCleanup(() => stopPolling());
+
   const [sidebarComponent, setSidebarComponent] = createSignal<(() => any) | undefined>();
 
   const handleModule = (mod: ServiceModule | null) => {
