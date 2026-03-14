@@ -24,6 +24,8 @@ import './form/wf-checkbox-group.js';
 import './form/wf-radio.js';
 import './form/wf-radio-group.js';
 import './form/wf-toggle.js';
+import './form/wf-slider.js';
+import './form/wf-file-upload.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -49,3 +51,5 @@ export { WfCheckboxGroup } from './form/wf-checkbox-group.js';
 export { WfRadio } from './form/wf-radio.js';
 export { WfRadioGroup } from './form/wf-radio-group.js';
 export { WfToggle } from './form/wf-toggle.js';
+export { WfSlider } from './form/wf-slider.js';
+export { WfFileUpload } from './form/wf-file-upload.js';

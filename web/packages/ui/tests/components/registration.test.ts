@@ -21,6 +21,8 @@ const EXPECTED = [
   'wf-radio',
   'wf-radio-group',
   'wf-toggle',
+  'wf-slider',
+  'wf-file-upload',
 ];
 
 describe('@workfort/ui registration', () => {
