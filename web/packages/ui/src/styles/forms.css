@@ -6,7 +6,7 @@
   --wf-field-label-size: var(--wf-text-sm);
   --wf-field-label-color: var(--wf-color-text);
   --wf-field-help-size: var(--wf-text-xs);
-  --wf-field-help-color: var(--wf-color-text-muted);
+  --wf-field-help-color: var(--wf-color-text-secondary);
   --wf-field-feedback-size: var(--wf-text-xs);
   --wf-field-feedback-color: var(--wf-color-error);
 }
@@ -66,7 +66,7 @@
 }
 
 .wf-field__input::placeholder {
-  color: var(--wf-color-text-muted);
+  color: var(--wf-color-text-secondary);
 }
 
 .wf-field__help-text {
@@ -113,7 +113,7 @@
   height: 0;
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
-  border-top: 5px solid var(--wf-color-text-muted);
+  border-top: 5px solid var(--wf-color-text-secondary);
   pointer-events: none;
 }
 
@@ -123,6 +123,7 @@
   align-items: center;
   gap: var(--wf-space-sm);
   cursor: pointer;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-checkbox .wf-field__container {
@@ -140,6 +141,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-space-sm);
+  font-family: var(--wf-font-sans);
 }
 
 /* ── Radio ── */
@@ -148,6 +150,7 @@
   align-items: center;
   gap: var(--wf-space-sm);
   cursor: pointer;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-radio .wf-field__container {
@@ -165,6 +168,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--wf-space-sm);
+  font-family: var(--wf-font-sans);
 }
 
 /* ── Toggle ── */
@@ -173,6 +177,7 @@
   align-items: center;
   gap: var(--wf-space-sm);
   cursor: pointer;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-toggle__track {
@@ -212,6 +217,7 @@
 /* ── Slider ── */
 .wf-slider {
   display: block;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-slider__input {
@@ -228,6 +234,7 @@
 /* ── File Upload ── */
 .wf-file-upload {
   display: block;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-file-upload__drop-zone {
@@ -252,7 +259,7 @@
 
 .wf-file-upload__text {
   font-size: var(--wf-text-sm);
-  color: var(--wf-color-text-muted);
+  color: var(--wf-color-text-secondary);
 }
 
 .wf-file-upload--disabled {
@@ -313,6 +320,7 @@
 /* ── Form ── */
 .wf-form {
   display: block;
+  font-family: var(--wf-font-sans);
 }
 
 .wf-form > * + * {

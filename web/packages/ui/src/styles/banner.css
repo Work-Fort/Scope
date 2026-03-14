@@ -4,6 +4,7 @@
   border-left: 4px solid var(--wf-color-border);
   font-family: var(--wf-font-sans);
   font-size: var(--wf-text-sm);
+  color: var(--wf-color-text);
 }
 
 .wf-banner--error {

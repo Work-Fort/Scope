@@ -71,7 +71,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--wf-color-text-muted);
+  background: var(--wf-color-text-secondary);
 }
 .wf-status-dot--online { background: var(--wf-color-success); }
 .wf-status-dot--away { background: var(--wf-color-warning); }
@@ -137,6 +137,7 @@
   cursor: pointer;
   color: var(--wf-color-text);
   border-radius: var(--wf-radius-sm);
+  font-family: var(--wf-font-sans);
 }
 .wf-list-item:hover { background: var(--wf-color-bg-secondary); }
 .wf-list-item--active { background: var(--wf-color-bg-secondary); }
@@ -152,12 +153,13 @@
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--wf-color-border) transparent;
+  font-family: var(--wf-font-sans);
 }
 .wf-scroll-area::-webkit-scrollbar { width: 6px; }
 .wf-scroll-area::-webkit-scrollbar-track { background: transparent; }
 .wf-scroll-area::-webkit-scrollbar-thumb {
   background: var(--wf-color-border);
-  border-radius: 3px;
+  border-radius: var(--wf-radius-sm);
 }
 
 /* ErrorFallback */
@@ -165,6 +167,7 @@
   display: block;
   padding: var(--wf-space-md);
   color: var(--wf-color-text);
+  font-family: var(--wf-font-sans);
 }
 .wf-error-fallback__title {
   font-weight: var(--wf-weight-semibold);
