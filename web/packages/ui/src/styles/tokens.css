@@ -1,25 +1,25 @@
 :root {
-  --wf-bg: #0a0a0a;
-  --wf-bg-secondary: #141414;
-  --wf-text: #e5e5e5;
-  --wf-text-secondary: #a3a3a3;
-  --wf-text-muted: #525252;
-  --wf-border: #262626;
-  --wf-accent: #e5e5e5;
+  --wf-bg: #0c0a09;
+  --wf-bg-secondary: #1c1917;
+  --wf-text: #e7e5e4;
+  --wf-text-secondary: #a8a29e;
+  --wf-text-muted: #57534e;
+  --wf-border: #292524;
+  --wf-accent: #e7e5e4;
   --wf-space-xs: 4px;
   --wf-space-sm: 8px;
   --wf-space-md: 12px;
   --wf-space-lg: 16px;
   --wf-space-xl: 24px;
-  --wf-font-sans: system-ui, -apple-system, sans-serif;
-  --wf-font-mono: 'SF Mono', 'Fira Code', monospace;
+  --wf-font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --wf-font-mono: ui-monospace, 'SF Mono', 'Fira Code', monospace;
   --wf-font-size-xs: 0.75rem;
-  --wf-font-size-sm: 0.875rem;
-  --wf-font-size-base: 1rem;
-  --wf-font-size-lg: 1.125rem;
-  --wf-radius-sm: 4px;
-  --wf-radius-md: 6px;
-  --wf-radius-lg: 8px;
+  --wf-font-size-sm: 0.8125rem;
+  --wf-font-size-base: 0.875rem;
+  --wf-font-size-lg: 1rem;
+  --wf-radius-sm: 6px;
+  --wf-radius-md: 8px;
+  --wf-radius-lg: 12px;
   --wf-error: #ef4444;
   --wf-error-subtle: rgba(239, 68, 68, 0.12);
   --wf-warning: #f59e0b;
@@ -29,13 +29,13 @@
 }
 
 [data-theme="light"] {
-  --wf-bg: #ffffff;
+  --wf-bg: #fafaf9;
   --wf-bg-secondary: #f5f5f4;
-  --wf-text: #0a0a0b;
-  --wf-text-secondary: #525252;
-  --wf-text-muted: #a3a3a3;
-  --wf-border: #e5e5e4;
-  --wf-accent: #0a0a0a;
+  --wf-text: #1c1917;
+  --wf-text-secondary: #57534e;
+  --wf-text-muted: #a8a29e;
+  --wf-border: #e7e5e4;
+  --wf-accent: #1c1917;
   --wf-error: #dc2626;
   --wf-error-subtle: rgba(220, 38, 38, 0.08);
   --wf-warning: #d97706;

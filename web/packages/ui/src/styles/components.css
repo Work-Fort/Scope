@@ -33,7 +33,7 @@
   cursor: pointer;
 }
 .wf-button[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-.wf-button--filled { background: var(--wf-accent); border-color: var(--wf-accent); color: white; }
+.wf-button--filled { background: var(--wf-accent); border-color: var(--wf-accent); color: var(--wf-bg); }
 
 /* Badge */
 .wf-badge {
@@ -42,12 +42,12 @@
   justify-content: center;
   min-width: 1.25em;
   height: 1.25em;
-  padding: 0 var(--wf-space-xs, 0.25rem);
-  border-radius: var(--wf-radius-lg, 9999px);
-  background: var(--wf-accent, #6366f1);
-  color: #fff;
-  font-size: var(--wf-font-size-xs, 0.75rem);
-  font-family: var(--wf-font-sans, system-ui);
+  padding: 0 var(--wf-space-xs);
+  border-radius: var(--wf-radius-lg);
+  background: var(--wf-accent);
+  color: var(--wf-bg);
+  font-size: var(--wf-font-size-xs);
+  font-family: var(--wf-font-sans);
   line-height: 1;
 }
 .wf-badge:empty { display: none; }
@@ -58,7 +58,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--wf-text-muted, #6b7280);
+  background: var(--wf-text-muted);
 }
 .wf-status-dot--online { background: var(--wf-success); }
 .wf-status-dot--away { background: var(--wf-warning); }
@@ -67,8 +67,8 @@
 /* Skeleton */
 .wf-skeleton {
   display: block;
-  background: var(--wf-bg-secondary, #f3f4f6);
-  border-radius: var(--wf-radius-sm, 0.25rem);
+  background: var(--wf-bg-secondary);
+  border-radius: var(--wf-radius-sm);
   animation: wf-skeleton-pulse 1.5s ease-in-out infinite;
 }
 @keyframes wf-skeleton-pulse {
@@ -80,26 +80,26 @@
 .wf-divider {
   display: block;
   height: 1px;
-  background: var(--wf-border, #e5e7eb);
-  margin: var(--wf-space-sm, 0.5rem) 0;
+  background: var(--wf-border);
+  margin: var(--wf-space-sm) 0;
 }
 
 /* TextInput */
 .wf-text-input { display: block; }
 .wf-text-input__input {
   width: 100%;
-  padding: var(--wf-space-sm, 0.5rem) var(--wf-space-md, 0.75rem);
-  font-family: var(--wf-font-sans, system-ui);
-  font-size: var(--wf-font-size-base, 0.875rem);
-  color: var(--wf-text, #111827);
-  background: var(--wf-bg, #ffffff);
-  border: 1px solid var(--wf-border, #e5e7eb);
-  border-radius: var(--wf-radius-md, 0.375rem);
+  padding: var(--wf-space-sm) var(--wf-space-md);
+  font-family: var(--wf-font-sans);
+  font-size: var(--wf-font-size-base);
+  color: var(--wf-text);
+  background: var(--wf-bg);
+  border: 1px solid var(--wf-border);
+  border-radius: var(--wf-radius-md);
   outline: none;
   box-sizing: border-box;
 }
 .wf-text-input__input:focus {
-  border-color: var(--wf-accent, #6366f1);
+  border-color: var(--wf-accent);
 }
 .wf-text-input[disabled] .wf-text-input__input {
   opacity: 0.5;
@@ -120,13 +120,13 @@
 .wf-list-item {
   display: flex;
   align-items: center;
-  padding: var(--wf-space-sm, 0.5rem) var(--wf-space-md, 0.75rem);
+  padding: var(--wf-space-sm) var(--wf-space-md);
   cursor: pointer;
-  color: var(--wf-text, #111827);
-  border-radius: var(--wf-radius-sm, 0.25rem);
+  color: var(--wf-text);
+  border-radius: var(--wf-radius-sm);
 }
-.wf-list-item:hover { background: var(--wf-bg-secondary, #f3f4f6); }
-.wf-list-item--active { background: var(--wf-bg-secondary, #f3f4f6); }
+.wf-list-item:hover { background: var(--wf-bg-secondary); }
+.wf-list-item--active { background: var(--wf-bg-secondary); }
 .wf-list-item__trailing {
   margin-left: auto;
   display: flex;
@@ -138,26 +138,26 @@
   display: block;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--wf-border, #e5e7eb) transparent;
+  scrollbar-color: var(--wf-border) transparent;
 }
 .wf-scroll-area::-webkit-scrollbar { width: 6px; }
 .wf-scroll-area::-webkit-scrollbar-track { background: transparent; }
 .wf-scroll-area::-webkit-scrollbar-thumb {
-  background: var(--wf-border, #e5e7eb);
+  background: var(--wf-border);
   border-radius: 3px;
 }
 
 /* ErrorFallback */
 .wf-error-fallback {
   display: block;
-  padding: var(--wf-space-md, 0.75rem);
-  color: var(--wf-text, #111827);
+  padding: var(--wf-space-md);
+  color: var(--wf-text);
 }
 .wf-error-fallback__title {
   font-weight: 600;
-  margin-bottom: var(--wf-space-xs, 0.25rem);
+  margin-bottom: var(--wf-space-xs);
 }
 .wf-error-fallback__message {
-  color: var(--wf-text-secondary, #4b5563);
-  font-size: var(--wf-font-size-sm, 0.8125rem);
+  color: var(--wf-text-secondary);
+  font-size: var(--wf-font-size-sm);
 }

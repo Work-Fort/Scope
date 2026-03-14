@@ -9,8 +9,11 @@
 html, body, #app {
   height: 100%;
   font-family: var(--wf-font-sans);
+  font-size: var(--wf-font-size-base);
   background: var(--wf-bg);
   color: var(--wf-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .shell-layout {
@@ -40,18 +43,20 @@ html, body, #app {
   grid-area: nav;
   display: flex;
   align-items: center;
-  gap: var(--wf-space-md);
+  gap: var(--wf-space-lg);
   padding: 0 var(--wf-space-lg);
   height: 48px;
-  background: var(--wf-bg-secondary);
+  background: var(--wf-bg);
   border-bottom: 1px solid var(--wf-border);
 }
 
 .shell-nav__brand {
-  font-weight: 700;
-  font-size: var(--wf-font-size-lg);
+  font-weight: 600;
+  font-size: var(--wf-font-size-sm);
+  letter-spacing: -0.02em;
   color: var(--wf-text);
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
 .shell-nav__tabs {
