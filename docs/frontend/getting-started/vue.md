@@ -50,7 +50,6 @@ export default defineConfig({
         './index': './src/index.ts',
       },
       shared: {
-        'vue': { singleton: true, import: false },
         '@workfort/ui': { singleton: true, import: false },
         '@workfort/auth': { singleton: true, import: false },
       },
@@ -130,16 +129,9 @@ Create `src/MyService.vue`:
 
 <script setup lang="ts">
 import { useAuth, useTheme } from '@workfort/ui-vue';
+import { manifest } from './index';
 
-const { manifest } = defineProps({
-  connected: {
-    type: Boolean,
-    required: true,
-  },
-  manifest: {
-    type: Object,
-  },
-});
+defineProps<{ connected: boolean }>();
 
 const { user, isAuthenticated } = useAuth();
 const theme = useTheme();
