@@ -3,16 +3,16 @@
   align-items: center;
   gap: var(--wf-space-sm);
   padding: var(--wf-space-sm) var(--wf-space-md);
-  border-left: 4px solid var(--wf-border);
+  border-left: 4px solid var(--wf-color-border);
   border-radius: var(--wf-radius-md);
-  background: var(--wf-bg);
-  color: var(--wf-text);
+  background: var(--wf-color-bg);
+  color: var(--wf-color-text);
   font-family: var(--wf-font-sans);
-  font-size: var(--wf-font-size-sm);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: var(--wf-text-sm);
+  box-shadow: var(--wf-shadow-md);
   min-width: 240px;
   max-width: 400px;
-  animation: wf-toast-in 200ms ease-out;
+  animation: wf-toast-in var(--wf-duration-normal) var(--wf-ease-out);
 }
 
 @keyframes wf-toast-in {
@@ -20,26 +20,26 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-.wf-toast--error { border-left-color: var(--wf-error); background: var(--wf-error-subtle); }
-.wf-toast--warning { border-left-color: var(--wf-warning); background: var(--wf-warning-subtle); }
-.wf-toast--info { border-left-color: var(--wf-accent); }
-.wf-toast--success { border-left-color: var(--wf-success); background: var(--wf-success-subtle); }
+.wf-toast--error { border-left-color: var(--wf-color-error); background: var(--wf-color-error-subtle); }
+.wf-toast--warning { border-left-color: var(--wf-color-warning); background: var(--wf-color-warning-subtle); }
+.wf-toast--info { border-left-color: var(--wf-color-accent); }
+.wf-toast--success { border-left-color: var(--wf-color-success); background: var(--wf-color-success-subtle); }
 
 .wf-toast__close {
   background: none;
   border: none;
-  color: var(--wf-text-secondary);
+  color: var(--wf-color-text-secondary);
   cursor: pointer;
   padding: var(--wf-space-xs);
-  font-size: var(--wf-font-size-sm);
+  font-size: var(--wf-text-sm);
   line-height: 1;
   margin-left: auto;
 }
-.wf-toast__close:hover { color: var(--wf-text); }
+.wf-toast__close:hover { color: var(--wf-color-text); }
 
 .wf-toast-container {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--wf-z-toast);
   display: flex;
   flex-direction: column;
   gap: var(--wf-space-sm);
