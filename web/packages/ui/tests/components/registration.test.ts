@@ -25,6 +25,7 @@ const EXPECTED = [
   'wf-file-upload',
   'wf-combobox',
   'wf-date-picker',
+  'wf-form',
 ];
 
 describe('@workfort/ui registration', () => {

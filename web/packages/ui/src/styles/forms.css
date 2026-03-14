@@ -310,6 +310,15 @@
   pointer-events: none;
 }
 
+/* ── Form ── */
+.wf-form {
+  display: block;
+}
+
+.wf-form > * + * {
+  margin-top: var(--wf-space-md);
+}
+
 /* ── Date Picker ── */
 .wf-date-picker .wf-field__input {
   cursor: pointer;
