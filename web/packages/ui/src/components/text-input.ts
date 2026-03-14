@@ -2,6 +2,9 @@ import { property } from 'lit/decorators.js';
 import { WfElement } from '../base.js';
 
 export class WfTextInput extends WfElement {
+  /** @internal */
+  private static _deprecationWarned = false;
+
   @property({ type: String }) placeholder = '';
   @property({ type: String }) value = '';
   @property({ type: Boolean, reflect: true }) disabled = false;
@@ -10,6 +13,10 @@ export class WfTextInput extends WfElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    if (!WfTextInput._deprecationWarned) {
+      WfTextInput._deprecationWarned = true;
+      console.warn('[WorkFort] <wf-text-input> is deprecated. Use <wf-input> instead.');
+    }
     this.classList.add('wf-text-input');
     this._ensureInput();
     this._sync();
