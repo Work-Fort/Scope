@@ -1,3 +1,11 @@
+export interface FortInfo {
+  name: string;
+  local: boolean;
+  gateway?: string;
+}
+
+export interface FortsResponse extends Array<FortInfo> {}
+
 export interface ServiceInfo {
   name: string;
   label: string;
@@ -23,14 +31,20 @@ export interface ConfigResponse {
   fort: string;
 }
 
-export async function fetchServices(): Promise<ServicesResponse> {
-  const res = await fetch('/api/services');
-  if (!res.ok) throw new Error(`/api/services: ${res.status}`);
+export async function fetchForts(): Promise<FortInfo[]> {
+  const res = await fetch('/api/forts');
+  if (!res.ok) throw new Error(`/api/forts: ${res.status}`);
   return res.json();
 }
 
-export async function fetchConfig(): Promise<ConfigResponse> {
-  const res = await fetch('/api/config');
-  if (!res.ok) throw new Error(`/api/config: ${res.status}`);
+export async function fetchServices(fort: string): Promise<ServicesResponse> {
+  const res = await fetch(`/forts/${fort}/api/services`);
+  if (!res.ok) throw new Error(`/forts/${fort}/api/services: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchConfig(fort: string): Promise<ConfigResponse> {
+  const res = await fetch(`/forts/${fort}/api/config`);
+  if (!res.ok) throw new Error(`/forts/${fort}/api/config: ${res.status}`);
   return res.json();
 }
