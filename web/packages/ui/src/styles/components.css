@@ -37,7 +37,7 @@
   align-items: center;
   gap: var(--wf-space-xs);
   padding: var(--wf-button-padding-y) var(--wf-button-padding-x);
-  border: 1px solid var(--wf-color-border);
+  border: 1px solid var(--wf-color-border-strong);
   border-radius: var(--wf-button-radius);
   background: transparent;
   color: var(--wf-color-text);
