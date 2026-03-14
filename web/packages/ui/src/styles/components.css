@@ -71,11 +71,12 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: var(--wf-color-text-secondary);
+  background: transparent;
+  border: 1.5px solid var(--wf-color-text-secondary);
 }
-.wf-status-dot--online { background: var(--wf-color-success); }
-.wf-status-dot--away { background: var(--wf-color-warning); }
-.wf-status-dot--offline { background: var(--wf-color-error); }
+.wf-status-dot--online { background: var(--wf-color-success); border-color: var(--wf-color-success); }
+.wf-status-dot--away { background: var(--wf-color-warning); border-color: var(--wf-color-warning); }
+.wf-status-dot--offline { background: transparent; border-color: var(--wf-color-text-secondary); }
 
 /* Skeleton */
 .wf-skeleton {
