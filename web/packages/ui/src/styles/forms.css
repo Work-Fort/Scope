@@ -57,12 +57,24 @@
 .wf-field__input {
   flex: 1;
   width: 100%;
-  border: none;
+  border: 1px solid var(--wf-color-border-strong);
+  border-radius: var(--wf-input-radius);
+  padding: var(--wf-input-padding);
   outline: none;
-  background: transparent;
+  background: var(--wf-color-bg);
   font-family: inherit;
   font-size: var(--wf-text-base);
   color: var(--wf-color-text);
+  transition: border-color var(--wf-duration-fast) var(--wf-ease-in-out);
+  box-sizing: border-box;
+}
+
+.wf-field__input:focus {
+  border-color: var(--wf-color-border-focus);
+}
+
+.wf-field--error .wf-field__input {
+  border-color: var(--wf-color-error);
 }
 
 .wf-field__input::placeholder {
@@ -92,15 +104,6 @@
 .wf-textarea .wf-field__input {
   resize: vertical;
   min-height: calc(var(--wf-text-base) * 1.5 * 3); /* ~3 lines */
-  border: 1px solid var(--wf-color-border-strong);
-  border-radius: var(--wf-input-radius);
-  padding: var(--wf-input-padding);
-  background: var(--wf-color-bg);
-  transition: border-color var(--wf-duration-fast) var(--wf-ease-in-out);
-}
-
-.wf-textarea .wf-field__input:focus {
-  border-color: var(--wf-color-border-focus);
 }
 
 /* ── Select ── */
@@ -112,6 +115,7 @@
   appearance: none;
   cursor: pointer;
   padding-right: var(--wf-space-lg); /* room for arrow */
+  height: var(--wf-input-height);
 }
 
 .wf-select .wf-field__container::after {
@@ -252,7 +256,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--wf-space-lg);
-  border: 2px dashed var(--wf-color-border);
+  border: 2px dashed var(--wf-color-border-strong);
   border-radius: var(--wf-radius-md);
   cursor: pointer;
   transition: border-color var(--wf-duration-fast) var(--wf-ease-in-out);
@@ -291,7 +295,7 @@
   max-height: 200px;
   overflow-y: auto;
   background: var(--wf-color-bg-elevated);
-  border: 1px solid var(--wf-color-border);
+  border: 1px solid var(--wf-color-border-strong);
   border-radius: var(--wf-radius-md);
   box-shadow: var(--wf-shadow-md);
   z-index: var(--wf-z-dropdown);

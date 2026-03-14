@@ -107,7 +107,7 @@
   font-size: var(--wf-text-base);
   color: var(--wf-color-text);
   background: var(--wf-color-bg);
-  border: 1px solid var(--wf-color-border);
+  border: 1px solid var(--wf-color-border-strong);
   border-radius: var(--wf-input-radius);
   outline: none;
   box-sizing: border-box;
