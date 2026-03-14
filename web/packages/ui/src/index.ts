@@ -16,6 +16,7 @@ import './components/error-fallback.js';
 import './components/banner.js';
 import './components/toast.js';
 import './components/toast-container.js';
+import './form/wf-input.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -32,3 +33,5 @@ export { WfBanner } from './components/banner.js';
 export { WfToast } from './components/toast.js';
 export { WfToastContainer } from './components/toast-container.js';
 export { WfElement } from './base.js';
+export { WfField } from './form/wf-field.js';
+export { WfInput } from './form/wf-input.js';

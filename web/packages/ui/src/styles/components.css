@@ -1,6 +1,7 @@
 /* src/styles/components.css — grows as components are added */
 @import './banner.css';
 @import './toast.css';
+@import './forms.css';
 
 /* Component-level tokens */
 :root {

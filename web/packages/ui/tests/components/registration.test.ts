@@ -13,6 +13,7 @@ const EXPECTED = [
   'wf-list-item',
   'wf-scroll-area',
   'wf-error-fallback',
+  'wf-input',
 ];
 
 describe('@workfort/ui registration', () => {
