@@ -92,6 +92,15 @@
 .wf-textarea .wf-field__input {
   resize: vertical;
   min-height: calc(var(--wf-text-base) * 1.5 * 3); /* ~3 lines */
+  border: 1px solid var(--wf-color-border-strong);
+  border-radius: var(--wf-input-radius);
+  padding: var(--wf-input-padding);
+  background: var(--wf-color-bg);
+  transition: border-color var(--wf-duration-fast) var(--wf-ease-in-out);
+}
+
+.wf-textarea .wf-field__input:focus {
+  border-color: var(--wf-color-border-focus);
 }
 
 /* ── Select ── */
