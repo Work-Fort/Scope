@@ -21,6 +21,21 @@ describe('WfBadge', () => {
     const el = await fixture<WfBadge>('wf-badge', { count: 0 });
     expect(el.style.display).toBe('none');
   });
+
+  it('defaults to md size', async () => {
+    const el = await fixture<WfBadge>('wf-badge', { count: 3 });
+    expect(el.classList.contains('wf-badge--md')).toBe(true);
+  });
+
+  it('applies sm size class', async () => {
+    const el = await fixture<WfBadge>('wf-badge', { count: 3, size: 'sm' });
+    expect(el.classList.contains('wf-badge--sm')).toBe(true);
+  });
+
+  it('applies lg size class', async () => {
+    const el = await fixture<WfBadge>('wf-badge', { count: 3, size: 'lg' });
+    expect(el.classList.contains('wf-badge--lg')).toBe(true);
+  });
 });
 
 describe('WfStatusDot', () => {

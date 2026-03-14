@@ -53,17 +53,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.25em;
-  height: 1.25em;
-  padding: 0 var(--wf-space-xs);
-  border-radius: var(--wf-radius-lg);
+  border-radius: var(--wf-radius-full);
   background: var(--wf-color-accent);
   color: var(--wf-color-bg);
-  font-size: var(--wf-text-xs);
   font-family: var(--wf-font-sans);
+  font-weight: var(--wf-weight-semibold);
   line-height: 1;
 }
 .wf-badge:empty { display: none; }
+.wf-badge--sm { min-width: 1rem; height: 1rem; padding: 0 var(--wf-space-xs); font-size: var(--wf-text-xs); }
+.wf-badge--md { min-width: 1.25rem; height: 1.25rem; padding: 0 var(--wf-space-xs); font-size: var(--wf-text-xs); }
+.wf-badge--lg { min-width: 1.75rem; height: 1.75rem; padding: 0 var(--wf-space-sm); font-size: var(--wf-text-sm); }
 
 /* StatusDot */
 .wf-status-dot {
