@@ -23,7 +23,7 @@ var (
 	port   int
 	dev    bool
 	devURL string
-	noOpen bool
+	openBrowserFlag bool
 )
 
 // New creates the "web" subcommand.
@@ -39,7 +39,7 @@ func New() *cobra.Command {
 	cmd.Flags().IntVar(&port, "port", 16100, "Listen port")
 	cmd.Flags().BoolVar(&dev, "dev", false, "Proxy SPA to Vite dev server")
 	cmd.Flags().StringVar(&devURL, "dev-url", "http://localhost:5173", "Vite dev server URL (used with --dev)")
-	cmd.Flags().BoolVar(&noOpen, "no-open", false, "Don't auto-open browser")
+	cmd.Flags().BoolVar(&openBrowserFlag, "open", false, "Auto-open browser on start")
 
 	return cmd
 }
@@ -115,7 +115,7 @@ func run(cmd *cobra.Command, args []string) error {
 	url := fmt.Sprintf("http://%s", addr)
 	log.Info("web server listening", "url", url)
 
-	if !noOpen {
+	if openBrowserFlag {
 		go openBrowser(url)
 	}
 
