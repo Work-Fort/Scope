@@ -4,57 +4,30 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
-	"sort"
 
 	"github.com/Work-Fort/Scope/internal/domain"
 )
-
-// Service metadata for nav tabs — presentation concern, not domain.
-var serviceMetadata = map[string]struct{ Label, Route string }{
-	"auth":     {"Auth", "/auth"},
-	"sharkfin": {"Chat", "/chat"},
-	"nexus":    {"Nexus", "/nexus"},
-	"hive":     {"Hive", "/hive"},
-}
 
 // NewHandler creates the top-level HTTP handler for the web shell.
 //
 // Parameters:
 //   - fort: the active fort configuration
+//   - tracker: live service tracker (health probing + WS connection tracking)
 //   - tc: token converter for BFF auth (nil disables BFF — only shell endpoints and SPA work)
 //   - spaFS: embedded SPA filesystem (nil disables SPA serving — use NewSPADevProxy for dev mode)
-func NewHandler(fort domain.Fort, tc *TokenConverter, spaFS fs.FS) http.Handler {
+func NewHandler(fort domain.Fort, tracker *ServiceTracker, tc *TokenConverter, spaFS fs.FS) http.Handler {
 	mux := http.NewServeMux()
 
 	// Shell endpoints.
-	mux.HandleFunc("GET /api/services", servicesHandler(fort))
-	mux.HandleFunc("GET /api/config", configHandler(fort))
+	mux.HandleFunc("GET /api/services", servicesHandler(fort.Name, tracker))
+	mux.HandleFunc("GET /api/config", configHandler(fort.Name))
 
-	// Service proxies.
-	for _, svc := range fort.Services {
-		prefix := "/api/" + svc.Name + "/"
+	// Register routes for all currently discovered services.
+	registerServiceRoutes(mux, tracker, tc, fort)
 
-		if svc.Name == "auth" {
-			// Auth routes are pass-through — no BFF conversion.
-			proxy := NewServiceProxy(svc, fort.Local, fort.Gateway)
-			mux.Handle(prefix, proxy)
-			continue
-		}
-
-		// Non-auth services get BFF conversion.
-		proxy := NewServiceProxy(svc, fort.Local, fort.Gateway)
-
-		// WebSocket handler for services with WS paths.
-		var wsHandler http.Handler
-		if len(svc.WSPaths) > 0 && svc.Enabled {
-			wsURL := "ws" + svc.URL[4:]
-			if !fort.Local {
-				wsURL = "ws" + fort.Gateway[4:]
-			}
-			wsHandler = NewWSProxy(wsURL, svc.WSPaths, svc.Name, nil)
-		}
-
-		mux.Handle(prefix, bffMiddleware(tc, svc, proxy, wsHandler))
+	// Register routes for services discovered after initial probe (via polling).
+	tracker.OnServiceDiscovered = func(svc TrackedService) {
+		registerOneServiceRoute(mux, svc, tracker, tc, fort)
 	}
 
 	// SPA fallback.
@@ -65,9 +38,44 @@ func NewHandler(fort domain.Fort, tc *TokenConverter, spaFS fs.FS) http.Handler 
 	return mux
 }
 
+func registerServiceRoutes(mux *http.ServeMux, tracker *ServiceTracker, tc *TokenConverter, fort domain.Fort) {
+	for _, svc := range tracker.Services() {
+		registerOneServiceRoute(mux, svc, tracker, tc, fort)
+	}
+}
+
+func registerOneServiceRoute(mux *http.ServeMux, svc TrackedService, tracker *ServiceTracker, tc *TokenConverter, fort domain.Fort) {
+	prefix := "/api/" + svc.Name + "/"
+
+	if svc.Name == "auth" {
+		// Auth routes are pass-through — no BFF conversion.
+		proxy := NewServiceProxy(svc.Name, svc.URL, fort.Local, fort.Gateway)
+		mux.Handle(prefix, proxy)
+		return
+	}
+
+	// Non-auth services get BFF conversion.
+	proxy := NewServiceProxy(svc.Name, svc.URL, fort.Local, fort.Gateway)
+
+	// WebSocket handler for services with WS paths.
+	var wsHandler http.Handler
+	if svc.hasWS {
+		wsURL := "ws" + svc.URL[4:]
+		if !fort.Local {
+			wsURL = "ws" + fort.Gateway[4:]
+		}
+		wsHandler = NewWSProxy(wsURL, svc.WSPaths, svc.Name, &ConnectionCallbacks{
+			OnConnect:    tracker.OnConnect,
+			OnDisconnect: tracker.OnDisconnect,
+		})
+	}
+
+	mux.Handle(prefix, bffMiddleware(tc, proxy, wsHandler))
+}
+
 // bffMiddleware wraps a service proxy with BFF token conversion.
 // WebSocket upgrade requests are routed to the wsHandler if available.
-func bffMiddleware(tc *TokenConverter, svc domain.Service, proxy http.Handler, wsHandler http.Handler) http.Handler {
+func bffMiddleware(tc *TokenConverter, proxy http.Handler, wsHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for WebSocket upgrade.
 		if wsHandler != nil && isWebSocketUpgrade(r) {
@@ -134,45 +142,22 @@ func isWebSocketUpgrade(r *http.Request) bool {
 	return false
 }
 
-func servicesHandler(fort domain.Fort) http.HandlerFunc {
-	type serviceInfo struct {
-		Name    string `json:"name"`
-		Label   string `json:"label"`
-		Route   string `json:"route"`
-		Enabled bool   `json:"enabled"`
-		UI      bool   `json:"ui"`
-	}
-
+func servicesHandler(fortName string, tracker *ServiceTracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		svcs := make([]serviceInfo, 0, len(fort.Services))
-		for _, svc := range fort.Services {
-			meta, ok := serviceMetadata[svc.Name]
-			if !ok {
-				meta = struct{ Label, Route string }{svc.Name, "/" + svc.Name}
-			}
-			svcs = append(svcs, serviceInfo{
-				Name:    svc.Name,
-				Label:   meta.Label,
-				Route:   meta.Route,
-				Enabled: svc.Enabled,
-				UI:      false, // Set by probing /ui/health at startup
-			})
-		}
-		sort.Slice(svcs, func(i, j int) bool { return svcs[i].Name < svcs[j].Name })
-
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"fort":     fort.Name,
-			"services": svcs,
+			"fort":      fortName,
+			"services":  tracker.Services(),
+			"conflicts": tracker.Conflicts(),
 		})
 	}
 }
 
-func configHandler(fort domain.Fort) http.HandlerFunc {
+func configHandler(fortName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"fort": fort.Name,
+			"fort": fortName,
 		})
 	}
 }

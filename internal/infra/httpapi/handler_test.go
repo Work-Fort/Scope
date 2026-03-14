@@ -1,6 +1,7 @@
 package httpapi_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,22 +12,80 @@ import (
 	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
-func newTestFort() domain.Fort {
+// newTestTracker spins up mock HTTP servers that respond to /ui/health,
+// then creates a ServiceTracker and runs InitialProbe. Returns the tracker
+// and a cleanup function that closes the mock servers.
+func newTestTracker(t *testing.T) (*httpapi.ServiceTracker, func()) {
+	t.Helper()
+
+	sharkfin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":   "ok",
+			"name":     "sharkfin",
+			"label":    "Chat",
+			"route":    "/chat",
+			"ws_paths": []string{"/ws", "/presence"},
+		})
+	}))
+
+	nexus := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": "ok",
+			"name":   "nexus",
+			"label":  "Nexus",
+			"route":  "/nexus",
+		})
+	}))
+
+	auth := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ui/health" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]any{
+				"status": "unavailable",
+				"name":   "auth",
+				"label":  "Auth",
+				"route":  "/auth",
+			})
+			return
+		}
+		// Auth service proxy handler for BFF tests.
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	tracker := httpapi.NewServiceTracker([]string{sharkfin.URL, nexus.URL, auth.URL})
+	tracker.InitialProbe(context.Background())
+
+	cleanup := func() {
+		sharkfin.Close()
+		nexus.Close()
+		auth.Close()
+	}
+
+	return tracker, cleanup
+}
+
+func newTestFort(tracker *httpapi.ServiceTracker) domain.Fort {
+	svcs := tracker.Services()
+	configSvcs := make([]domain.ConfigService, len(svcs))
+	for i, s := range svcs {
+		configSvcs[i] = domain.ConfigService{URL: s.URL}
+	}
 	return domain.Fort{
-		Name:  "local",
-		Local: true,
-		Services: []domain.Service{
-			{Name: "auth", URL: "http://127.0.0.1:3000", Enabled: true},
-			{Name: "sharkfin", URL: "http://127.0.0.1:16000", Enabled: true, WSPaths: []string{"/ws", "/presence"}},
-			{Name: "nexus", URL: "http://127.0.0.1:9600", Enabled: true},
-			{Name: "hive", URL: "http://127.0.0.1:17000", Enabled: false},
-		},
+		Name:     "local",
+		Local:    true,
+		Services: configSvcs,
 	}
 }
 
 func TestHandler_ServicesEndpoint(t *testing.T) {
-	fort := newTestFort()
-	handler := httpapi.NewHandler(fort, nil, nil)
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/services", nil)
 	rec := httptest.NewRecorder()
@@ -39,33 +98,29 @@ func TestHandler_ServicesEndpoint(t *testing.T) {
 	var resp struct {
 		Fort     string `json:"fort"`
 		Services []struct {
-			Name    string `json:"name"`
-			Label   string `json:"label"`
-			Route   string `json:"route"`
-			Enabled bool   `json:"enabled"`
+			Name      string `json:"name"`
+			Connected bool   `json:"connected"`
+			UI        bool   `json:"ui"`
 		} `json:"services"`
+		Conflicts []any `json:"conflicts"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode error: %v", err)
+		t.Fatalf("decode: %v", err)
 	}
 	if resp.Fort != "local" {
 		t.Fatalf("expected fort 'local', got %q", resp.Fort)
 	}
-	if len(resp.Services) != 4 {
-		t.Fatalf("expected 4 services, got %d", len(resp.Services))
-	}
-
-	// Check hive is disabled.
-	for _, svc := range resp.Services {
-		if svc.Name == "hive" && svc.Enabled {
-			t.Fatal("expected hive to be disabled")
-		}
+	if len(resp.Services) != 3 {
+		t.Fatalf("expected 3 services, got %d", len(resp.Services))
 	}
 }
 
 func TestHandler_ConfigEndpoint(t *testing.T) {
-	fort := newTestFort()
-	handler := httpapi.NewHandler(fort, nil, nil)
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
 	rec := httptest.NewRecorder()
@@ -87,8 +142,20 @@ func TestHandler_ConfigEndpoint(t *testing.T) {
 }
 
 func TestHandler_BFFProxyRouting(t *testing.T) {
-	// Mock auth service: returns a JWT when given a valid session cookie.
+	// Mock auth service: health + BFF token conversion.
 	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ui/health" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]any{
+				"status": "unavailable",
+				"name":   "auth",
+				"label":  "Auth",
+				"route":  "/auth",
+			})
+			return
+		}
+		// Token conversion endpoint.
 		cookie, err := r.Cookie("better-auth.session_token")
 		if err != nil || cookie.Value != "valid-session" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -101,22 +168,35 @@ func TestHandler_BFFProxyRouting(t *testing.T) {
 
 	// Mock nexus backend: echoes the Authorization header and path.
 	nexusBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ui/health" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{
+				"status": "ok",
+				"name":   "nexus",
+				"label":  "Nexus",
+				"route":  "/nexus",
+			})
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(r.Header.Get("Authorization") + "|" + r.URL.Path))
 	}))
 	defer nexusBackend.Close()
 
+	tracker := httpapi.NewServiceTracker([]string{authServer.URL, nexusBackend.URL})
+	tracker.InitialProbe(context.Background())
+
 	fort := domain.Fort{
 		Name:  "local",
 		Local: true,
-		Services: []domain.Service{
-			{Name: "auth", URL: authServer.URL, Enabled: true},
-			{Name: "nexus", URL: nexusBackend.URL, Enabled: true},
+		Services: []domain.ConfigService{
+			{URL: authServer.URL},
+			{URL: nexusBackend.URL},
 		},
 	}
 
 	tc := httpapi.NewTokenConverter(authServer.URL)
-	handler := httpapi.NewHandler(fort, tc, nil)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
 
 	// Request with valid session cookie.
 	req := httptest.NewRequest(http.MethodGet, "/api/nexus/v1/vms", nil)
@@ -129,24 +209,21 @@ func TestHandler_BFFProxyRouting(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	// Verify Bearer token was attached and path was stripped.
 	if body != "Bearer jwt-for-nexus|/v1/vms" {
 		t.Fatalf("expected 'Bearer jwt-for-nexus|/v1/vms', got %q", body)
 	}
 }
 
 func TestHandler_BFFProxyRouting_NoCookie(t *testing.T) {
-	fort := domain.Fort{
-		Name:  "local",
-		Local: true,
-		Services: []domain.Service{
-			{Name: "auth", URL: "http://127.0.0.1:3000", Enabled: true},
-			{Name: "nexus", URL: "http://127.0.0.1:9600", Enabled: true},
-		},
-	}
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
 
-	tc := httpapi.NewTokenConverter("http://127.0.0.1:3000")
-	handler := httpapi.NewHandler(fort, tc, nil)
+	fort := newTestFort(tracker)
+
+	// Need a real auth URL for token converter.
+	authSvc, _ := tracker.ServiceByName("auth")
+	tc := httpapi.NewTokenConverter(authSvc.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
 
 	// Request without session cookie should get 401.
 	req := httptest.NewRequest(http.MethodGet, "/api/nexus/v1/vms", nil)
@@ -163,8 +240,11 @@ func TestHandler_SPAFallback(t *testing.T) {
 		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
 	}
 
-	fort := newTestFort()
-	handler := httpapi.NewHandler(fort, nil, fsys)
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	handler := httpapi.NewHandler(fort, tracker, nil, fsys)
 
 	req := httptest.NewRequest(http.MethodGet, "/chat/general", nil)
 	rec := httptest.NewRecorder()

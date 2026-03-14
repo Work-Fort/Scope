@@ -54,20 +54,26 @@ func run(cmd *cobra.Command, args []string) error {
 		"services", len(fort.Services),
 	)
 
-	// Find the auth service URL for BFF token conversion.
-	var authURL string
-	for _, svc := range fort.Services {
-		if svc.Name == "auth" && svc.Enabled {
-			authURL = svc.URL
-			break
-		}
+	// Create signal context early — used by tracker and shutdown.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// Create service tracker and run initial probe.
+	urls := make([]string, len(fort.Services))
+	for i, svc := range fort.Services {
+		urls[i] = svc.URL
 	}
 
+	tracker := httpapi.NewServiceTracker(urls)
+	tracker.InitialProbe(ctx)
+	tracker.StartPolling(ctx, 10*time.Second)
+
+	// Find the auth service URL from tracker (discovered via /ui/health).
 	var tc *httpapi.TokenConverter
-	if authURL != "" {
-		tc = httpapi.NewTokenConverter(authURL)
+	if authSvc, ok := tracker.ServiceByName("auth"); ok {
+		tc = httpapi.NewTokenConverter(authSvc.URL)
 	} else {
-		log.Warn("auth service not configured — BFF token conversion disabled")
+		log.Warn("auth service not discovered — BFF token conversion disabled")
 	}
 
 	// SPA handler.
@@ -80,7 +86,7 @@ func run(cmd *cobra.Command, args []string) error {
 		spaFS = sub
 	}
 
-	handler := httpapi.NewHandler(fort, tc, spaFS)
+	handler := httpapi.NewHandler(fort, tracker, tc, spaFS)
 
 	// In dev mode, wrap the handler to proxy non-/api/* to Vite.
 	if dev {
@@ -98,9 +104,6 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Graceful shutdown.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	go func() {
 		<-ctx.Done()
 		log.Info("shutting down web server")
