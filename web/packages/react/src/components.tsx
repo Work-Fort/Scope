@@ -4,6 +4,9 @@ import '@workfort/ui';
 import type {
   WfPanel, WfButton, WfBadge, WfStatusDot, WfSkeleton,
   WfTextInput, WfList, WfListItem, WfScrollArea, WfErrorFallback,
+  WfInput, WfTextarea, WfSelect, WfCheckbox, WfRadio, WfToggle,
+  WfSlider, WfCombobox, WfDatePicker, WfFileUpload, WfForm,
+  WfCheckboxGroup, WfRadioGroup,
 } from '@workfort/ui';
 
 type WfProps<E, P = {}> = P & React.HTMLAttributes<E> & {
@@ -84,3 +87,18 @@ export const List = wrapWc<WfList, {}>('wf-list', 'List');
 export const ListItem = wrapWc<WfListItem, { active?: boolean }>('wf-list-item', 'ListItem');
 export const ScrollArea = wrapWc<WfScrollArea, {}>('wf-scroll-area', 'ScrollArea');
 export const ErrorFallback = wrapWc<WfErrorFallback, { title?: string; message?: string }>('wf-error-fallback', 'ErrorFallback');
+
+// Form components
+export const Input = wrapWc<WfInput, { label?: string; type?: string; placeholder?: string; disabled?: boolean; readonly?: boolean }>('wf-input', 'Input');
+export const Textarea = wrapWc<WfTextarea, { label?: string; disabled?: boolean; readonly?: boolean }>('wf-textarea', 'Textarea');
+export const Select = wrapWc<WfSelect, { label?: string; disabled?: boolean }>('wf-select', 'Select');
+export const Checkbox = wrapWc<WfCheckbox, { label?: string; disabled?: boolean }>('wf-checkbox', 'Checkbox');
+export const CheckboxGroup = wrapWc<WfCheckboxGroup, { label?: string }>('wf-checkbox-group', 'CheckboxGroup');
+export const Radio = wrapWc<WfRadio, { label?: string; disabled?: boolean }>('wf-radio', 'Radio');
+export const RadioGroup = wrapWc<WfRadioGroup, { label?: string }>('wf-radio-group', 'RadioGroup');
+export const Toggle = wrapWc<WfToggle, { checked?: boolean; disabled?: boolean }>('wf-toggle', 'Toggle');
+export const Slider = wrapWc<WfSlider, { min?: number; max?: number; step?: number; value?: number; disabled?: boolean }>('wf-slider', 'Slider');
+export const Combobox = wrapWc<WfCombobox, { label?: string; placeholder?: string; value?: string; disabled?: boolean }>('wf-combobox', 'Combobox');
+export const DatePicker = wrapWc<WfDatePicker, { label?: string; value?: string; min?: string; max?: string; disabled?: boolean }>('wf-date-picker', 'DatePicker');
+export const FileUpload = wrapWc<WfFileUpload, { accept?: string; multiple?: boolean; disabled?: boolean }>('wf-file-upload', 'FileUpload');
+export const Form = wrapWc<WfForm, {}>('wf-form', 'Form');
