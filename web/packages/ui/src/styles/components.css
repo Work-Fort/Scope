@@ -1,4 +1,6 @@
 /* src/styles/components.css — grows as components are added */
+@import './banner.css';
+@import './toast.css';
 
 .wf-panel {
   display: block;
@@ -159,6 +161,3 @@
   color: var(--wf-text-secondary, #4b5563);
   font-size: var(--wf-font-size-sm, 0.8125rem);
 }
-
-@import './banner.css';
-@import './toast.css';
