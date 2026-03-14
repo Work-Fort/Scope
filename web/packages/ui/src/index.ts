@@ -12,6 +12,7 @@ import './components/list.js';
 import './components/list-item.js';
 import './components/scroll-area.js';
 import './components/error-fallback.js';
+import './components/banner.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -24,4 +25,5 @@ export { WfList } from './components/list.js';
 export { WfListItem } from './components/list-item.js';
 export { WfScrollArea } from './components/scroll-area.js';
 export { WfErrorFallback } from './components/error-fallback.js';
+export { WfBanner } from './components/banner.js';
 export { WfElement } from './base.js';

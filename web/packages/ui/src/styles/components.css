@@ -159,3 +159,5 @@
   color: var(--wf-text-secondary, #4b5563);
   font-size: var(--wf-font-size-sm, 0.8125rem);
 }
+
+@import './banner.css';
