@@ -6,12 +6,12 @@ init({ name: 'shell', remotes: [] });
 
 const registeredNames = new Set<string>();
 
-export function registerNewRemotes(services: ServiceInfo[]): void {
+export function registerNewRemotes(fort: string, services: ServiceInfo[]): void {
   const newRemotes = services
     .filter((s) => s.enabled && s.ui && !registeredNames.has(s.name))
     .map((s) => ({
       name: s.name,
-      entry: `/api/${s.name}/ui/remoteEntry.js`,
+      entry: `/forts/${fort}/api/${s.name}/ui/remoteEntry.js`,
     }));
 
   if (newRemotes.length > 0) {

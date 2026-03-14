@@ -38,7 +38,7 @@ function handlePollResult(res: ServicesResponse): void {
   }
   prevConnected = nextConnected;
 
-  registerNewRemotes(res.services);
+  registerNewRemotes(res.fort, res.services);
 
   const activeConflictKeys = new Set((res.conflicts ?? []).map((c) => `conflict:${c.name}`));
   for (const conflict of res.conflicts ?? []) {
