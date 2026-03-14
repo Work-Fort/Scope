@@ -1,11 +1,11 @@
 :root {
-  --wf-bg: #1a1a2e;
-  --wf-bg-secondary: #16213e;
-  --wf-text: #e0e0e0;
-  --wf-text-secondary: #a0a0a0;
-  --wf-text-muted: #606060;
-  --wf-border: #2a2a4a;
-  --wf-accent: #5865f2;
+  --wf-bg: #0a0a0a;
+  --wf-bg-secondary: #141414;
+  --wf-text: #e5e5e5;
+  --wf-text-secondary: #a3a3a3;
+  --wf-text-muted: #525252;
+  --wf-border: #262626;
+  --wf-accent: #e5e5e5;
   --wf-space-xs: 4px;
   --wf-space-sm: 8px;
   --wf-space-md: 12px;
@@ -35,7 +35,7 @@
   --wf-text-secondary: #525252;
   --wf-text-muted: #a3a3a3;
   --wf-border: #e5e5e4;
-  --wf-accent: #5865f2;
+  --wf-accent: #0a0a0a;
   --wf-error: #dc2626;
   --wf-error-subtle: rgba(220, 38, 38, 0.08);
   --wf-warning: #d97706;
