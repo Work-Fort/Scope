@@ -17,8 +17,14 @@ describe('WfBadge', () => {
     expect(el.textContent).toContain('5');
   });
 
-  it('hides when count is 0', async () => {
+  it('shows zero by default', async () => {
     const el = await fixture<WfBadge>('wf-badge', { count: 0 });
+    expect(el.style.display).not.toBe('none');
+    expect(el.textContent).toBe('0');
+  });
+
+  it('hides when hidden prop is set', async () => {
+    const el = await fixture<WfBadge>('wf-badge', { count: 5, hidden: true });
     expect(el.style.display).toBe('none');
   });
 
@@ -36,6 +42,7 @@ describe('WfBadge', () => {
     const el = await fixture<WfBadge>('wf-badge', { count: 3, size: 'lg' });
     expect(el.classList.contains('wf-badge--lg')).toBe(true);
   });
+
 });
 
 describe('WfStatusDot', () => {
