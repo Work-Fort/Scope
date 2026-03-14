@@ -39,12 +39,14 @@ export class WfDatePicker extends LitElement {
   updated(changedProperties: Map<string, unknown>): void {
     super.updated(changedProperties);
     this._syncClasses();
-    // Ensure native input reflects disabled state imperatively
+    // Ensure native input reflects disabled state and aria-label imperatively
     const input = this.querySelector(
       'input[type="date"]',
     ) as HTMLInputElement | null;
     if (input) {
       input.disabled = this.disabled;
+      const ariaLabel = this.label || this.getAttribute('aria-label') || 'Date';
+      input.setAttribute('aria-label', ariaLabel);
     }
   }
 

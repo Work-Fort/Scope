@@ -7,6 +7,7 @@ export class WfStatusDot extends WfElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.classList.add('wf-status-dot');
+    this.setAttribute('role', 'img');
     this._applyStatus();
   }
 

@@ -14,6 +14,7 @@ import { LitElement, html } from 'lit';
 export class WfSlider extends LitElement {
   static get properties() {
     return {
+      label: { type: String, reflect: true },
       min: { type: Number, reflect: true },
       max: { type: Number, reflect: true },
       step: { type: Number, reflect: true },
@@ -22,6 +23,7 @@ export class WfSlider extends LitElement {
     };
   }
 
+  label = '';
   min = 0;
   max = 100;
   step = 1;
@@ -41,6 +43,16 @@ export class WfSlider extends LitElement {
   updated(changedProperties: Map<string, unknown>): void {
     super.updated(changedProperties);
     this._syncClasses();
+    // Forward aria-label to the native range input for accessibility
+    const input = this.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement | null;
+    if (input) {
+      const ariaLabel = this.label || this.getAttribute('aria-label');
+      if (ariaLabel) {
+        input.setAttribute('aria-label', ariaLabel);
+      }
+    }
   }
 
   private _syncClasses(): void {
