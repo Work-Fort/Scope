@@ -17,6 +17,8 @@ import './components/banner.js';
 import './components/toast.js';
 import './components/toast-container.js';
 import './form/wf-input.js';
+import './form/wf-textarea.js';
+import './form/wf-select.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -35,3 +37,5 @@ export { WfToastContainer } from './components/toast-container.js';
 export { WfElement } from './base.js';
 export { WfField } from './form/wf-field.js';
 export { WfInput } from './form/wf-input.js';
+export { WfTextarea } from './form/wf-textarea.js';
+export { WfSelect } from './form/wf-select.js';

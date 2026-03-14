@@ -82,3 +82,37 @@
   font-size: var(--wf-field-feedback-size);
   color: var(--wf-field-feedback-color);
 }
+
+/* ── Textarea ── */
+.wf-textarea .wf-field__container {
+  height: auto;
+  padding: var(--wf-input-padding);
+}
+
+.wf-textarea .wf-field__input {
+  resize: vertical;
+  min-height: calc(var(--wf-text-base) * 1.5 * 3); /* ~3 lines */
+}
+
+/* ── Select ── */
+.wf-select .wf-field__container {
+  position: relative;
+}
+
+.wf-select .wf-field__input {
+  appearance: none;
+  cursor: pointer;
+  padding-right: var(--wf-space-lg); /* room for arrow */
+}
+
+.wf-select .wf-field__container::after {
+  content: '';
+  position: absolute;
+  right: var(--wf-input-padding);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--wf-color-text-muted);
+  pointer-events: none;
+}
