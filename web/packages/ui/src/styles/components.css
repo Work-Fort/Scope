@@ -58,9 +58,9 @@
   border-radius: 50%;
   background: var(--wf-text-muted, #6b7280);
 }
-.wf-status-dot--online { background: #22c55e; }
-.wf-status-dot--away { background: #eab308; }
-.wf-status-dot--offline { background: var(--wf-text-muted, #6b7280); }
+.wf-status-dot--online { background: var(--wf-success); }
+.wf-status-dot--away { background: var(--wf-warning); }
+.wf-status-dot--offline { background: var(--wf-error); }
 
 /* Skeleton */
 .wf-skeleton {

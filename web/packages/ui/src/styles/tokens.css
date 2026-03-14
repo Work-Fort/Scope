@@ -20,6 +20,12 @@
   --wf-radius-sm: 4px;
   --wf-radius-md: 6px;
   --wf-radius-lg: 8px;
+  --wf-error: #ef4444;
+  --wf-error-subtle: rgba(239, 68, 68, 0.12);
+  --wf-warning: #f59e0b;
+  --wf-warning-subtle: rgba(245, 158, 11, 0.12);
+  --wf-success: #22c55e;
+  --wf-success-subtle: rgba(34, 197, 94, 0.12);
 }
 
 [data-theme="light"] {
@@ -30,4 +36,10 @@
   --wf-text-muted: #a3a3a3;
   --wf-border: #e5e5e4;
   --wf-accent: #5865f2;
+  --wf-error: #dc2626;
+  --wf-error-subtle: rgba(220, 38, 38, 0.08);
+  --wf-warning: #d97706;
+  --wf-warning-subtle: rgba(217, 119, 6, 0.08);
+  --wf-success: #16a34a;
+  --wf-success-subtle: rgba(22, 163, 74, 0.08);
 }
