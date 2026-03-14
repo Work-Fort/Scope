@@ -9,9 +9,9 @@
 html, body, #app {
   height: 100%;
   font-family: var(--wf-font-sans);
-  font-size: var(--wf-font-size-base);
-  background: var(--wf-bg);
-  color: var(--wf-text);
+  font-size: var(--wf-text-base);
+  background: var(--wf-color-bg);
+  color: var(--wf-color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -46,15 +46,15 @@ html, body, #app {
   gap: var(--wf-space-lg);
   padding: 0 var(--wf-space-lg);
   height: 48px;
-  background: var(--wf-bg);
-  border-bottom: 1px solid var(--wf-border);
+  background: var(--wf-color-bg);
+  border-bottom: 1px solid var(--wf-color-border);
 }
 
 .shell-nav__brand {
-  font-weight: 600;
-  font-size: var(--wf-font-size-sm);
+  font-weight: var(--wf-weight-semibold);
+  font-size: var(--wf-text-sm);
   letter-spacing: -0.02em;
-  color: var(--wf-text);
+  color: var(--wf-color-text);
   white-space: nowrap;
   text-transform: uppercase;
 }
@@ -72,7 +72,7 @@ html, body, #app {
 
 .shell-sidebar {
   grid-area: sidebar;
-  border-right: 1px solid var(--wf-border);
+  border-right: 1px solid var(--wf-color-border);
   overflow-y: auto;
 }
 
