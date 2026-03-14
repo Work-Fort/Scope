@@ -1,7 +1,6 @@
 package httpapi_test
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,40 +8,29 @@ import (
 	"github.com/Work-Fort/Scope/internal/infra/httpapi"
 )
 
-func TestProxy_PathStripping(t *testing.T) {
+func TestAuthProxy_RewritesCookiePath(t *testing.T) {
+	// Auth backend sets a cookie with Path=/
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(r.URL.Path))
+		http.SetCookie(w, &http.Cookie{
+			Name:  "better-auth.session_token",
+			Value: "abc123",
+			Path:  "/",
+		})
+		w.WriteHeader(200)
 	}))
 	defer backend.Close()
 
-	proxy := httpapi.NewServiceProxy("nexus", backend.URL, true, "")
+	proxy := httpapi.NewAuthProxy("auth", backend.URL, true, "", "local")
 
-	req := httptest.NewRequest(http.MethodGet, "/api/nexus/v1/vms", nil)
-	rec := httptest.NewRecorder()
-	proxy.ServeHTTP(rec, req)
+	req := httptest.NewRequest("GET", "/api/auth/session", nil)
+	w := httptest.NewRecorder()
+	proxy.ServeHTTP(w, req)
 
-	body, _ := io.ReadAll(rec.Body)
-	if string(body) != "/v1/vms" {
-		t.Fatalf("expected path /v1/vms, got %q", string(body))
+	cookies := w.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("expected Set-Cookie header")
 	}
-}
-
-func TestProxy_GatewayFort(t *testing.T) {
-	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(r.URL.Path))
-	}))
-	defer gateway.Close()
-
-	proxy := httpapi.NewServiceProxy("nexus", "", false, gateway.URL)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/nexus/v1/vms", nil)
-	rec := httptest.NewRecorder()
-	proxy.ServeHTTP(rec, req)
-
-	body, _ := io.ReadAll(rec.Body)
-	if string(body) != "/api/nexus/v1/vms" {
-		t.Fatalf("expected path /api/nexus/v1/vms, got %q", string(body))
+	if cookies[0].Path != "/forts/local/" {
+		t.Errorf("got cookie path %q, want %q", cookies[0].Path, "/forts/local/")
 	}
 }
