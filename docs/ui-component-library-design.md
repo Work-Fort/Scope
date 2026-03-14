@@ -95,12 +95,36 @@ Across all components:
 
 | Phase | Scope | Unblocks |
 |-------|-------|----------|
+| 0 — Docs & Storybook | Set up `Work-Fort/Documentation` repo with Docusaurus (general docs) and Storybook (component explorer). Transfer existing frontend docs. Stories for all 14 existing components. GitHub Pages deployment. | Documentation site + visual dev harness for all subsequent phases |
 | 1 — Design Tokens | `primitives.css`, refactor `tokens.css`, UnoCSS bridge, migrate existing 14 components to token refs | Sharkfin/Passport/Hive can build with consistent theming |
 | 2 — Forms | Lion integration, 11 form components, form validation | Real app development with data entry |
 | 3 — Layout & Display | 8 components including data grid | Admin panels, settings pages, data-heavy UIs |
 | 4 — Navigation & Feedback | 6 components | Complete toolkit for AI agents to compose full UIs |
 
-Each phase gets its own implementation plan. Phase 1 is delivered first.
+Each phase gets its own implementation plan. Phase 0 is delivered first.
+
+### Phase 0: Documentation Site & Storybook
+
+**Repository:** `Work-Fort/Documentation` — a dedicated repo for all WorkFort public documentation. Uses pnpm workspaces to house two sites:
+
+1. **Docusaurus** (root workspace) — general developer documentation: architecture, service contracts, getting-started guides, authentication, shared packages. The existing `docs/frontend/` content transfers here. Serves as the main documentation site at the root path `/`.
+
+2. **Storybook 8** (workspace package) — interactive component documentation with three renderers:
+   - **`@workfort/ui`** — Lit/HTML stories showing the raw web components
+   - **`@workfort/ui-solid`** — SolidJS stories showing `useAuth`/`useTheme` hooks and native `wf-*` usage (Sharkfin's framework)
+   - **`@workfort/ui-react`** — React stories showing wrapper components and `useAuth`/`useTheme` hooks
+
+   One story per existing component (14 components × 3 renderers where applicable). Each story shows variants, interactive controls (Storybook args), and documents the component's props/events. Subsequent phases add stories for each new component as part of their implementation.
+
+Both install `@workfort/ui`, `@workfort/ui-solid`, and `@workfort/ui-react` from npm.
+
+**Deployment:** GitHub Pages via GitHub Actions on push to master. URL structure uses approachable naming — the component documentation lives at `/design/` (not `/storybook/` or `/ui/`), because the target audience includes less technical users and AI agents who benefit from intuitive paths. Docusaurus serves from the root `/`.
+
+**URL map:**
+| Path | Content |
+|------|---------|
+| `/` | Docusaurus — general developer docs |
+| `/design/` | Storybook — interactive component explorer |
 
 ## Framework Adapter Updates
 
