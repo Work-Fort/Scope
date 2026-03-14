@@ -17,26 +17,14 @@ type Fort struct {
 	Gateway string
 
 	// Services lists the backend services in this fort.
-	Services []Service
+	Services []ConfigService
 }
 
-// Service is a backend service in a fort.
-type Service struct {
-	// Name is the service identifier (e.g., "auth", "sharkfin", "nexus", "hive").
-	Name string
-
-	// URL is the direct backend URL (e.g., "http://127.0.0.1:16000").
-	// Only used when the fort's Local flag is true.
+// ConfigService is what comes from the fort config file — just a URL.
+// All configured services are considered enabled. To disable a service,
+// remove it from the config.
+type ConfigService struct {
 	URL string
-
-	// WSPaths is a whitelist of paths that accept WebSocket upgrade.
-	// Matched against the path suffix after the /api/{service} prefix is stripped.
-	// Example: ["/ws", "/presence"]
-	WSPaths []string
-
-	// Enabled controls whether the proxy accepts requests for this service.
-	// Disabled services return 503.
-	Enabled bool
 }
 
 // FortRegistry reads fort configuration.

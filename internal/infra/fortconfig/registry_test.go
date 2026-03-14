@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Work-Fort/Scope/internal/domain"
 	"github.com/Work-Fort/Scope/internal/infra/fortconfig"
 )
 
@@ -16,18 +15,15 @@ func setupViper(t *testing.T) {
 
 	viper.Set("active-fort", "local")
 	viper.Set("forts.local.local", true)
-	viper.Set("forts.local.services.sharkfin.url", "http://127.0.0.1:16000")
-	viper.Set("forts.local.services.sharkfin.enabled", true)
-	viper.Set("forts.local.services.sharkfin.ws-paths", []string{"/ws", "/presence"})
-	viper.Set("forts.local.services.nexus.url", "http://127.0.0.1:9600")
-	viper.Set("forts.local.services.nexus.enabled", true)
-	viper.Set("forts.local.services.auth.url", "http://127.0.0.1:3000")
-	viper.Set("forts.local.services.auth.enabled", true)
+	viper.Set("forts.local.services", []map[string]string{
+		{"url": "http://127.0.0.1:16000"},
+		{"url": "http://127.0.0.1:9600"},
+		{"url": "http://127.0.0.1:3000"},
+	})
 }
 
 func TestActive(t *testing.T) {
 	setupViper(t)
-
 	reg := fortconfig.New()
 	fort := reg.Active()
 
@@ -41,25 +37,18 @@ func TestActive(t *testing.T) {
 		t.Fatalf("expected 3 services, got %d", len(fort.Services))
 	}
 
-	// Find sharkfin
-	var sf *domain.Service
-	for i := range fort.Services {
-		if fort.Services[i].Name == "sharkfin" {
-			sf = &fort.Services[i]
-			break
-		}
+	urls := make(map[string]bool)
+	for _, svc := range fort.Services {
+		urls[svc.URL] = true
 	}
-	if sf == nil {
-		t.Fatal("sharkfin service not found")
+	if !urls["http://127.0.0.1:16000"] {
+		t.Fatal("missing URL 16000")
 	}
-	if sf.URL != "http://127.0.0.1:16000" {
-		t.Fatalf("expected sharkfin URL http://127.0.0.1:16000, got %q", sf.URL)
+	if !urls["http://127.0.0.1:9600"] {
+		t.Fatal("missing URL 9600")
 	}
-	if !sf.Enabled {
-		t.Fatal("expected sharkfin to be enabled")
-	}
-	if len(sf.WSPaths) != 2 || sf.WSPaths[0] != "/ws" || sf.WSPaths[1] != "/presence" {
-		t.Fatalf("unexpected ws-paths: %v", sf.WSPaths)
+	if !urls["http://127.0.0.1:3000"] {
+		t.Fatal("missing URL 3000")
 	}
 }
 
@@ -68,12 +57,15 @@ func TestForts(t *testing.T) {
 
 	viper.Set("active-fort", "local")
 	viper.Set("forts.local.local", true)
-	viper.Set("forts.local.services.auth.url", "http://127.0.0.1:3000")
-	viper.Set("forts.local.services.auth.enabled", true)
+	viper.Set("forts.local.services", []map[string]string{
+		{"url": "http://127.0.0.1:3000"},
+	})
 
 	viper.Set("forts.remote.local", false)
 	viper.Set("forts.remote.gateway", "https://fort.acme.com")
-	viper.Set("forts.remote.services.auth.enabled", true)
+	viper.Set("forts.remote.services", []map[string]string{
+		{"url": "https://fort.acme.com/api/auth"},
+	})
 
 	reg := fortconfig.New()
 	forts := reg.Forts()
@@ -82,22 +74,18 @@ func TestForts(t *testing.T) {
 		t.Fatalf("expected 2 forts, got %d", len(forts))
 	}
 
-	// Find the remote fort
-	var remote *domain.Fort
-	for i := range forts {
-		if forts[i].Name == "remote" {
-			remote = &forts[i]
-			break
-		}
+	// Forts are sorted by name, so local comes first, remote second.
+	if forts[0].Name != "local" {
+		t.Fatalf("expected first fort 'local', got %q", forts[0].Name)
 	}
-	if remote == nil {
-		t.Fatal("remote fort not found")
+	if forts[1].Name != "remote" {
+		t.Fatalf("expected second fort 'remote', got %q", forts[1].Name)
 	}
-	if remote.Local {
+	if forts[1].Local {
 		t.Fatal("expected remote fort to not be local")
 	}
-	if remote.Gateway != "https://fort.acme.com" {
-		t.Fatalf("expected gateway https://fort.acme.com, got %q", remote.Gateway)
+	if forts[1].Gateway != "https://fort.acme.com" {
+		t.Fatalf("expected gateway https://fort.acme.com, got %q", forts[1].Gateway)
 	}
 }
 
@@ -106,12 +94,15 @@ func TestSetActive_Valid(t *testing.T) {
 
 	viper.Set("active-fort", "local")
 	viper.Set("forts.local.local", true)
-	viper.Set("forts.local.services.auth.url", "http://127.0.0.1:3000")
-	viper.Set("forts.local.services.auth.enabled", true)
+	viper.Set("forts.local.services", []map[string]string{
+		{"url": "http://127.0.0.1:3000"},
+	})
 
 	viper.Set("forts.remote.local", false)
 	viper.Set("forts.remote.gateway", "https://fort.acme.com")
-	viper.Set("forts.remote.services.auth.enabled", true)
+	viper.Set("forts.remote.services", []map[string]string{
+		{"url": "https://fort.acme.com/api/auth"},
+	})
 
 	reg := fortconfig.New()
 	if err := reg.SetActive("remote"); err != nil {
@@ -129,8 +120,9 @@ func TestSetActive_Invalid(t *testing.T) {
 
 	viper.Set("active-fort", "local")
 	viper.Set("forts.local.local", true)
-	viper.Set("forts.local.services.auth.url", "http://127.0.0.1:3000")
-	viper.Set("forts.local.services.auth.enabled", true)
+	viper.Set("forts.local.services", []map[string]string{
+		{"url": "http://127.0.0.1:3000"},
+	})
 
 	reg := fortconfig.New()
 	err := reg.SetActive("nonexistent")

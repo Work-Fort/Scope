@@ -59,21 +59,14 @@ func (r *Registry) readFort(name string) domain.Fort {
 		Gateway: viper.GetString(prefix + ".gateway"),
 	}
 
-	svcsMap := viper.GetStringMap(prefix + ".services")
-	for svcName := range svcsMap {
-		svcPrefix := prefix + ".services." + svcName
-		svc := domain.Service{
-			Name:    svcName,
-			URL:     viper.GetString(svcPrefix + ".url"),
-			WSPaths: viper.GetStringSlice(svcPrefix + ".ws-paths"),
-			Enabled: viper.GetBool(svcPrefix + ".enabled"),
-		}
-		fort.Services = append(fort.Services, svc)
+	var svcs []struct {
+		URL string `mapstructure:"url"`
 	}
-
-	sort.Slice(fort.Services, func(i, j int) bool {
-		return fort.Services[i].Name < fort.Services[j].Name
-	})
+	if err := viper.UnmarshalKey(prefix+".services", &svcs); err == nil {
+		for _, s := range svcs {
+			fort.Services = append(fort.Services, domain.ConfigService{URL: s.URL})
+		}
+	}
 
 	return fort
 }
