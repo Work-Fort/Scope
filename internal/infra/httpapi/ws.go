@@ -13,12 +13,18 @@ var wsUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
+// ConnectionCallbacks notifies the caller of WebSocket connection lifecycle events.
+type ConnectionCallbacks struct {
+	OnConnect    func(service string)
+	OnDisconnect func(service string)
+}
+
 // NewWSProxy creates an http.Handler that proxies WebSocket connections
 // to a backend service. Only paths in wsPaths are allowed — others return 400.
 //
 // The serviceName is used to strip the /api/{service} prefix before matching.
 // The backendURL is the base WebSocket URL of the service (e.g., "ws://127.0.0.1:16000").
-func NewWSProxy(backendURL string, wsPaths []string, serviceName string) http.Handler {
+func NewWSProxy(backendURL string, wsPaths []string, serviceName string, cb *ConnectionCallbacks) http.Handler {
 	pathSet := make(map[string]bool, len(wsPaths))
 	for _, p := range wsPaths {
 		pathSet[p] = true
@@ -62,6 +68,14 @@ func NewWSProxy(backendURL string, wsPaths []string, serviceName string) http.Ha
 			return
 		}
 		defer clientConn.Close()
+
+		// Notify connection established.
+		if cb != nil && cb.OnConnect != nil {
+			cb.OnConnect(serviceName)
+		}
+		if cb != nil && cb.OnDisconnect != nil {
+			defer cb.OnDisconnect(serviceName)
+		}
 
 		// Bidirectional proxying.
 		done := make(chan struct{})

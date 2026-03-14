@@ -51,7 +51,7 @@ func NewHandler(fort domain.Fort, tc *TokenConverter, spaFS fs.FS) http.Handler 
 			if !fort.Local {
 				wsURL = "ws" + fort.Gateway[4:]
 			}
-			wsHandler = NewWSProxy(wsURL, svc.WSPaths, svc.Name)
+			wsHandler = NewWSProxy(wsURL, svc.WSPaths, svc.Name, nil)
 		}
 
 		mux.Handle(prefix, bffMiddleware(tc, svc, proxy, wsHandler))

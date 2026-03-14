@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -31,7 +33,7 @@ func TestWSProxy_WhitelistedPath(t *testing.T) {
 	defer backend.Close()
 
 	backendURL := "ws" + strings.TrimPrefix(backend.URL, "http")
-	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws", "/presence"}, "nexus")
+	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws", "/presence"}, "nexus", nil)
 
 	// Wrap in a test server so we can dial it.
 	proxy := httptest.NewServer(wsHandler)
@@ -58,7 +60,7 @@ func TestWSProxy_WhitelistedPath(t *testing.T) {
 }
 
 func TestWSProxy_NonWhitelistedPath(t *testing.T) {
-	wsHandler := httpapi.NewWSProxy("ws://localhost:0", []string{"/ws"}, "nexus")
+	wsHandler := httpapi.NewWSProxy("ws://localhost:0", []string{"/ws"}, "nexus", nil)
 	proxy := httptest.NewServer(wsHandler)
 	defer proxy.Close()
 
@@ -69,5 +71,47 @@ func TestWSProxy_NonWhitelistedPath(t *testing.T) {
 	}
 	if resp != nil && resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
+func TestWSProxy_ConnectionCallbacks(t *testing.T) {
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_, _, _ = conn.ReadMessage()
+	}))
+	defer backend.Close()
+
+	var connected, disconnected int32
+	cb := &httpapi.ConnectionCallbacks{
+		OnConnect:    func(svc string) { atomic.AddInt32(&connected, 1) },
+		OnDisconnect: func(svc string) { atomic.AddInt32(&disconnected, 1) },
+	}
+
+	backendURL := "ws" + strings.TrimPrefix(backend.URL, "http")
+	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws"}, "nexus", cb)
+
+	proxy := httptest.NewServer(wsHandler)
+	defer proxy.Close()
+
+	proxyURL := "ws" + strings.TrimPrefix(proxy.URL, "http") + "/api/nexus/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(proxyURL, nil)
+	if err != nil {
+		t.Fatalf("dial error: %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if c := atomic.LoadInt32(&connected); c != 1 {
+		t.Fatalf("expected 1 connect callback, got %d", c)
+	}
+
+	conn.Close()
+	time.Sleep(50 * time.Millisecond)
+	if d := atomic.LoadInt32(&disconnected); d != 1 {
+		t.Fatalf("expected 1 disconnect callback, got %d", d)
 	}
 }
