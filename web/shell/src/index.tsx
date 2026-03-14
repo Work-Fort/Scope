@@ -1,3 +1,4 @@
+import 'virtual:uno.css';
 import '@workfort/ui';
 import '@workfort/ui/style.css';
 import './global.css';

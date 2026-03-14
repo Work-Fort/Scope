@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite';
 import solid from 'vite-plugin-solid';
+import UnoCSS from 'unocss/vite';
 import { federation } from '@module-federation/vite';
 
 export default defineConfig({
   plugins: [
+    UnoCSS(),
     solid(),
     federation({
       name: 'shell',
