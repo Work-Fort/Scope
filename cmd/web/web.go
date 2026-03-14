@@ -46,83 +46,50 @@ func New() *cobra.Command {
 
 func run(cmd *cobra.Command, args []string) error {
 	registry := fortconfig.New()
-	fort := registry.Active()
-
-	log.Info("starting web server",
-		"fort", fort.Name,
-		"local", fort.Local,
-		"services", len(fort.Services),
-	)
-
-	// Create signal context early — used by tracker and shutdown.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	// Create service tracker and run initial probe.
-	urls := make([]string, len(fort.Services))
-	for i, svc := range fort.Services {
-		urls[i] = svc.URL
+	forts := registry.Forts()
+	if len(forts) == 0 {
+		return fmt.Errorf("no forts configured")
 	}
 
-	tracker := httpapi.NewServiceTracker(urls)
-	tracker.InitialProbe(ctx)
-	tracker.StartPolling(ctx, 10*time.Second)
-
-	// Find the auth service URL from tracker (discovered via /ui/health).
-	var tc *httpapi.TokenConverter
-	if authSvc, ok := tracker.ServiceByName("auth"); ok {
-		tc = httpapi.NewTokenConverter(authSvc.URL)
+	var spaHandler http.Handler
+	if dev {
+		spaHandler = httpapi.NewSPADevProxy(devURL)
 	} else {
-		log.Warn("auth service not discovered — BFF token conversion disabled")
-	}
-
-	// SPA handler.
-	var spaFS fs.FS
-	if !dev {
-		sub, err := fs.Sub(webFS, "dist")
+		distFS, err := fs.Sub(webFS, "dist")
 		if err != nil {
 			return fmt.Errorf("embedded SPA: %w", err)
 		}
-		spaFS = sub
+		spaHandler = httpapi.NewSPAHandler(distFS)
 	}
 
-	handler := httpapi.NewHandler(fort, tracker, tc, spaFS)
+	router := httpapi.NewFortRouter(registry, spaHandler)
 
-	// In dev mode, wrap the handler to proxy non-/api/* to Vite.
-	if dev {
-		devProxy := httpapi.NewSPADevProxy(devURL)
-		topMux := http.NewServeMux()
-		topMux.Handle("/api/", handler)
-		topMux.Handle("/", devProxy)
-		handler = topMux
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	router.StartIdleCleanup(ctx, 30*time.Minute)
 
 	addr := fmt.Sprintf("%s:%d", bind, port)
-	server := &http.Server{
-		Addr:    addr,
-		Handler: handler,
-	}
-
-	// Graceful shutdown.
-	go func() {
-		<-ctx.Done()
-		log.Info("shutting down web server")
-		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = server.Shutdown(shutCtx)
-	}()
+	srv := &http.Server{Addr: addr, Handler: router}
 
 	url := fmt.Sprintf("http://%s", addr)
-	log.Info("web server listening", "url", url)
+	log.Info("web server listening", "url", url, "forts", len(forts))
 
 	if openBrowserFlag {
 		go openBrowser(url)
 	}
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	go func() {
+		<-ctx.Done()
+		log.Info("shutting down web server")
+		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutCtx)
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("web server: %w", err)
 	}
-
 	return nil
 }
 
