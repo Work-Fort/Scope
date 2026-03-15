@@ -30,31 +30,13 @@
   color: var(--wf-color-error);
 }
 
-.wf-field__container {
-  display: flex;
-  align-items: center;
-  height: var(--wf-input-height);
-  padding: 0 var(--wf-input-padding);
-  background: var(--wf-color-bg);
-  border: 1px solid var(--wf-color-border-strong);
-  border-radius: var(--wf-input-radius);
-  transition: border-color var(--wf-duration-fast) var(--wf-ease-in-out);
-}
-
-.wf-field__container:focus-within {
-  border-color: var(--wf-color-border-focus);
-}
-
-.wf-field--error .wf-field__container {
-  border-color: var(--wf-color-error);
-}
-
 .wf-field--disabled {
   opacity: 0.65;
   pointer-events: none;
 }
 
-.wf-field__input {
+/* Text-like inputs (excludes checkbox/radio which are visually hidden) */
+.wf-field__input:not([type="checkbox"]):not([type="radio"]) {
   flex: 1;
   width: 100%;
   border: 1px solid var(--wf-color-border-strong);
@@ -69,19 +51,11 @@
   box-sizing: border-box;
 }
 
-/* When input is inside a container, the container owns the border */
-.wf-field__container .wf-field__input {
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.wf-field__input:focus {
+.wf-field__input:not([type="checkbox"]):not([type="radio"]):focus {
   border-color: var(--wf-color-border-focus);
 }
 
-.wf-field--error .wf-field__input {
+.wf-field--error .wf-field__input:not([type="checkbox"]):not([type="radio"]) {
   border-color: var(--wf-color-error);
 }
 
@@ -104,13 +78,8 @@
 }
 
 /* ── Textarea ── */
-.wf-textarea .wf-field__container {
-  height: auto;
-  padding: var(--wf-input-padding);
-}
-
 .wf-textarea .wf-field__input {
-  resize: vertical;
+  resize: vertical !important; /* override Lion's inline resize:none */
   min-height: calc(var(--wf-text-base) * 1.5 * 3); /* ~3 lines */
 }
 
@@ -173,13 +142,11 @@
   border-color: var(--wf-color-accent);
 }
 
-/* Hide Lion's internal label slot (we use the slotted label directly) */
+/* Hide Lion's internal elements (we use the slotted label directly) */
 .wf-checkbox .choice-field__label,
 .wf-checkbox .choice-field__help-text,
 .wf-checkbox > [slot="help-text"],
-.wf-checkbox > [slot="feedback"],
-.wf-checkbox .form-field__group-one,
-.wf-checkbox .form-field__group-two {
+.wf-checkbox > [slot="feedback"] {
   display: none;
 }
 
@@ -241,9 +208,7 @@
 .wf-radio .choice-field__label,
 .wf-radio .choice-field__help-text,
 .wf-radio > [slot="help-text"],
-.wf-radio > [slot="feedback"],
-.wf-radio .form-field__group-one,
-.wf-radio .form-field__group-two {
+.wf-radio > [slot="feedback"] {
   display: none;
 }
 
