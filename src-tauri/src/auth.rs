@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use std::time::{Duration, Instant};
 use tauri::State;
 
-use crate::proxy::AppState;
+use crate::proxy::{AppState, FortTokens};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserInfo {
@@ -14,21 +15,25 @@ pub struct UserInfo {
 struct AuthResponse {
     token: String,
     refresh_token: String,
+    #[serde(default)]
+    expires_in: Option<u64>,
     user: UserInfo,
 }
 
-/// Tauri command: login with email/password.
-/// Posts to the API auth endpoint, stores JWT + refresh token in memory.
+/// Tauri command: login to a specific fort with email/password.
+/// Posts to that fort's auth service, stores JWT + refresh token under the fort name.
 #[tauri::command]
 pub async fn login(
     state: State<'_, AppState>,
+    fort: String,
+    auth_url: String,
     email: String,
     password: String,
 ) -> Result<UserInfo, String> {
-    let target = state.api_base.join("/api/auth/login").unwrap();
+    let target = format!("{}/v1/auth/login", auth_url);
 
     let resp = state.client
-        .post(target)
+        .post(&target)
         .json(&serde_json::json!({
             "email": email,
             "password": password,
@@ -46,46 +51,57 @@ pub async fn login(
     let auth: AuthResponse = resp.json().await
         .map_err(|e| format!("Invalid auth response: {e}"))?;
 
-    state.tokens.set_jwt(Some(auth.token));
-    state.tokens.set_refresh(Some(auth.refresh_token));
+    let expiry = Instant::now() + Duration::from_secs(auth.expires_in.unwrap_or(900));
+    state.tokens.set(&fort, FortTokens {
+        jwt: auth.token,
+        refresh_token: auth.refresh_token,
+        expiry,
+        auth_url,
+    });
 
     Ok(auth.user)
 }
 
-/// Tauri command: logout. Clears JWT + refresh token from memory.
+/// Tauri command: logout from a specific fort. Removes that fort's tokens.
 #[tauri::command]
-pub async fn logout(state: State<'_, AppState>) -> Result<(), String> {
-    state.tokens.clear();
+pub async fn logout(
+    state: State<'_, AppState>,
+    fort: String,
+) -> Result<(), String> {
+    state.tokens.remove(&fort);
     Ok(())
 }
 
-/// Tauri command: get current user info.
-/// Calls the API's user endpoint using the stored JWT.
+/// Tauri command: get current user info for a specific fort.
+/// Calls that fort's auth service using the stored JWT.
 #[tauri::command]
-pub async fn get_user(state: State<'_, AppState>) -> Result<Option<UserInfo>, String> {
-    let jwt = match state.tokens.get_jwt() {
-        Some(j) => j,
+pub async fn get_user(
+    state: State<'_, AppState>,
+    fort: String,
+) -> Result<Option<UserInfo>, String> {
+    let tokens = match state.tokens.get(&fort) {
+        Some(t) => t,
         None => return Ok(None),
     };
 
-    let target = state.api_base.join("/api/auth/me").unwrap();
+    let target = format!("{}/v1/auth/me", tokens.auth_url);
 
     let resp = state.client
-        .get(target)
-        .header("Authorization", format!("Bearer {jwt}"))
+        .get(&target)
+        .header("Authorization", format!("Bearer {}", tokens.jwt))
         .send()
         .await
         .map_err(|e| format!("Get user failed: {e}"))?;
 
     if resp.status().as_u16() == 401 {
         // Token expired, try refresh
-        if crate::proxy::try_refresh(&state).await {
+        if crate::proxy::try_refresh(&state, &fort).await {
             // Retry with new JWT
-            let new_jwt = state.tokens.get_jwt().unwrap();
-            let target = state.api_base.join("/api/auth/me").unwrap();
+            let new_tokens = state.tokens.get(&fort).unwrap();
+            let target = format!("{}/v1/auth/me", new_tokens.auth_url);
             let resp = state.client
-                .get(target)
-                .header("Authorization", format!("Bearer {new_jwt}"))
+                .get(&target)
+                .header("Authorization", format!("Bearer {}", new_tokens.jwt))
                 .send()
                 .await
                 .map_err(|e| format!("Get user retry failed: {e}"))?;
@@ -96,8 +112,8 @@ pub async fn get_user(state: State<'_, AppState>) -> Result<Option<UserInfo>, St
                 return Ok(Some(user));
             }
         }
-        // Refresh failed or retry failed — user is not authenticated
-        state.tokens.clear();
+        // Refresh failed or retry failed — user is not authenticated for this fort
+        state.tokens.remove(&fort);
         return Ok(None);
     }
 
