@@ -12,7 +12,7 @@ import (
 const (
 	sessionCookieName = "better-auth.session_token"
 	tokenLifetime     = 15 * time.Minute
-	refreshBefore     = 1 * time.Minute
+	refreshBefore     = 5 * time.Minute
 )
 
 var (
