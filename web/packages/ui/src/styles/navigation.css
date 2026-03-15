@@ -107,9 +107,9 @@ a.wf-breadcrumbs__link {
   cursor: not-allowed;
 }
 .wf-pagination__btn[aria-current="true"] {
-  background: var(--wf-color-accent);
-  color: var(--wf-color-text-on-accent);
-  border-color: var(--wf-color-accent);
+  background: var(--wf-color-bg-elevated);
+  color: var(--wf-color-text);
+  border-color: var(--wf-color-border-strong);
 }
 .wf-pagination__ellipsis {
   color: var(--wf-color-text-secondary);
