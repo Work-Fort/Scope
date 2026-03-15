@@ -1,8 +1,12 @@
 [tools]
+android-sdk = "latest"
 go = "latest"
 node = "lts"
 "npm:pnpm" = "10"
+rust = "latest"
 
 [env]
 BINARY_NAME = "workfort"
 BUILD_DIR = "build"
+ANDROID_HOME = "{{env.HOME}}/.local/share/mise/installs/android-sdk/1.0"
+NDK_HOME = "{{env.HOME}}/.local/share/mise/installs/android-sdk/1.0/ndk/27.0.12077973"
