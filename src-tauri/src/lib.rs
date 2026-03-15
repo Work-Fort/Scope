@@ -1,3 +1,4 @@
+mod auth;
 mod proxy;
 
 use proxy::{AppState, should_proxy, proxy_with_refresh};
@@ -17,6 +18,11 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(state)
+        .invoke_handler(tauri::generate_handler![
+            auth::login,
+            auth::logout,
+            auth::get_user,
+        ])
         .register_asynchronous_uri_scheme_protocol("https", move |_ctx, request, responder| {
             let state = proxy_state.clone();
             tauri::async_runtime::spawn(async move {
