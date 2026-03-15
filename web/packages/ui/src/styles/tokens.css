@@ -61,7 +61,7 @@
   /* Borders */
   --wf-color-border: var(--wf-stone-200);
   --wf-color-border-focus: var(--wf-stone-600);
-  --wf-color-border-strong: var(--wf-stone-400);
+  --wf-color-border-strong: var(--wf-stone-500);
 
   /* Accent */
   --wf-color-accent: var(--wf-stone-900);
