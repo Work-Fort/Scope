@@ -17,6 +17,7 @@ export class WfBreadcrumbs extends WfElement {
   @property({ type: String }) separator = '/';
 
   private _items: BreadcrumbItem[] = [];
+  private _container: HTMLElement | null = null;
 
   get items(): BreadcrumbItem[] {
     return this._items;
@@ -24,7 +25,7 @@ export class WfBreadcrumbs extends WfElement {
 
   set items(value: BreadcrumbItem[]) {
     this._items = value;
-    this._render();
+    this._renderItems();
   }
 
   connectedCallback(): void {
@@ -32,16 +33,26 @@ export class WfBreadcrumbs extends WfElement {
     this.classList.add('wf-breadcrumbs');
     this.setAttribute('role', 'navigation');
     this.setAttribute('aria-label', 'Breadcrumb');
-    this._render();
+    this._ensureContainer();
+    this._renderItems();
   }
 
   updated(): void {
-    this._render();
+    this._ensureContainer();
+    this._renderItems();
   }
 
-  private _render(): void {
-    // Clear existing content
-    this.innerHTML = '';
+  private _ensureContainer(): void {
+    if (!this._container) {
+      this._container = document.createElement('div');
+      this._container.style.display = 'contents';
+      this.appendChild(this._container);
+    }
+  }
+
+  private _renderItems(): void {
+    if (!this._container) return;
+    this._container.innerHTML = '';
 
     const ol = document.createElement('ol');
     ol.className = 'wf-breadcrumbs__list';
@@ -92,7 +103,7 @@ export class WfBreadcrumbs extends WfElement {
       ol.appendChild(li);
     });
 
-    this.appendChild(ol);
+    this._container.appendChild(ol);
   }
 }
 

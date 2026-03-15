@@ -28,6 +28,10 @@ const EXPECTED = [
   'wf-form',
   'wf-breadcrumbs',
   'wf-spinner',
+  'wf-pagination',
+  'wf-stepper',
+  'wf-step',
+  'wf-progress',
 ];
 
 describe('@workfort/ui registration', () => {

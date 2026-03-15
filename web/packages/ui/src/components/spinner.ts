@@ -11,11 +11,14 @@ export class WfSpinner extends WfElement {
   @property({ type: String }) size: 'sm' | 'md' | 'lg' = 'md';
   @property({ type: String }) label = 'Loading';
 
+  private _container: HTMLElement | null = null;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.classList.add('wf-spinner');
     this.setAttribute('role', 'status');
-    this._render();
+    this._ensureContainer();
+    this._buildSpinner();
   }
 
   updated(): void {
@@ -23,8 +26,17 @@ export class WfSpinner extends WfElement {
     this._updateLabel();
   }
 
-  private _render(): void {
-    this.innerHTML = '';
+  private _ensureContainer(): void {
+    if (!this._container) {
+      this._container = document.createElement('div');
+      this._container.style.display = 'contents';
+      this.appendChild(this._container);
+    }
+  }
+
+  private _buildSpinner(): void {
+    if (!this._container) return;
+    this._container.innerHTML = '';
 
     // SVG spinner
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -53,13 +65,13 @@ export class WfSpinner extends WfElement {
     arc.setAttribute('stroke-dasharray', '40 60');
     svg.appendChild(arc);
 
-    this.appendChild(svg);
+    this._container.appendChild(svg);
 
     // Screen reader text
     const srText = document.createElement('span');
     srText.className = 'wf-spinner__label';
     srText.textContent = this.label;
-    this.appendChild(srText);
+    this._container.appendChild(srText);
 
     this._applySize();
   }
