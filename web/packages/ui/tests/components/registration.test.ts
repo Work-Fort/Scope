@@ -26,6 +26,8 @@ const EXPECTED = [
   'wf-combobox',
   'wf-date-picker',
   'wf-form',
+  'wf-breadcrumbs',
+  'wf-spinner',
 ];
 
 describe('@workfort/ui registration', () => {

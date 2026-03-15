@@ -2,6 +2,7 @@
 @import './banner.css';
 @import './toast.css';
 @import './forms.css';
+@import './navigation.css';
 
 /* Component-level tokens */
 :root {
