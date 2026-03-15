@@ -66,6 +66,19 @@
   --wf-blue-900: #1e3a8a;
   --wf-blue-950: #172554;
 
+  /* ── Purple palette ── */
+  --wf-purple-50: #faf5ff;
+  --wf-purple-100: #f3e8ff;
+  --wf-purple-200: #e9d5ff;
+  --wf-purple-300: #d8b4fe;
+  --wf-purple-400: #c084fc;
+  --wf-purple-500: #a855f7;
+  --wf-purple-600: #9333ea;
+  --wf-purple-700: #7e22ce;
+  --wf-purple-800: #6b21a8;
+  --wf-purple-900: #581c87;
+  --wf-purple-950: #3b0764;
+
   /* ── Spacing (numeric, rem-based) ── */
   --wf-space-1: 0.25rem;
   --wf-space-2: 0.5rem;

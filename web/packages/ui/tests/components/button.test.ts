@@ -38,4 +38,14 @@ describe('WfButton', () => {
     expect(el.getAttribute('role')).toBe('button');
     expect(el.getAttribute('tabindex')).toBe('0');
   });
+
+  it('applies color class', async () => {
+    const el = await fixture<WfButton>('wf-button', { color: 'red' });
+    expect(el.classList.contains('wf-button--red')).toBe(true);
+  });
+
+  it('defaults to outline variant', async () => {
+    const el = await fixture<WfButton>('wf-button');
+    expect(el.classList.contains('wf-button--filled')).toBe(false);
+  });
 });

@@ -50,6 +50,20 @@
 .wf-button[disabled] { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 .wf-button--filled { background: var(--wf-color-accent); border-color: var(--wf-color-accent); color: var(--wf-color-bg); }
 
+/* Button colors — outline */
+.wf-button--red { border-color: var(--wf-red-500); color: var(--wf-red-500); }
+.wf-button--blue { border-color: var(--wf-blue-500); color: var(--wf-blue-500); }
+.wf-button--green { border-color: var(--wf-green-500); color: var(--wf-green-500); }
+.wf-button--yellow { border-color: var(--wf-amber-500); color: var(--wf-amber-500); }
+.wf-button--purple { border-color: var(--wf-purple-500); color: var(--wf-purple-500); }
+
+/* Button colors — filled */
+.wf-button--filled.wf-button--red { background: var(--wf-red-500); border-color: var(--wf-red-500); color: #fff; }
+.wf-button--filled.wf-button--blue { background: var(--wf-blue-500); border-color: var(--wf-blue-500); color: #fff; }
+.wf-button--filled.wf-button--green { background: var(--wf-green-500); border-color: var(--wf-green-500); color: #fff; }
+.wf-button--filled.wf-button--yellow { background: var(--wf-amber-500); border-color: var(--wf-amber-500); color: var(--wf-stone-950); }
+.wf-button--filled.wf-button--purple { background: var(--wf-purple-500); border-color: var(--wf-purple-500); color: #fff; }
+
 /* Badge */
 .wf-badge {
   display: inline-flex;
