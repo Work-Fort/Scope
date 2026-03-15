@@ -1,42 +1,47 @@
 use reqwest::Client;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use url::Url;
 
-/// In-memory token store. Cleared when app is killed.
-/// JWT and refresh token live here — never in the webview.
+/// Per-fort token data. Each fort has its own passport instance.
+#[derive(Clone, Debug)]
+pub struct FortTokens {
+    pub jwt: String,
+    pub refresh_token: String,
+    pub expiry: Instant,
+    pub auth_url: String, // e.g. "https://acme.example.com/auth"
+}
+
+/// In-memory token store. Keyed by fort name. Cleared when app is killed.
+/// JWTs and refresh tokens live here — never in the webview.
 #[derive(Clone)]
 pub struct TokenStore {
-    pub jwt: Arc<Mutex<Option<String>>>,
-    pub refresh_token: Arc<Mutex<Option<String>>>,
+    pub forts: Arc<Mutex<HashMap<String, FortTokens>>>,
 }
 
 impl TokenStore {
     pub fn new() -> Self {
         Self {
-            jwt: Arc::new(Mutex::new(None)),
-            refresh_token: Arc::new(Mutex::new(None)),
+            forts: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    pub fn get_jwt(&self) -> Option<String> {
-        self.jwt.lock().unwrap().clone()
+    pub fn get(&self, fort: &str) -> Option<FortTokens> {
+        self.forts.lock().unwrap().get(fort).cloned()
     }
 
-    pub fn set_jwt(&self, token: Option<String>) {
-        *self.jwt.lock().unwrap() = token;
+    pub fn set(&self, fort: &str, tokens: FortTokens) {
+        self.forts.lock().unwrap().insert(fort.to_string(), tokens);
     }
 
-    pub fn get_refresh(&self) -> Option<String> {
-        self.refresh_token.lock().unwrap().clone()
+    pub fn remove(&self, fort: &str) {
+        self.forts.lock().unwrap().remove(fort);
     }
 
-    pub fn set_refresh(&self, token: Option<String>) {
-        *self.refresh_token.lock().unwrap() = token;
-    }
-
-    pub fn clear(&self) {
-        self.set_jwt(None);
-        self.set_refresh(None);
+    /// Returns a snapshot of all fort names and their tokens.
+    pub fn all(&self) -> Vec<(String, FortTokens)> {
+        self.forts.lock().unwrap().iter().map(|(k, v)| (k.clone(), v.clone())).collect()
     }
 }
 
@@ -51,7 +56,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(api_base_url: &str) -> Self {
         let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
+            .timeout(Duration::from_secs(10))
             .build()
             .expect("Failed to build HTTP client");
 
@@ -68,7 +73,14 @@ pub fn should_proxy(path: &str) -> bool {
     path.starts_with("/api/") || path.starts_with("/forts/")
 }
 
-/// Proxies a request to the API backend, attaching the JWT if available.
+/// Extracts the fort name from a path like `/forts/{fort}/api/...`.
+/// Returns None for paths that don't match the pattern (e.g. `/api/forts`).
+pub fn extract_fort_name(path: &str) -> Option<&str> {
+    let path = path.strip_prefix("/forts/")?;
+    path.split('/').next().filter(|s| !s.is_empty())
+}
+
+/// Proxies a request to the API backend, attaching the per-fort JWT if available.
 /// Returns the response body bytes, status code, and content-type.
 pub async fn proxy_request(
     state: &AppState,
@@ -90,10 +102,13 @@ pub async fn proxy_request(
         .map_err(|e| format!("Invalid method: {e}"))?;
     let mut req = state.client.request(reqwest_method, target);
 
-    // Attach JWT
-    if let Some(jwt) = state.tokens.get_jwt() {
-        req = req.header("Authorization", format!("Bearer {jwt}"));
+    // Attach per-fort JWT if this is a fort-scoped request
+    if let Some(fort_name) = extract_fort_name(path) {
+        if let Some(tokens) = state.tokens.get(fort_name) {
+            req = req.header("Authorization", format!("Bearer {}", tokens.jwt));
+        }
     }
+    // /api/forts and other /api/* paths pass through without auth
 
     // Attach body and content-type
     if let Some(b) = body {
@@ -116,44 +131,51 @@ pub async fn proxy_request(
     Ok((bytes.to_vec(), status, ct))
 }
 
-/// Attempts to refresh the JWT using the stored refresh token.
+/// Attempts to refresh the JWT for a specific fort using its stored refresh token.
 /// Returns true if refresh succeeded, false otherwise.
-pub async fn try_refresh(state: &AppState) -> bool {
-    let refresh = match state.tokens.get_refresh() {
-        Some(r) => r,
+pub async fn try_refresh(state: &AppState, fort_name: &str) -> bool {
+    let tokens = match state.tokens.get(fort_name) {
+        Some(t) => t,
         None => return false,
     };
 
-    let target = state.api_base.join("/api/auth/refresh").unwrap();
+    let target = format!("{}/v1/auth/refresh", tokens.auth_url);
     let resp = state.client
-        .post(target)
-        .json(&serde_json::json!({ "refresh_token": refresh }))
+        .post(&target)
+        .json(&serde_json::json!({ "refresh_token": tokens.refresh_token }))
         .send()
         .await;
 
     match resp {
         Ok(r) if r.status().is_success() => {
             if let Ok(body) = r.json::<serde_json::Value>().await {
-                if let Some(jwt) = body.get("token").and_then(|v| v.as_str()) {
-                    state.tokens.set_jwt(Some(jwt.to_string()));
+                let jwt = body.get("token").and_then(|v| v.as_str());
+                let rt = body.get("refresh_token").and_then(|v| v.as_str());
+                let exp = body.get("expires_in").and_then(|v| v.as_u64());
+
+                if let (Some(jwt), Some(rt)) = (jwt, rt) {
+                    let expiry = Instant::now() + Duration::from_secs(exp.unwrap_or(900));
+                    state.tokens.set(fort_name, FortTokens {
+                        jwt: jwt.to_string(),
+                        refresh_token: rt.to_string(),
+                        expiry,
+                        auth_url: tokens.auth_url.clone(),
+                    });
+                    return true;
                 }
-                if let Some(rt) = body.get("refresh_token").and_then(|v| v.as_str()) {
-                    state.tokens.set_refresh(Some(rt.to_string()));
-                }
-                return true;
             }
             false
         }
         _ => {
-            // Refresh failed — clear all tokens, force re-login
-            state.tokens.clear();
+            // Refresh failed — remove this fort's tokens, force re-login
+            state.tokens.remove(fort_name);
             false
         }
     }
 }
 
 /// Proxy with automatic 401 retry: if the first request returns 401,
-/// attempt a token refresh and retry once.
+/// attempt a per-fort token refresh and retry once.
 pub async fn proxy_with_refresh(
     state: &AppState,
     method: &str,
@@ -165,9 +187,11 @@ pub async fn proxy_with_refresh(
     let result = proxy_request(state, method, path, query, body.clone(), content_type).await?;
 
     if result.1 == 401 {
-        if try_refresh(state).await {
-            // Retry with new JWT
-            return proxy_request(state, method, path, query, body, content_type).await;
+        if let Some(fort_name) = extract_fort_name(path) {
+            if try_refresh(state, fort_name).await {
+                // Retry with new JWT
+                return proxy_request(state, method, path, query, body, content_type).await;
+            }
         }
     }
 
