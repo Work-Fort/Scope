@@ -23,6 +23,17 @@ export class WfSelect extends LionSelect {
   connectedCallback(): void {
     super.connectedCallback();
     applyFieldHostClasses(this as any, 'wf-select');
+    this._moveOptionsToSelect();
+  }
+
+  /** Move <option> children from the host into the native <select>. */
+  private _moveOptionsToSelect(): void {
+    const select = this._inputNode as HTMLSelectElement;
+    if (!select) return;
+    const options = Array.from(this.querySelectorAll(':scope > option'));
+    for (const opt of options) {
+      select.appendChild(opt);
+    }
   }
 
   updated(changedProperties: Map<string, unknown>): void {
