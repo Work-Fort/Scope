@@ -129,21 +129,58 @@
 /* ── Checkbox ── */
 .wf-checkbox {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--wf-space-sm);
   cursor: pointer;
   font-family: var(--wf-font-sans);
+  font-size: var(--wf-text-sm);
+  line-height: var(--wf-leading-normal);
 }
 
-.wf-checkbox .wf-field__container {
+/* Hide native checkbox visually */
+.wf-checkbox .wf-field__input[type="checkbox"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: none;
+  padding: 0;
+}
+
+/* Reorder: graphic first, label second, everything else hidden */
+.wf-checkbox .choice-field__graphic-container {
+  order: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  padding: 0;
+  margin-top: 0.125rem;
+  border: 1px solid var(--wf-color-border-strong);
   border-radius: var(--wf-radius-xs);
   flex-shrink: 0;
+  background: var(--wf-color-bg);
+}
+
+.wf-checkbox > [slot="label"] {
+  order: 2;
+  flex: 1;
+}
+
+.wf-checkbox .wf-field__input:checked ~ .choice-field__graphic-container {
+  background: var(--wf-color-accent);
+  border-color: var(--wf-color-accent);
+}
+
+/* Hide Lion's internal label slot (we use the slotted label directly) */
+.wf-checkbox .choice-field__label,
+.wf-checkbox .choice-field__help-text,
+.wf-checkbox > [slot="help-text"],
+.wf-checkbox > [slot="feedback"],
+.wf-checkbox .form-field__group-one,
+.wf-checkbox .form-field__group-two {
+  display: none;
 }
 
 .wf-checkbox-group {
@@ -156,21 +193,58 @@
 /* ── Radio ── */
 .wf-radio {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--wf-space-sm);
   cursor: pointer;
   font-family: var(--wf-font-sans);
+  font-size: var(--wf-text-sm);
+  line-height: var(--wf-leading-normal);
 }
 
-.wf-radio .wf-field__container {
+/* Hide native radio visually */
+.wf-radio .wf-field__input[type="radio"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: none;
+  padding: 0;
+}
+
+/* Reorder: graphic first, label second */
+.wf-radio .choice-field__graphic-container {
+  order: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 1rem;
   height: 1rem;
-  padding: 0;
+  margin-top: 0.125rem;
+  border: 1px solid var(--wf-color-border-strong);
   border-radius: var(--wf-radius-full);
   flex-shrink: 0;
+  background: var(--wf-color-bg);
+}
+
+.wf-radio > [slot="label"] {
+  order: 2;
+  flex: 1;
+}
+
+.wf-radio .wf-field__input:checked ~ .choice-field__graphic-container {
+  border-color: var(--wf-color-accent);
+  background: radial-gradient(circle, var(--wf-color-accent) 40%, transparent 41%);
+}
+
+/* Hide Lion's internal elements we don't use */
+.wf-radio .choice-field__label,
+.wf-radio .choice-field__help-text,
+.wf-radio > [slot="help-text"],
+.wf-radio > [slot="feedback"],
+.wf-radio .form-field__group-one,
+.wf-radio .form-field__group-two {
+  display: none;
 }
 
 .wf-radio-group {
