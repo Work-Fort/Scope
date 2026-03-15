@@ -36,6 +36,13 @@ const EXPECTED = [
   'wf-tooltip',
   'wf-popover',
   'wf-table',
+  'wf-breadcrumbs',
+  'wf-spinner',
+  'wf-pagination',
+  'wf-stepper',
+  'wf-step',
+  'wf-progress',
+  'wf-alert-dialog',
 ];
 
 describe('@workfort/ui registration', () => {
