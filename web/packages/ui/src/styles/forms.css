@@ -157,6 +157,22 @@
   font-family: var(--wf-font-sans);
 }
 
+/* Ensure group label renders above options */
+.wf-checkbox-group > [slot="label"] {
+  order: -1;
+  font-size: var(--wf-field-label-size);
+  font-weight: var(--wf-weight-medium);
+  color: var(--wf-field-label-color);
+}
+
+/* Hide unused Lion internal elements */
+.wf-checkbox-group > [slot="help-text"],
+.wf-checkbox-group > [slot="feedback"],
+.wf-checkbox-group > .form-field__group-one,
+.wf-checkbox-group > .form-field__group-two {
+  display: none;
+}
+
 /* ── Radio ── */
 .wf-radio {
   display: flex;
@@ -219,6 +235,22 @@
   font-family: var(--wf-font-sans);
 }
 
+/* Ensure group label renders above options */
+.wf-radio-group > [slot="label"] {
+  order: -1;
+  font-size: var(--wf-field-label-size);
+  font-weight: var(--wf-weight-medium);
+  color: var(--wf-field-label-color);
+}
+
+/* Hide unused Lion internal elements */
+.wf-radio-group > [slot="help-text"],
+.wf-radio-group > [slot="feedback"],
+.wf-radio-group > .form-field__group-one,
+.wf-radio-group > .form-field__group-two {
+  display: none;
+}
+
 /* ── Toggle ── */
 .wf-toggle {
   display: flex;
@@ -232,7 +264,7 @@
   position: relative;
   width: 2.25rem;
   height: 1.25rem;
-  background: var(--wf-color-border-strong);
+  background: var(--wf-color-text-secondary);
   border-radius: var(--wf-radius-full);
   transition: background var(--wf-duration-fast) var(--wf-ease-in-out);
   flex-shrink: 0;

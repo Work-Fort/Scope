@@ -21,15 +21,34 @@ export class WfAccordionItem extends WfElement {
   header = '';
   expanded = false;
 
+  private _userContent: Node[] = [];
+  private _didSetup = false;
+
   connectedCallback(): void {
     super.connectedCallback();
     this.classList.add('wf-accordion-item');
     this._syncClasses();
+
+    // Capture user-provided children before Lit renders
+    if (!this._didSetup) {
+      this._userContent = Array.from(this.childNodes);
+    }
   }
 
   updated(changedProperties: Map<string, unknown>): void {
     super.updated(changedProperties);
     this._syncClasses();
+
+    // After first render, move captured children into the body div
+    if (!this._didSetup) {
+      this._didSetup = true;
+      const body = this.querySelector('.wf-accordion-item__body');
+      if (body) {
+        for (const node of this._userContent) {
+          body.appendChild(node);
+        }
+      }
+    }
   }
 
   private _syncClasses(): void {
@@ -72,9 +91,7 @@ export class WfAccordionItem extends WfElement {
         <span class="wf-accordion-item__title">${this.header}</span>
         <span class="wf-accordion-item__icon">${this.expanded ? '\u2212' : '+'}</span>
       </div>
-      <div class="wf-accordion-item__body" ?hidden=${!this.expanded}>
-        <slot></slot>
-      </div>
+      <div class="wf-accordion-item__body" ?hidden=${!this.expanded}></div>
     `;
   }
 }

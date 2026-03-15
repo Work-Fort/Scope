@@ -19,15 +19,37 @@ export class WfDrawer extends WfElement {
   private _cleanupFocus: (() => void) | null = null;
   private _cleanupEscape: (() => void) | null = null;
   private _previousFocus: HTMLElement | null = null;
+  private _userContent: Node[] = [];
+  private _didSetup = false;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.classList.add('wf-drawer');
+
+    // Capture user-provided children before Lit renders
+    if (!this._didSetup) {
+      this._userContent = Array.from(this.childNodes);
+    }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this._teardown();
+  }
+
+  protected override updated(_changed: Map<string, unknown>): void {
+    super.updated(_changed);
+
+    // After first render, move captured children into the body div
+    if (!this._didSetup) {
+      this._didSetup = true;
+      const body = this.querySelector('.wf-drawer__body');
+      if (body) {
+        for (const node of this._userContent) {
+          body.appendChild(node);
+        }
+      }
+    }
   }
 
   show(): void {
@@ -96,9 +118,7 @@ export class WfDrawer extends WfElement {
             @click=${() => this.hide()}
           >&times;</button>
         </div>
-        <div class="wf-drawer__body">
-          <slot></slot>
-        </div>
+        <div class="wf-drawer__body"></div>
       </div>
     `;
   }

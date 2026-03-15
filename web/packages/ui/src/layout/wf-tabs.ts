@@ -18,6 +18,7 @@ export class WfTabs extends WfElement {
 
   private _tabList: HTMLDivElement | null = null;
   private _observer: MutationObserver | null = null;
+  private _building = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -26,6 +27,9 @@ export class WfTabs extends WfElement {
     // Observe child changes to rebuild tabs
     this._observer = new MutationObserver(() => this._buildTabList());
     this._observer.observe(this, { childList: true });
+
+    // Build tab list once children are available (microtask to let children connect)
+    Promise.resolve().then(() => this._buildTabList());
   }
 
   disconnectedCallback(): void {
@@ -33,11 +37,12 @@ export class WfTabs extends WfElement {
     this._observer?.disconnect();
   }
 
-  // Skip Lit's template rendering -- DOM is managed imperatively.
+  // DOM is managed imperatively -- skip Lit's template rendering.
+  // performUpdate() handles lifecycle (hasUpdated, firstUpdated, updated)
+  // after this method returns, so leaving it empty is safe.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected override update(_changedProperties: Map<string, unknown>): void {
-    // Intentionally empty to prevent Lit from rendering into this
-    // element's DOM, which conflicts with externally-set innerHTML.
+    // intentionally empty -- no Lit template to render
   }
 
   selectTab(name: string): void {
@@ -68,8 +73,18 @@ export class WfTabs extends WfElement {
   }
 
   private _buildTabList(): void {
+    if (this._building) return;
+    this._building = true;
+
+    // Pause observer while we mutate our own children
+    this._observer?.disconnect();
+
     const panels = this._getPanels();
-    if (panels.length === 0) return;
+    if (panels.length === 0) {
+      this._resumeObserver();
+      this._building = false;
+      return;
+    }
 
     // Default to first panel if no active tab set
     if (!this.activeTab && panels.length > 0) {
@@ -105,6 +120,14 @@ export class WfTabs extends WfElement {
     this.insertBefore(tabList, this.firstChild);
 
     this._syncPanels();
+    this._resumeObserver();
+    this._building = false;
+  }
+
+  private _resumeObserver(): void {
+    if (this._observer) {
+      this._observer.observe(this, { childList: true });
+    }
   }
 
   private _updateTabListActive(): void {

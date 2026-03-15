@@ -29,11 +29,10 @@ export class WfAccordion extends WfElement {
     this.removeEventListener('wf-accordion-change', this._handleItemChange as EventListener);
   }
 
-  // Skip Lit's template rendering — children are managed externally.
+  // Children are managed externally -- skip Lit's template rendering.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected override update(_changedProperties: Map<string, unknown>): void {
-    // Intentionally empty to prevent Lit from rendering into this
-    // element's DOM, which conflicts with externally-set innerHTML.
+    // intentionally empty -- no Lit template to render
   }
 
   private _handleItemChange = (e: CustomEvent): void => {

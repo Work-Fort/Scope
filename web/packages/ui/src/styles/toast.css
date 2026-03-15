@@ -22,8 +22,19 @@
 
 .wf-toast--error { border-left-color: var(--wf-color-error); background: var(--wf-color-error-subtle); }
 .wf-toast--warning { border-left-color: var(--wf-color-warning); background: var(--wf-color-warning-subtle); }
-.wf-toast--info { border-left-color: var(--wf-color-accent); }
-.wf-toast--success { border-left-color: var(--wf-color-success); background: var(--wf-color-success-subtle); }
+.wf-toast--info {
+  border-left-color: var(--wf-color-info);
+  background: var(--wf-color-info-subtle);
+  border: 1px solid color-mix(in srgb, var(--wf-color-info) 25%, transparent);
+  border-left: 4px solid var(--wf-color-info);
+}
+.wf-toast--success {
+  border-left-color: var(--wf-color-success);
+  background: var(--wf-color-success-subtle);
+  color: var(--wf-color-text);
+  border: 1px solid color-mix(in srgb, var(--wf-color-success) 25%, transparent);
+  border-left: 4px solid var(--wf-color-success);
+}
 
 .wf-toast__close {
   background: none;

@@ -45,16 +45,16 @@ a.wf-breadcrumbs__link {
   align-items: center;
   justify-content: center;
   font-family: var(--wf-font-sans);
-  color: var(--wf-color-text-secondary);
+  color: var(--wf-color-text);
 }
 .wf-spinner__svg {
   animation: wf-spinner-rotate 0.8s linear infinite;
 }
 .wf-spinner__track {
-  opacity: 0.2;
+  opacity: 0.25;
 }
 .wf-spinner__arc {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 .wf-spinner__label {
   position: absolute;

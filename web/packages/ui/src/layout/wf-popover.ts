@@ -18,15 +18,50 @@ export class WfPopover extends WfElement {
 
   private _cleanupEscape: (() => void) | null = null;
   private _boundDocClick: ((e: Event) => void) | null = null;
+  private _triggerContent: Node[] = [];
+  private _slotContent: Node[] = [];
+  private _didSetup = false;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.classList.add('wf-popover');
+
+    // Capture user-provided children before Lit renders.
+    // Separate trigger (default slot) from content (slot="content").
+    if (!this._didSetup) {
+      for (const node of Array.from(this.childNodes)) {
+        if (node instanceof Element && node.getAttribute('slot') === 'content') {
+          this._slotContent.push(node);
+        } else {
+          this._triggerContent.push(node);
+        }
+      }
+    }
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this._teardown();
+  }
+
+  protected override updated(_changed: Map<string, unknown>): void {
+    super.updated(_changed);
+
+    if (!this._didSetup) {
+      this._didSetup = true;
+      const trigger = this.querySelector('.wf-popover__trigger');
+      const content = this.querySelector('.wf-popover__content');
+      if (trigger) {
+        for (const node of this._triggerContent) {
+          trigger.appendChild(node);
+        }
+      }
+      if (content) {
+        for (const node of this._slotContent) {
+          content.appendChild(node);
+        }
+      }
+    }
   }
 
   toggle(): void {
@@ -82,15 +117,11 @@ export class WfPopover extends WfElement {
 
   render() {
     return html`
-      <div class="wf-popover__trigger" @click=${(e: Event) => { e.stopPropagation(); this.toggle(); }}>
-        <slot></slot>
-      </div>
+      <div class="wf-popover__trigger" @click=${(e: Event) => { e.stopPropagation(); this.toggle(); }}></div>
       <div
         class="wf-popover__content wf-popover__content--${this.position}"
         ?hidden=${!this.open}
-      >
-        <slot name="content"></slot>
-      </div>
+      ></div>
     `;
   }
 }
