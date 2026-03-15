@@ -1,6 +1,7 @@
 [tools]
 android-sdk = "latest"
 go = "latest"
+java = "21"
 node = "lts"
 "npm:pnpm" = "10"
 rust = "latest"

@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.workfort.app",
   "build": {
+    "beforeBuildCommand": { "script": "pnpm build", "cwd": "../web/shell" },
+    "beforeDevCommand": { "script": "pnpm dev", "cwd": "../web/shell" },
     "devUrl": "http://localhost:5173",
     "frontendDist": "../web/shell/dist"
   },
