@@ -193,10 +193,17 @@ a.wf-breadcrumbs__link {
 }
 .wf-progress__fill {
   height: 100%;
-  background: var(--wf-color-accent);
+  background: var(--wf-color-border-strong);
   border-radius: var(--wf-radius-full);
   transition: width var(--wf-duration-normal) var(--wf-ease-out);
 }
+
+/* Progress color variants */
+.wf-progress--red .wf-progress__fill { background: var(--wf-red-500); }
+.wf-progress--blue .wf-progress__fill { background: var(--wf-blue-500); }
+.wf-progress--green .wf-progress__fill { background: var(--wf-green-500); }
+.wf-progress--yellow .wf-progress__fill { background: var(--wf-amber-500); }
+.wf-progress--purple .wf-progress__fill { background: var(--wf-purple-500); }
 .wf-progress--sm .wf-progress__track { height: 0.25rem; }
 .wf-progress--lg .wf-progress__track { height: 0.75rem; }
 .wf-progress__label {

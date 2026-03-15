@@ -18,6 +18,9 @@ export class WfProgress extends WfElement {
   @property({ type: String }) size: 'sm' | 'md' | 'lg' = 'md';
   @property({ type: String }) label = '';
   @property({ type: Boolean }) indeterminate = false;
+  @property({ type: String, reflect: true }) color: 'default' | 'red' | 'blue' | 'green' | 'yellow' | 'purple' = 'default';
+
+  private static _colorClasses = ['wf-progress--red', 'wf-progress--blue', 'wf-progress--green', 'wf-progress--yellow', 'wf-progress--purple'];
 
   private _container: HTMLElement | null = null;
 
@@ -82,6 +85,12 @@ export class WfProgress extends WfElement {
     // Size
     this.classList.remove('wf-progress--sm', 'wf-progress--md', 'wf-progress--lg');
     if (this.size !== 'md') this.classList.add(`wf-progress--${this.size}`);
+
+    // Color
+    WfProgress._colorClasses.forEach(c => this.classList.remove(c));
+    if (this.color !== 'default') {
+      this.classList.add(`wf-progress--${this.color}`);
+    }
 
     // Indeterminate
     this.classList.toggle('wf-progress--indeterminate', this.indeterminate);
