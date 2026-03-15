@@ -102,3 +102,24 @@ export const Combobox = wrapWc<WfCombobox, { label?: string; placeholder?: strin
 export const DatePicker = wrapWc<WfDatePicker, { label?: string; value?: string; min?: string; max?: string; disabled?: boolean }>('wf-date-picker', 'DatePicker');
 export const FileUpload = wrapWc<WfFileUpload, { accept?: string; multiple?: boolean; disabled?: boolean }>('wf-file-upload', 'FileUpload');
 export const Form = wrapWc<WfForm, {}>('wf-form', 'Form');
+
+// Layout components (Phase 3)
+export const Card = wrapWc<HTMLElement, { variant?: string; padded?: boolean }>('wf-card', 'Card');
+export const Tabs = wrapWc<HTMLElement, {}>('wf-tabs', 'Tabs');
+export const TabPanel = wrapWc<HTMLElement, { name?: string; active?: boolean }>('wf-tab-panel', 'TabPanel');
+export const Accordion = wrapWc<HTMLElement, { multiple?: boolean }>('wf-accordion', 'Accordion');
+export const AccordionItem = wrapWc<HTMLElement, { open?: boolean; header?: string }>('wf-accordion-item', 'AccordionItem');
+export const Dialog = wrapWc<HTMLElement, { open?: boolean }>('wf-dialog', 'Dialog');
+export const Drawer = wrapWc<HTMLElement, { open?: boolean; position?: string }>('wf-drawer', 'Drawer');
+export const Tooltip = wrapWc<HTMLElement, { text?: string; position?: string }>('wf-tooltip', 'Tooltip');
+export const Popover = wrapWc<HTMLElement, { open?: boolean; position?: string }>('wf-popover', 'Popover');
+export const Table = wrapWc<HTMLElement, { columns?: unknown[]; data?: unknown[]; striped?: boolean; pageSize?: number }>('wf-table', 'Table');
+
+// Navigation components (Phase 4)
+export const Breadcrumbs = wrapWc<HTMLElement, { items?: unknown[]; separator?: string }>('wf-breadcrumbs', 'Breadcrumbs');
+export const Spinner = wrapWc<HTMLElement, { size?: string }>('wf-spinner', 'Spinner');
+export const Pagination = wrapWc<HTMLElement, { current?: number; count?: number }>('wf-pagination', 'Pagination');
+export const Stepper = wrapWc<HTMLElement, {}>('wf-stepper', 'Stepper');
+export const Step = wrapWc<HTMLElement, { label?: string; status?: string }>('wf-step', 'Step');
+export const Progress = wrapWc<HTMLElement, { value?: number; min?: number; max?: number; size?: string; color?: string; label?: string; indeterminate?: boolean }>('wf-progress', 'Progress');
+export const AlertDialog = wrapWc<HTMLElement, {}>('wf-alert-dialog', 'AlertDialog');
