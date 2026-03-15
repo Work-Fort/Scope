@@ -46,8 +46,23 @@ export class WfCombobox extends LitElement {
     super.connectedCallback();
     this.classList.add('wf-combobox');
     this._syncClasses();
+    this._collectChildOptions();
     this._boundDocClick = this._handleDocClick.bind(this);
     document.addEventListener('click', this._boundDocClick);
+  }
+
+  /** Read <wf-option> children and populate the options array. */
+  private _collectChildOptions(): void {
+    if (this.options.length > 0) return; // property takes precedence
+    const children = Array.from(this.querySelectorAll('wf-option'));
+    if (children.length > 0) {
+      this.options = children.map((el) => ({
+        value: el.getAttribute('value') || el.textContent?.trim() || '',
+        label: el.textContent?.trim() || '',
+      }));
+      // Hide the raw child elements since we render from the options array
+      children.forEach((el) => (el as HTMLElement).style.display = 'none');
+    }
   }
 
   disconnectedCallback(): void {

@@ -299,12 +299,15 @@
 
 .wf-combobox__option,
 wf-option {
-  padding: var(--wf-space-sm) var(--wf-space-md);
+  padding: var(--wf-space-md) var(--wf-space-md);
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
   cursor: pointer;
   font-size: var(--wf-text-sm);
   color: var(--wf-color-text);
   background: var(--wf-color-bg-elevated);
-  display: block;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .wf-combobox__option:hover,
