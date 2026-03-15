@@ -26,6 +26,16 @@ const EXPECTED = [
   'wf-combobox',
   'wf-date-picker',
   'wf-form',
+  'wf-card',
+  'wf-tabs',
+  'wf-tab-panel',
+  'wf-accordion',
+  'wf-accordion-item',
+  'wf-dialog',
+  'wf-drawer',
+  'wf-tooltip',
+  'wf-popover',
+  'wf-table',
 ];
 
 describe('@workfort/ui registration', () => {
