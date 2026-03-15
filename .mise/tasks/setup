@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#MISE description="Set up the full development environment"
+set -euo pipefail
+
+echo "==> Installing tools via mise..."
+mise install
+
+echo "==> Installing Android SDK packages..."
+SDK_ROOT="$(mise where android-sdk)"
+"$SDK_ROOT/cmdline-tools/1.0/bin/sdkmanager" --sdk_root="$SDK_ROOT" \
+  "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;27.0.12077973"
+
+echo "==> Adding Android Rust targets..."
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+echo "==> Initializing Tauri mobile targets..."
+(cd src-tauri && npx @tauri-apps/cli android init)
+
+echo "==> Installing web dependencies..."
+(cd web && pnpm install)
+
+echo "==> Done! Available commands:"
+echo "    mise run dev:web      — Start shell dev server"
+echo "    mise run dev:go       — Start Go backend"
+echo "    mise run dev:tauri    — Start Tauri desktop app"
+echo "    mise run dev:android  — Start Tauri Android app"

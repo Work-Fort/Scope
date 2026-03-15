@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#MISE description="Start the shell in Tauri desktop mode"
+set -euo pipefail
+
+cd web/shell && npx @tauri-apps/cli dev
