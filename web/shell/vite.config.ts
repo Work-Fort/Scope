@@ -3,6 +3,9 @@ import solid from 'vite-plugin-solid';
 import UnoCSS from 'unocss/vite';
 import { federation } from '@module-federation/vite';
 
+// https://v2.tauri.app/start/frontend/vite/
+const host = process.env.TAURI_DEV_HOST;
+
 export default defineConfig({
   plugins: [
     UnoCSS(),
@@ -25,5 +28,18 @@ export default defineConfig({
   build: {
     target: 'esnext',
     outDir: 'dist',
+  },
+  // Vite options tailored for Tauri development
+  clearScreen: false,
+  server: {
+    // Listen on all interfaces for Tauri mobile dev
+    host: host || false,
+    port: 5173,
+    strictPort: true,
+    hmr: host ? { protocol: 'ws', host } : undefined,
+    watch: {
+      // Tell Vite to ignore watching `src-tauri`
+      ignored: ['**/src-tauri/**'],
+    },
   },
 });
