@@ -32,6 +32,7 @@ const EXPECTED = [
   'wf-stepper',
   'wf-step',
   'wf-progress',
+  'wf-dialog',
 ];
 
 describe('@workfort/ui registration', () => {
