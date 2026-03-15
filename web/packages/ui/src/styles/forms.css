@@ -107,27 +107,15 @@
 }
 
 /* ── Select ── */
-.wf-select .wf-field__container {
-  position: relative;
-}
-
 .wf-select .wf-field__input {
   appearance: none;
   cursor: pointer;
-  padding-right: var(--wf-space-lg); /* room for arrow */
+  padding-right: var(--wf-space-xl); /* room for arrow */
   height: var(--wf-input-height);
-}
-
-.wf-select .wf-field__container::after {
-  content: '';
-  position: absolute;
-  right: var(--wf-input-padding);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--wf-color-text-secondary);
-  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23a8a29e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--wf-input-padding) center;
+  background-size: 12px 8px;
 }
 
 /* ── Checkbox ── */
