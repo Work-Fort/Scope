@@ -69,6 +69,14 @@
   box-sizing: border-box;
 }
 
+/* When input is inside a container, the container owns the border */
+.wf-field__container .wf-field__input {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
 .wf-field__input:focus {
   border-color: var(--wf-color-border-focus);
 }
