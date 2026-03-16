@@ -4,7 +4,7 @@
 :root {
   --wf-card-padding: var(--wf-space-md);
   --wf-card-radius: var(--wf-radius-md);
-  --wf-dialog-max-width: 32rem;
+  --wf-modal-max-width: 32rem;
   --wf-drawer-width: 20rem;
   --wf-tooltip-max-width: 16rem;
   --wf-popover-max-width: 20rem;
@@ -145,11 +145,11 @@
 }
 
 /* -- Dialog -- */
-.wf-dialog {
+.wf-modal {
   display: none;
 }
 
-.wf-dialog.wf-dialog--open {
+.wf-modal.wf-modal--open {
   display: flex;
   position: fixed;
   inset: 0;
@@ -158,12 +158,12 @@
   z-index: calc(var(--wf-z-modal) + 1);
 }
 
-.wf-dialog__panel {
+.wf-modal__panel {
   background: var(--wf-color-bg);
   border: 1px solid var(--wf-color-border);
   border-radius: var(--wf-radius-lg);
   box-shadow: var(--wf-shadow-lg);
-  max-width: var(--wf-dialog-max-width);
+  max-width: var(--wf-modal-max-width);
   width: 100%;
   max-height: 80vh;
   overflow-y: auto;
@@ -171,7 +171,7 @@
   color: var(--wf-color-text);
 }
 
-.wf-dialog__header {
+.wf-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -179,12 +179,12 @@
   border-bottom: 1px solid var(--wf-color-border);
 }
 
-.wf-dialog__title {
+.wf-modal__title {
   font-weight: var(--wf-weight-semibold);
   font-size: var(--wf-text-base);
 }
 
-.wf-dialog__close {
+.wf-modal__close {
   background: transparent;
   border: none;
   color: var(--wf-color-text-secondary);
@@ -194,11 +194,11 @@
   padding: var(--wf-space-xs);
 }
 
-.wf-dialog__close:hover {
+.wf-modal__close:hover {
   color: var(--wf-color-text);
 }
 
-.wf-dialog__body {
+.wf-modal__body {
   padding: var(--wf-space-md);
 }
 

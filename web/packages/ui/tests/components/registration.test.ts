@@ -31,6 +31,7 @@ const EXPECTED = [
   'wf-tab-panel',
   'wf-accordion',
   'wf-accordion-item',
+  'wf-modal',
   'wf-dialog',
   'wf-drawer',
   'wf-tooltip',
