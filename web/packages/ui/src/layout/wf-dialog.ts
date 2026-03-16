@@ -51,13 +51,21 @@ export class WfDialog extends WfElement {
     }
   }
 
+  private _handleOverlayClick = (e: MouseEvent): void => {
+    // Only close if clicking directly on the overlay, not on the panel
+    if (e.target === this) {
+      this.hide();
+    }
+  };
+
   show(): void {
     this._previousFocus = document.activeElement as HTMLElement | null;
     this.open = true;
     this.classList.add('wf-dialog--open');
+    this.addEventListener('click', this._handleOverlayClick);
 
-    this._backdrop = createBackdrop(() => this.hide());
-    this._cleanupEscape = onEscape(this, () => this.hide());
+    this._backdrop = createBackdrop();
+    this._cleanupEscape = onEscape(document, () => this.hide());
 
     // Defer focus trap setup to after render
     requestAnimationFrame(() => {
@@ -93,6 +101,7 @@ export class WfDialog extends WfElement {
   }
 
   private _teardown(): void {
+    this.removeEventListener('click', this._handleOverlayClick);
     if (this._backdrop) {
       removeBackdrop(this._backdrop);
       this._backdrop = null;
@@ -115,6 +124,7 @@ export class WfDialog extends WfElement {
         aria-modal="true"
         aria-label=${this.header || 'Dialog'}
         ?hidden=${!this.open}
+        @click=${(e: Event) => e.stopPropagation()}
       >
         <div class="wf-dialog__header" ?hidden=${!this.header}>
           <span class="wf-dialog__title">${this.header}</span>

@@ -146,16 +146,16 @@
 
 /* -- Dialog -- */
 .wf-dialog {
-  display: block;
+  display: none;
 }
 
-.wf-dialog--open {
+.wf-dialog.wf-dialog--open {
+  display: flex;
   position: fixed;
   inset: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--wf-z-modal);
+  z-index: calc(var(--wf-z-modal) + 1);
 }
 
 .wf-dialog__panel {
