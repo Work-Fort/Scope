@@ -1,13 +1,20 @@
 {
-  "name": "@workfort/auth",
+  "name": "@workfort/auth-tauri",
   "version": "0.0.1",
   "type": "module",
+  "license": "Apache-2.0",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Work-Fort/Scope",
+    "directory": "web/packages/auth"
+  },
   "dependencies": {
-    "@tauri-apps/api": "^2"
+    "@tauri-apps/api": "^2",
+    "@workfort/auth": "^0.1.0"
   }
 }

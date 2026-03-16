@@ -32,7 +32,7 @@ interface AuthState {
 | Stage | BFF | Tauri |
 |-------|-----|-------|
 | `configure()` | Returns `{ apiBase: '', environment: 'bff' }` immediately | Checks stored URL via `invoke('get_server_url')`. If none, returns `{ needsSetup: true }` |
-| `authenticate()` | Uses `WebAuthClient` from `@workfort/auth` | Uses `TauriAuthClient` from `@workfort/auth` |
+| `authenticate()` | Uses `WebAuthClient` from `@workfort/auth` (published from Passport repo) | Uses `TauriAuthClient` from `@workfort/auth-tauri` (this repo, `web/packages/auth/`) |
 | `beforeMount()` | Not used | Optional: register config service as MF remote, inject platform capabilities |
 
 ---

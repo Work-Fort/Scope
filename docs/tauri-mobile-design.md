@@ -4,6 +4,8 @@
 
 **Key Principle:** The Tauri Rust backend IS the BFF. It holds the JWT in memory and proxies all webview requests to the real API with auth headers attached. The webview never touches tokens. The shell web app stays almost unchanged.
 
+> **Note:** The Tauri-specific auth client lives in `@workfort/auth-tauri` (`web/packages/auth/` in this repo). The general `@workfort/auth` package is published from the Passport repo and should not be duplicated here.
+
 ---
 
 ## Architecture
