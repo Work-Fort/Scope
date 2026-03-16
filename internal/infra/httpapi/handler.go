@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/Work-Fort/Scope/internal/domain"
 )
@@ -91,6 +92,12 @@ func bffMiddleware(fortName string, tc *TokenConverter, proxy http.Handler, wsHa
 			return
 		}
 
+		// Static UI assets (remoteEntry.js, CSS, JS) are public — no auth needed.
+		if isUIAssetRequest(r) {
+			proxy.ServeHTTP(w, r)
+			return
+		}
+
 		// Regular HTTP — BFF conversion.
 		if tc == nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -139,6 +146,13 @@ func isWebSocketUpgrade(r *http.Request) bool {
 		}
 	}
 	return false
+}
+
+// isUIAssetRequest returns true for requests targeting a service's /ui/ path.
+// These are static assets (remoteEntry.js, CSS, JS bundles) that don't need auth.
+func isUIAssetRequest(r *http.Request) bool {
+	parts := strings.SplitN(r.URL.Path, "/", 5)
+	return len(parts) >= 4 && parts[1] == "api" && parts[3] == "ui"
 }
 
 func servicesHandler(fortName string, tracker *ServiceTracker) http.HandlerFunc {

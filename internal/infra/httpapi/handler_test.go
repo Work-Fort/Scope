@@ -235,6 +235,24 @@ func TestHandler_BFFProxyRouting_NoCookie(t *testing.T) {
 	}
 }
 
+func TestHandler_UIAssetsServedWithoutAuth(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	// Pass nil token converter — simulates no auth service configured.
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/sharkfin/ui/remoteEntry.js", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	// Should NOT be 401 — static assets bypass auth.
+	if rec.Code == http.StatusUnauthorized {
+		t.Fatalf("UI asset request should not require auth, got 401")
+	}
+}
+
 func TestHandler_SPAFallback(t *testing.T) {
 	fsys := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
