@@ -12,6 +12,7 @@ export function registerNewRemotes(fort: string, services: ServiceInfo[]): void 
     .map((s) => ({
       name: s.name,
       entry: `/forts/${fort}/api/${s.name}/ui/remoteEntry.js`,
+      type: 'module' as const,
     }));
 
   if (newRemotes.length > 0) {
