@@ -47,3 +47,14 @@ export async function fetchConfig(fort: string): Promise<ConfigResponse> {
   if (!res.ok) throw new Error(`/forts/${fort}/api/config: ${res.status}`);
   return res.json();
 }
+
+export async function checkSession(fort: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/forts/${fort}/api/session`);
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body.authenticated === true;
+  } catch {
+    return false;
+  }
+}
