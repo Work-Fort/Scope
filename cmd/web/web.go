@@ -70,7 +70,14 @@ func run(cmd *cobra.Command, args []string) error {
 	router.StartIdleCleanup(ctx, 30*time.Minute)
 
 	addr := fmt.Sprintf("%s:%d", bind, port)
-	srv := &http.Server{Addr: addr, Handler: router}
+	srv := &http.Server{
+		Addr:           addr,
+		Handler:        router,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   60 * time.Second,
+		IdleTimeout:    120 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MiB
+	}
 
 	url := fmt.Sprintf("http://%s", addr)
 	log.Info("web server listening", "url", url, "forts", len(forts))
