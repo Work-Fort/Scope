@@ -1,0 +1,66 @@
+/* nav-bar.css -- Styles for wf-nav-bar component */
+
+.wf-nav-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-sm);
+  padding: var(--wf-space-xs) var(--wf-space-md);
+  background: var(--wf-color-bg);
+  border-bottom: 1px solid var(--wf-color-border);
+  font-family: var(--wf-font-sans);
+  color: var(--wf-color-text);
+  min-height: 3rem;
+}
+
+.wf-nav-bar__brand {
+  flex-shrink: 0;
+  font-weight: var(--wf-weight-semibold);
+  font-size: var(--wf-text-base);
+  padding-right: var(--wf-space-md);
+}
+
+.wf-nav-bar__tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wf-nav-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.wf-nav-bar__overflow {
+  flex-shrink: 0;
+}
+
+.wf-nav-bar__overflow-btn {
+  background: transparent;
+  border: 1px solid var(--wf-color-border);
+  border-radius: var(--wf-radius-sm);
+  color: var(--wf-color-text-secondary);
+  cursor: pointer;
+  padding: var(--wf-space-xs) var(--wf-space-sm);
+  font-size: var(--wf-text-sm);
+  font-family: inherit;
+  line-height: 1;
+}
+
+.wf-nav-bar__overflow-btn:hover {
+  background: var(--wf-color-bg-secondary);
+  color: var(--wf-color-text);
+}
+
+/* Collapsed mode -- hide bar, show only hamburger */
+.wf-nav-bar--collapsed {
+  background: transparent;
+  border-bottom: none;
+  padding: 0;
+  min-height: 0;
+}
