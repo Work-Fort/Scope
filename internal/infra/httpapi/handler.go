@@ -152,7 +152,13 @@ func isWebSocketUpgrade(r *http.Request) bool {
 // These are static assets (remoteEntry.js, CSS, JS bundles) that don't need auth.
 func isUIAssetRequest(r *http.Request) bool {
 	parts := strings.SplitN(r.URL.Path, "/", 5)
-	return len(parts) >= 4 && parts[1] == "api" && parts[3] == "ui"
+	if len(parts) < 5 || parts[1] != "api" || parts[3] != "ui" {
+		return false
+	}
+	sub := parts[4]
+	return sub == "remoteEntry.js" ||
+		sub == "health" ||
+		strings.HasPrefix(sub, "assets/")
 }
 
 func servicesHandler(fortName string, tracker *ServiceTracker) http.HandlerFunc {

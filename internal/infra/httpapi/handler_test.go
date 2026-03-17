@@ -243,13 +243,45 @@ func TestHandler_UIAssetsServedWithoutAuth(t *testing.T) {
 	// Pass nil token converter — simulates no auth service configured.
 	handler := httpapi.NewHandler(fort, tracker, nil, nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/sharkfin/ui/remoteEntry.js", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
+	// These paths SHOULD bypass auth.
+	allowedPaths := []string{
+		"/api/sharkfin/ui/remoteEntry.js",
+		"/api/sharkfin/ui/health",
+		"/api/sharkfin/ui/assets/index-abc123.js",
+		"/api/sharkfin/ui/assets/style.css",
+	}
+	for _, p := range allowedPaths {
+		req := httptest.NewRequest(http.MethodGet, p, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
 
-	// Should NOT be 401 — static assets bypass auth.
-	if rec.Code == http.StatusUnauthorized {
-		t.Fatalf("UI asset request should not require auth, got 401")
+		if rec.Code == http.StatusUnauthorized {
+			t.Errorf("path %q should bypass auth, got 401", p)
+		}
+	}
+}
+
+func TestHandler_UIArbitraryPathsRequireAuth(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	// Pass nil token converter — without auth, non-asset paths should get 401.
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	// These paths should NOT bypass auth.
+	blockedPaths := []string{
+		"/api/sharkfin/ui/some-api",
+		"/api/sharkfin/ui/admin/secret",
+	}
+	for _, p := range blockedPaths {
+		req := httptest.NewRequest(http.MethodGet, p, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("path %q should require auth, got %d", p, rec.Code)
+		}
 	}
 }
 
