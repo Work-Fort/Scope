@@ -4,3 +4,5 @@ export {
 } from './components.js';
 export { useAuth } from './use-auth.js';
 export { useTheme } from './use-theme.js';
+export { useIdleDetection } from './use-idle-detection.js';
+export { usePermissions } from './use-permissions.js';
