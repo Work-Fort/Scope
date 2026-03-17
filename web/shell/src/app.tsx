@@ -9,13 +9,14 @@ import {
   useContext,
 } from 'solid-js';
 import { Navigate, Route, Router, useParams } from '@solidjs/router';
-import { services, startPolling, stopPolling, isSetupMode } from './stores/services';
+import { services, startPolling, stopPolling, isSetupMode, isAuthRequired } from './stores/services';
 import './stores/theme';
 import ShellLayout from './components/shell-layout';
 import ServiceMount from './components/service-mount';
 import Unavailable from './components/unavailable';
 import FortPicker from './components/fort-picker';
 import SetupForm from './components/setup-form';
+import SignInForm from './components/sign-in-form';
 import type { ServiceModule } from './lib/remotes';
 
 // Context to pass sidebar setter from FortShell to ServicePage.
@@ -50,7 +51,11 @@ const FortShell: Component = (props: { children?: any }) => {
       <Show when={!isSetupMode()} fallback={
         <SetupForm fort={params.fort} onComplete={() => startPolling(params.fort)} />
       }>
-        <ShellLayout sidebar={sidebarComponent()}>{props.children}</ShellLayout>
+        <Show when={!isAuthRequired()} fallback={
+          <SignInForm fort={params.fort} onComplete={() => startPolling(params.fort)} />
+        }>
+          <ShellLayout sidebar={sidebarComponent()}>{props.children}</ShellLayout>
+        </Show>
       </Show>
     </FortShellContext.Provider>
   );

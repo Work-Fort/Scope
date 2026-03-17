@@ -11,6 +11,12 @@ const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
 const [currentFort, setCurrentFort] = createSignal('');
 const [setupMode, setSetupMode] = createSignal(false);
 
+function hasSessionCookie(): boolean {
+  return document.cookie.includes('better-auth.session_token');
+}
+
+const [needsAuth, setNeedsAuth] = createSignal(!hasSessionCookie());
+
 let prevConnected = new Map<string, boolean>();
 
 function handlePollResult(res: ServicesResponse): void {
@@ -67,6 +73,8 @@ function handlePollResult(res: ServicesResponse): void {
 
   const authSvc = res.services.find((s) => s.name === 'auth');
   setSetupMode(authSvc?.setup_mode === true);
+
+  setNeedsAuth(!hasSessionCookie());
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -99,3 +107,4 @@ export const services = serviceList;
 export const conflicts = conflictList;
 export const fortName = currentFort;
 export const isSetupMode = setupMode;
+export const isAuthRequired = needsAuth;
