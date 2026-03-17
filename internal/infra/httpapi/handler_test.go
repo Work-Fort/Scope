@@ -383,6 +383,108 @@ func TestHandler_SessionEndpoint_Authenticated(t *testing.T) {
 	}
 }
 
+func TestHandler_SessionEndpoint_NoCookie(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	authSvc, _ := tracker.ServiceByName("auth")
+	tc := httpapi.NewTokenConverter(authSvc.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
+
+	// Request with no session cookie.
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false with no cookie")
+	}
+}
+
+func TestHandler_SessionEndpoint_InvalidCookie(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	authSvc, _ := tracker.ServiceByName("auth")
+	tc := httpapi.NewTokenConverter(authSvc.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
+
+	// Request with an invalid/expired session cookie.
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: "expired-garbage"})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false with invalid cookie")
+	}
+}
+
+func TestHandler_SessionEndpoint_NoTokenConverter(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	// Pass nil token converter — no auth service configured.
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: "valid-session"})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false when no token converter")
+	}
+}
+
+func TestHandler_SessionEndpoint_AlwaysReturns200(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	// Verify the endpoint always returns 200 OK, never 401.
+	for _, cookie := range []string{"", "valid-session", "garbage"} {
+		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+		if cookie != "" {
+			req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: cookie})
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("cookie=%q: expected 200, got %d", cookie, rec.Code)
+		}
+	}
+}
+
 func TestHandler_SPAFallback(t *testing.T) {
 	fsys := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
