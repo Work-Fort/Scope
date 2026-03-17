@@ -74,6 +74,110 @@ func TestWSProxy_NonWhitelistedPath(t *testing.T) {
 	}
 }
 
+func TestWSProxy_MismatchedOriginRejected(t *testing.T) {
+	// Backend WS server that accepts upgrades.
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_, _, _ = conn.ReadMessage()
+	}))
+	defer backend.Close()
+
+	backendURL := "ws" + strings.TrimPrefix(backend.URL, "http")
+	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws"}, "nexus", nil)
+
+	proxy := httptest.NewServer(wsHandler)
+	defer proxy.Close()
+
+	// Dial with a mismatched Origin header — should be rejected.
+	proxyURL := "ws" + strings.TrimPrefix(proxy.URL, "http") + "/api/nexus/ws"
+	dialer := websocket.Dialer{}
+	header := http.Header{}
+	header.Set("Origin", "http://evil.example.com")
+	_, resp, err := dialer.Dial(proxyURL, header)
+	if err == nil {
+		t.Fatal("expected error for mismatched Origin")
+	}
+	if resp != nil && resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", resp.StatusCode)
+	}
+}
+
+func TestWSProxy_SameOriginAllowed(t *testing.T) {
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		mt, msg, _ := conn.ReadMessage()
+		_ = conn.WriteMessage(mt, msg)
+	}))
+	defer backend.Close()
+
+	backendURL := "ws" + strings.TrimPrefix(backend.URL, "http")
+	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws"}, "nexus", nil)
+
+	proxy := httptest.NewServer(wsHandler)
+	defer proxy.Close()
+
+	// Dial with matching Origin header.
+	proxyURL := "ws" + strings.TrimPrefix(proxy.URL, "http") + "/api/nexus/ws"
+	dialer := websocket.Dialer{}
+	header := http.Header{}
+	// Use the proxy's host as the origin.
+	header.Set("Origin", proxy.URL)
+	conn, _, err := dialer.Dial(proxyURL, header)
+	if err != nil {
+		t.Fatalf("expected same-origin to be allowed: %v", err)
+	}
+	defer conn.Close()
+
+	if err := conn.WriteMessage(websocket.TextMessage, []byte("ok")); err != nil {
+		t.Fatalf("write error: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read error: %v", err)
+	}
+	if string(msg) != "ok" {
+		t.Fatalf("expected 'ok', got %q", string(msg))
+	}
+}
+
+func TestWSProxy_NoOriginAllowed(t *testing.T) {
+	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		_, _, _ = conn.ReadMessage()
+	}))
+	defer backend.Close()
+
+	backendURL := "ws" + strings.TrimPrefix(backend.URL, "http")
+	wsHandler := httpapi.NewWSProxy(backendURL, []string{"/ws"}, "nexus", nil)
+
+	proxy := httptest.NewServer(wsHandler)
+	defer proxy.Close()
+
+	// Dial without Origin header — should be allowed (non-browser client).
+	proxyURL := "ws" + strings.TrimPrefix(proxy.URL, "http") + "/api/nexus/ws"
+	dialer := websocket.Dialer{}
+	conn, _, err := dialer.Dial(proxyURL, nil)
+	if err != nil {
+		t.Fatalf("expected no-Origin to be allowed: %v", err)
+	}
+	conn.Close()
+}
+
 func TestWSProxy_ConnectionCallbacks(t *testing.T) {
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
