@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js';
-import { fetchServices, type ServiceInfo, type Conflict, type ServicesResponse } from '../lib/api';
+import { fetchServices, checkSession, type ServiceInfo, type Conflict, type ServicesResponse } from '../lib/api';
 import { registerNewRemotes } from '../lib/remotes';
 import { addBanner, removeBanner, banners } from './banners';
 import { addToast } from './toasts';
@@ -94,10 +94,21 @@ export function startPolling(fort: string): void {
     prevConnected = new Map();
     setServiceList([]);
     setConflictList([]);
+    setNeedsAuth(true);
   }
   activeFort = fort;
 
-  fetchServices(fort).then(handlePollResult).catch(console.error);
+  fetchServices(fort).then((res) => {
+    handlePollResult(res);
+
+    // Probe for existing session if not in setup mode.
+    if (!setupMode()) {
+      checkSession(fort).then((authenticated) => {
+        if (authenticated) setNeedsAuth(false);
+      });
+    }
+  }).catch(console.error);
+
   intervalId = setInterval(() => {
     fetchServices(fort).then(handlePollResult).catch(console.error);
   }, POLL_INTERVAL);
