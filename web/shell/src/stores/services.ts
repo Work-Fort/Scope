@@ -9,6 +9,7 @@ const POLL_INTERVAL = 30_000;
 const [serviceList, setServiceList] = createSignal<ServiceInfo[]>([]);
 const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
 const [currentFort, setCurrentFort] = createSignal('');
+const [setupMode, setSetupMode] = createSignal(false);
 
 let prevConnected = new Map<string, boolean>();
 
@@ -63,6 +64,9 @@ function handlePollResult(res: ServicesResponse): void {
   }
 
   setServiceList(res.services);
+
+  const authSvc = res.services.find((s) => s.name === 'auth');
+  setSetupMode(authSvc?.setup_mode === true);
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -94,3 +98,4 @@ export function stopPolling(): void {
 export const services = serviceList;
 export const conflicts = conflictList;
 export const fortName = currentFort;
+export const isSetupMode = setupMode;

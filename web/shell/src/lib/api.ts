@@ -11,6 +11,7 @@ export interface ServiceInfo {
   enabled: boolean;
   ui: boolean;
   connected: boolean;
+  setup_mode?: boolean;
 }
 
 export interface Conflict {
