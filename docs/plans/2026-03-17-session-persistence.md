@@ -4,37 +4,61 @@
 
 **Goal:** Detect existing authenticated sessions on page load so users don't have to sign in on every browser refresh.
 
-**Architecture:** The BFF gets a new `GET /api/session` endpoint that checks the session cookie via `TokenConverter`. The shell probes this on startup and sets `needsAuth(false)` if the session is valid. No JWT touches the browser — the BFF validates server-side.
+**Architecture:** The BFF gets a new `GET /api/session` endpoint that validates the session cookie server-side via `TokenConverter`. The shell probes this endpoint on startup and sets `needsAuth(false)` if valid. No JWT touches the browser — validation happens entirely in the BFF.
 
-**Tech Stack:** Go `net/http` (BFF), SolidJS (Shell)
+**Tech Stack:** Go `net/http` (BFF), SolidJS (Shell), vitest/happy-dom (Shell tests if applicable)
 
 **Repo:** `scope/lead`
 
 ---
 
-### Task 1: BFF Session Probe Endpoint
+### Task 1: BFF Session Endpoint — Authenticated Case
 
 **Files:**
 - Modify: `internal/infra/httpapi/handler.go`
 - Modify: `internal/infra/httpapi/handler_test.go`
 
-**Step 1: Write failing test**
+**Step 1: Write the failing test**
 
 Add to `internal/infra/httpapi/handler_test.go`:
 
 ```go
 func TestHandler_SessionEndpoint_Authenticated(t *testing.T) {
-	tracker, cleanup := newTestTracker(t)
-	defer cleanup()
-	fort := newTestFort(tracker)
+	// Set up a mock auth server that accepts "valid-session" cookie
+	// and returns a JWT — same pattern as TestHandler_BFFProxyRouting.
+	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ui/health" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]any{
+				"status": "unavailable",
+				"name":   "auth",
+				"label":  "Auth",
+				"route":  "/auth",
+			})
+			return
+		}
+		// Token conversion: accept "valid-session", reject everything else.
+		cookie, err := r.Cookie("better-auth.session_token")
+		if err != nil || cookie.Value != "valid-session" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"token": "jwt-for-session-check"})
+	}))
+	defer authServer.Close()
 
-	// Need a real auth URL for token converter.
-	authSvc, ok := tracker.ServiceByName("auth")
-	if !ok {
-		t.Fatal("auth service not found in tracker")
+	tracker := httpapi.NewServiceTracker([]string{authServer.URL})
+	tracker.InitialProbe(context.Background())
+
+	fort := domain.Fort{
+		Name:     "local",
+		Local:    true,
+		Services: []domain.ConfigService{{URL: authServer.URL}},
 	}
-	tc := httpapi.NewTokenConverterForTest(authSvc.URL, 5*time.Minute, 1*time.Minute)
 
+	tc := httpapi.NewTokenConverter(authServer.URL)
 	handler := httpapi.NewHandler(fort, tracker, tc, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
@@ -43,58 +67,31 @@ func TestHandler_SessionEndpoint_Authenticated(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
 	}
 
 	var resp struct {
 		Authenticated bool `json:"authenticated"`
 	}
-	json.NewDecoder(rec.Body).Decode(&resp)
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
 	if !resp.Authenticated {
-		t.Fatal("expected authenticated: true")
-	}
-}
-
-func TestHandler_SessionEndpoint_NoSession(t *testing.T) {
-	tracker, cleanup := newTestTracker(t)
-	defer cleanup()
-	fort := newTestFort(tracker)
-
-	handler := httpapi.NewHandler(fort, tracker, nil, nil)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-
-	var resp struct {
-		Authenticated bool `json:"authenticated"`
-	}
-	json.NewDecoder(rec.Body).Decode(&resp)
-	if resp.Authenticated {
-		t.Fatal("expected authenticated: false")
+		t.Fatal("expected authenticated: true with valid session cookie")
 	}
 }
 ```
 
-Note: The existing test infrastructure has a mock auth server that accepts `valid-session` as a cookie and returns a JWT. The `newTestTracker` sets this up. Read the existing BFF tests (around `TestHandler_BFFProxiesWithJWT`) to see the pattern.
-
 **Step 2: Run test to verify it fails**
 
 Run: `cd scope/lead && mise run test`
-Expected: FAIL — `/api/session` returns 404.
+Expected: FAIL — `/api/session` returns 404 (route not registered).
 
-**Step 3: Implement**
+**Step 3: Implement the session handler**
 
-In `internal/infra/httpapi/handler.go`, add the session endpoint in `NewHandler` alongside the other shell endpoints:
+In `internal/infra/httpapi/handler.go`, add the route in `NewHandler` next to the other shell endpoints:
 
 ```go
-// Shell endpoints.
-mux.HandleFunc("GET /api/services", servicesHandler(fort.Name, tracker))
-mux.HandleFunc("GET /api/config", configHandler(fort.Name))
 mux.HandleFunc("GET /api/session", sessionHandler(tc))
 ```
 
@@ -118,38 +115,157 @@ func sessionHandler(tc *TokenConverter) http.HandlerFunc {
 }
 ```
 
-This calls `tc.Token(r)` which:
-- Reads the session cookie
-- Returns a cached JWT if available (no Passport call)
-- Or calls Passport to exchange the cookie for a JWT (cache miss)
-- Returns an error if no cookie, expired session, or Passport is down
-
-If `tc` is nil (no auth service configured), `authenticated` is always false.
-
 **Step 4: Run test to verify it passes**
 
 Run: `cd scope/lead && mise run test`
-Expected: All tests pass.
+Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
 git add internal/infra/httpapi/handler.go internal/infra/httpapi/handler_test.go
-git commit -m "feat(bff): add /api/session endpoint for session detection"
+git commit -m "feat(bff): add /api/session endpoint — authenticated case"
 ```
 
 ---
 
-### Task 2: Shell Session Probe on Startup
+### Task 2: BFF Session Endpoint — Unauthenticated Cases
+
+**Files:**
+- Modify: `internal/infra/httpapi/handler_test.go`
+
+**Step 1: Write failing tests for edge cases**
+
+Add to `internal/infra/httpapi/handler_test.go`:
+
+```go
+func TestHandler_SessionEndpoint_NoCookie(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	authSvc, _ := tracker.ServiceByName("auth")
+	tc := httpapi.NewTokenConverter(authSvc.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
+
+	// Request with no session cookie.
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false with no cookie")
+	}
+}
+
+func TestHandler_SessionEndpoint_InvalidCookie(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	authSvc, _ := tracker.ServiceByName("auth")
+	tc := httpapi.NewTokenConverter(authSvc.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
+
+	// Request with an invalid/expired session cookie.
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: "expired-garbage"})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false with invalid cookie")
+	}
+}
+
+func TestHandler_SessionEndpoint_NoTokenConverter(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+
+	// Pass nil token converter — no auth service configured.
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: "valid-session"})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp.Authenticated {
+		t.Fatal("expected authenticated: false when no token converter")
+	}
+}
+
+func TestHandler_SessionEndpoint_AlwaysReturns200(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+	fort := newTestFort(tracker)
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	// Verify the endpoint always returns 200 OK, never 401.
+	// The authenticated field in the body carries the auth state.
+	// This prevents the browser's fetch from throwing on non-OK status.
+	for _, cookie := range []string{"", "valid-session", "garbage"} {
+		req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+		if cookie != "" {
+			req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: cookie})
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("cookie=%q: expected 200, got %d", cookie, rec.Code)
+		}
+	}
+}
+```
+
+**Step 2: Run tests to verify they pass**
+
+These should already pass with the implementation from Task 1 — they test the same handler with different inputs.
+
+Run: `cd scope/lead && mise run test`
+Expected: PASS (all 4 new tests + all existing tests).
+
+**Step 3: Commit**
+
+```bash
+git add internal/infra/httpapi/handler_test.go
+git commit -m "test(bff): add edge case tests for /api/session endpoint"
+```
+
+---
+
+### Task 3: Shell API — `checkSession` Function
 
 **Files:**
 - Modify: `web/shell/src/lib/api.ts`
-- Modify: `web/shell/src/stores/services.ts`
-- Modify: `web/shell/src/app.tsx`
 
-**Step 1: Add session probe to API layer**
-
-In `web/shell/src/lib/api.ts`, add:
+**Step 1: Add the checkSession function**
 
 ```typescript
 export async function checkSession(fort: string): Promise<boolean> {
@@ -164,30 +280,38 @@ export async function checkSession(fort: string): Promise<boolean> {
 }
 ```
 
-Note: The session endpoint is at `/forts/{fort}/api/session` because it goes through the fort dispatcher, which strips the prefix and forwards to the fort handler. The handler registers it at `/api/session`.
+Key design decisions:
+- Returns `false` on any error (network failure, non-200, invalid JSON) — fail closed.
+- Uses the fort-scoped path `/forts/{fort}/api/session` which routes through the fort dispatcher to the fort handler.
+- No auth headers needed — the browser automatically sends the HttpOnly session cookie.
 
-Wait — actually, `/api/session` is registered on the fort-level handler, not the root router. So the full path is `/forts/{fort}/api/session`. But this path goes through `fortDispatch` which strips `/forts/{fort}` and forwards to the fort handler. The SPA fallback (Issue 8 fix) catches non-`/api/` paths — `/api/session` starts with `/api/` so it goes to the fort handler. This should work.
+**Step 2: Commit**
 
-**Step 2: Update services store**
-
-In `web/shell/src/stores/services.ts`:
-
-Replace the `needsAuth` initialization and update logic:
-
-```typescript
-import { checkSession } from '../lib/api';
-
-// Auth state: starts true (assume unauthenticated).
-// Probed on first poll via /api/session endpoint.
-const [needsAuth, setNeedsAuth] = createSignal(true);
-
-/** Called by sign-in/setup forms after successful authentication. */
-export function clearAuthRequired(): void {
-  setNeedsAuth(false);
-}
+```bash
+git add web/shell/src/lib/api.ts
+git commit -m "feat(shell): add checkSession API function"
 ```
 
-In `startPolling`, after the first `fetchServices` call, probe the session:
+---
+
+### Task 4: Shell Store — Probe Session on Startup
+
+**Files:**
+- Modify: `web/shell/src/stores/services.ts`
+
+**Step 1: Read the current file**
+
+Read `web/shell/src/stores/services.ts` to understand the current `startPolling`, `needsAuth`, and `clearAuthRequired` implementation.
+
+**Step 2: Update `startPolling` to probe session**
+
+Import `checkSession`:
+
+```typescript
+import { fetchServices, checkSession, type ServiceInfo, type Conflict, type ServicesResponse } from '../lib/api';
+```
+
+In `startPolling`, after the first `fetchServices` resolves and `handlePollResult` runs, probe the session if not in setup mode:
 
 ```typescript
 export function startPolling(fort: string): void {
@@ -196,13 +320,14 @@ export function startPolling(fort: string): void {
     prevConnected = new Map();
     setServiceList([]);
     setConflictList([]);
+    setNeedsAuth(true); // Reset on fort change.
   }
   activeFort = fort;
 
   fetchServices(fort).then((res) => {
     handlePollResult(res);
 
-    // After first poll, probe for existing session if not in setup mode.
+    // Probe for existing session if not in setup mode.
     if (!setupMode()) {
       checkSession(fort).then((authenticated) => {
         if (authenticated) setNeedsAuth(false);
@@ -216,32 +341,74 @@ export function startPolling(fort: string): void {
 }
 ```
 
-The session probe only runs on the first poll (not every 30s). If the session is valid, `needsAuth` flips to false and the sign-in form disappears. If not, it stays true and the user sees the sign-in form.
+Note: The session probe only runs on the first poll — not every 30 seconds. This avoids unnecessary Passport calls. If the session expires mid-use, the next BFF-proxied request will return 401 and the app can handle it then.
 
-**Step 3: Verify build**
+**Step 3: Remove the old `hasSessionCookie` function if still present**
+
+Check if `hasSessionCookie` is still in the file. If so, delete it — it's been replaced by the server-side probe.
+
+**Step 4: Verify build**
 
 Run: `cd web/shell && pnpm build`
 Expected: Build succeeds.
 
-**Step 4: Commit**
+**Step 5: Commit**
 
 ```bash
-git add web/shell/src/lib/api.ts web/shell/src/stores/services.ts
-git commit -m "feat(shell): probe /api/session on startup to detect existing auth"
+git add web/shell/src/stores/services.ts
+git commit -m "feat(shell): probe /api/session on startup to persist auth across reloads"
 ```
 
 ---
 
-### Task 3: Integration Verification
+### Task 5: Integration Test with Playwright
 
-1. Start all services (Passport, Sharkfin, Vite, BFF)
-2. Sign in via the browser
-3. Reload the page
-4. The shell should NOT show the sign-in form — the session probe detects the existing cookie
-5. Navigate to Chat — it should load with full permissions
+**Step 1: Ensure all services are running**
 
-Verify with Playwright:
-- Navigate to BFF URL
-- If sign-in shows, sign in
-- Hard reload (Ctrl+R)
-- Snapshot — should show the shell, not sign-in form
+- Passport: `passport.nexus:3000`
+- Sharkfin: `systemctl --user status sharkfin` (should be active)
+- Shell Vite: `localhost:5173`
+- BFF: `127.0.0.1:16100`
+
+**Step 2: Sign in**
+
+Navigate to `http://127.0.0.1:16100`, sign in with `admin@workfort.dev` / `adminpass123!`.
+
+**Step 3: Verify signed-in state**
+
+Take a snapshot — should show the shell with service tabs, not the sign-in form.
+
+**Step 4: Hard reload the page**
+
+```javascript
+await page.reload({ waitUntil: 'domcontentloaded' });
+```
+
+**Step 5: Verify session persists**
+
+Take a snapshot after reload. The shell should show the service tabs, NOT the sign-in form. The session probe detected the existing cookie.
+
+Wait a few seconds for the session probe to complete if needed.
+
+**Step 6: Verify Chat still works after reload**
+
+Click Chat. Take a snapshot. The Sharkfin UI should load with full admin permissions (channels visible, input bar present, no "no permission" messages).
+
+**Step 7: Check for console errors**
+
+Run `browser_console_messages` with level `error`. Should be zero real errors (favicon 404 is acceptable).
+
+**Step 8: Test expired session (optional)**
+
+Clear cookies via Playwright and reload. The sign-in form should appear since the session probe returns `authenticated: false`.
+
+```javascript
+await page.context().clearCookies();
+await page.reload();
+```
+
+Snapshot — should show sign-in form.
+
+**Step 9: Document results**
+
+If all steps pass, the session persistence feature is verified. If any step fails, document the failure with screenshots and error messages.
