@@ -1,7 +1,7 @@
-import { For, Show, type Component } from 'solid-js';
+import { For, type Component } from 'solid-js';
 import { useNavigate, useLocation, useParams } from '@solidjs/router';
 import { services, fortName } from '../stores/services';
-import { toggleTheme } from '../stores/theme';
+import { toggleTheme, toggleHandedness, handedness } from '../stores/theme';
 import { useTheme } from '@workfort/ui-solid';
 
 const NavBar: Component = () => {
@@ -10,30 +10,34 @@ const NavBar: Component = () => {
   const params = useParams<{ fort: string }>();
   const theme = useTheme();
 
+  // Only show services that have a UI.
+  const visibleServices = () => services().filter((s) => s.enabled && s.ui);
+
   return (
-    <nav class="shell-nav">
-      <span class="shell-nav__brand">{fortName() || 'WorkFort'}</span>
-      <wf-list class="shell-nav__tabs">
-        <For each={services().filter((s) => s.enabled)}>
-          {(svc) => (
-            <wf-list-item
-              active={location.pathname.includes(svc.route)}
-              class={!svc.ui ? 'shell-nav__tab--disabled' : ''}
-              on:wf-select={() => navigate(`/forts/${params.fort}${svc.route}`)}
-            >
-              <Show when={svc.ui}>
-                <wf-status-dot status={svc.connected ? 'online' : 'offline'} />
-              </Show>
-              {svc.label}
-            </wf-list-item>
-          )}
-        </For>
-      </wf-list>
-      <div class="shell-nav__spacer" />
-      <wf-button variant="text" on:wf-click={() => toggleTheme()}>
-        {theme() === 'dark' ? 'Light' : 'Dark'}
-      </wf-button>
-    </nav>
+    <wf-nav-bar hamburger-position={handedness() === 'left' ? 'top-left' : 'top-right'}>
+      <span slot="brand" class="shell-nav__brand">{fortName() || 'WorkFort'}</span>
+
+      <For each={visibleServices()}>
+        {(svc) => (
+          <wf-list-item
+            active={location.pathname.includes(svc.route)}
+            on:wf-select={() => navigate(`/forts/${params.fort}${svc.route}`)}
+          >
+            <wf-status-dot status={svc.connected ? 'online' : 'offline'} />
+            {svc.label}
+          </wf-list-item>
+        )}
+      </For>
+
+      <div slot="actions">
+        <wf-button variant="text" on:wf-click={() => toggleHandedness()}>
+          {handedness() === 'right' ? '\u21E4 Left' : 'Right \u21E5'}
+        </wf-button>
+        <wf-button variant="text" on:wf-click={() => toggleTheme()}>
+          {theme() === 'dark' ? 'Light' : 'Dark'}
+        </wf-button>
+      </div>
+    </wf-nav-bar>
   );
 };
 

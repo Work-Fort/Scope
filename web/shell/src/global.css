@@ -97,3 +97,32 @@ html, body, #app {
 .shell-nav__tabs wf-status-dot {
   margin-right: var(--wf-space-xs);
 }
+
+/* --- Responsive: mobile sidebar overlay --- */
+
+@media (max-width: 640px) {
+  .shell-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "banners"
+      "nav"
+      "content";
+  }
+  .shell-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 100;
+    background: var(--wf-color-bg);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .shell-sidebar--open {
+    transform: translateX(0);
+  }
+  .shell-content {
+    padding: var(--wf-space-md);
+  }
+}
