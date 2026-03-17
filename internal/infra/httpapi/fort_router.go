@@ -104,6 +104,14 @@ func (fr *FortRouter) fortDispatch(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "" {
 		r.URL.Path = "/"
 	}
+
+	// Non-API paths are client-side routes — serve the SPA so the
+	// browser's router can handle them (e.g., /chat, /nexus).
+	if fr.spaHandler != nil && !strings.HasPrefix(r.URL.Path, "/api/") {
+		fr.spaHandler.ServeHTTP(w, r)
+		return
+	}
+
 	inst.handler.ServeHTTP(w, r)
 }
 

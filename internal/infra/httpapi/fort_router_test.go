@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"testing/fstest"
 
 	"github.com/Work-Fort/Scope/internal/domain"
 	"github.com/Work-Fort/Scope/internal/infra/httpapi"
@@ -96,6 +97,62 @@ func TestFortRouter_DispatchToFort(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("got status %d, want 200", w.Code)
+	}
+}
+
+func TestFortRouter_SPAFallbackOnClientRoutes(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+
+	fort := newTestFort(tracker)
+	reg := &mockRegistry{forts: []domain.Fort{fort}}
+
+	spaFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
+	}
+	spaHandler := httpapi.NewSPAHandler(spaFS)
+	router := httpapi.NewFortRouter(reg, spaHandler)
+
+	// Client-side route — should get the SPA HTML, not 404.
+	req := httptest.NewRequest("GET", "/forts/local/chat", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("SPA fallback: expected 200, got %d (body: %s)", w.Code, w.Body.String())
+	}
+	if body := w.Body.String(); body != "<html>shell</html>" {
+		t.Fatalf("expected SPA HTML, got: %q", body)
+	}
+}
+
+func TestFortRouter_APIRoutesNotCapturedBySPA(t *testing.T) {
+	tracker, cleanup := newTestTracker(t)
+	defer cleanup()
+
+	fort := newTestFort(tracker)
+	reg := &mockRegistry{forts: []domain.Fort{fort}}
+
+	spaFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
+	}
+	spaHandler := httpapi.NewSPAHandler(spaFS)
+	router := httpapi.NewFortRouter(reg, spaHandler)
+
+	// API route should go through to the handler, not the SPA.
+	req := httptest.NewRequest("GET", "/forts/local/api/services", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	// Should be JSON, not HTML.
+	var resp struct {
+		Services []any `json:"services"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("expected JSON response, got: %s", w.Body.String())
 	}
 }
 
