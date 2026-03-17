@@ -1,6 +1,10 @@
 // Utilities
 export { initials, formatTime, formatDateLabel, isSameDay, throttle } from './utils/index.js';
 
+// Core classes
+export { IdleDetector } from './core/index.js';
+export type { IdleDetectorOptions } from './core/index.js';
+
 import './styles/primitives.css';
 import './styles/tokens.css';
 import './styles/components.css';
@@ -49,6 +53,7 @@ import './layout/wf-drawer.js';
 import './layout/wf-tooltip.js';
 import './layout/wf-popover.js';
 import './layout/wf-table.js';
+import './layout/wf-hamburger.js';
 
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
@@ -100,3 +105,5 @@ export { WfTooltip } from './layout/wf-tooltip.js';
 export { WfPopover } from './layout/wf-popover.js';
 export { WfTable } from './layout/wf-table.js';
 export type { WfTableColumn } from './layout/wf-table.js';
+export { WfHamburger } from './layout/wf-hamburger.js';
+export type { HamburgerPosition } from './layout/wf-hamburger.js';
