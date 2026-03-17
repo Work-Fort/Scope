@@ -1,0 +1,35 @@
+.wf-compose-input {
+  display: block;
+}
+.wf-compose-input__box {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--wf-space-sm);
+  border: 1px solid var(--wf-color-border-strong);
+  border-radius: var(--wf-radius-lg);
+  padding: var(--wf-space-sm);
+  background: var(--wf-color-bg-secondary);
+  transition: border-color 0.15s;
+}
+.wf-compose-input__box:focus-within {
+  border-color: var(--wf-color-text-secondary);
+}
+.wf-compose-input__field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--wf-color-text);
+  font-family: inherit;
+  font-size: var(--wf-text-sm);
+  line-height: var(--wf-leading-normal);
+  resize: none;
+  outline: none;
+  min-height: 1.5rem;
+}
+.wf-compose-input__field::placeholder {
+  color: var(--wf-color-text-muted);
+}
+.wf-compose-input__field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
