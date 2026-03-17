@@ -19,6 +19,7 @@ type TrackedService struct {
 	Enabled   bool     `json:"enabled"`
 	UI        bool     `json:"ui"`
 	Connected bool     `json:"connected"`
+	SetupMode bool     `json:"setup_mode,omitempty"`
 	WSPaths   []string `json:"-"`
 
 	wsRefCount int32
@@ -114,7 +115,8 @@ func (t *ServiceTracker) probeOne(ctx context.Context, serviceURL string, notify
 
 	// Both 200 and 503 include the manifest.
 	var health struct {
-		Status string `json:"status"`
+		Status    string `json:"status"`
+		SetupMode bool   `json:"setup_mode,omitempty"`
 		frontend.Manifest
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil || health.Name == "" {
@@ -163,6 +165,7 @@ func (t *ServiceTracker) probeOne(ctx context.Context, serviceURL string, notify
 		t.services[idx].Label = health.Label
 		t.services[idx].Route = health.Route
 		t.services[idx].UI = hasUI
+		t.services[idx].SetupMode = health.SetupMode
 		t.services[idx].hasWS = hasWS
 		t.services[idx].WSPaths = health.WSPaths
 		if !hasWS {
@@ -181,6 +184,7 @@ func (t *ServiceTracker) probeOne(ctx context.Context, serviceURL string, notify
 		Enabled:   true,
 		UI:        hasUI,
 		Connected: !hasWS,
+		SetupMode: health.SetupMode,
 		WSPaths:   health.WSPaths,
 		hasWS:     hasWS,
 	}

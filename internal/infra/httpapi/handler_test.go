@@ -253,6 +253,46 @@ func TestHandler_UIAssetsServedWithoutAuth(t *testing.T) {
 	}
 }
 
+func TestHandler_ServicesIncludesSetupMode(t *testing.T) {
+	authWithSetup := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status":     "ok",
+			"name":       "auth",
+			"label":      "Auth",
+			"route":      "",
+			"setup_mode": true,
+		})
+	}))
+	defer authWithSetup.Close()
+
+	tracker := httpapi.NewServiceTracker([]string{authWithSetup.URL})
+	tracker.InitialProbe(context.Background())
+
+	fort := domain.Fort{Name: "local", Local: true}
+	handler := httpapi.NewHandler(fort, tracker, nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/services", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	var resp struct {
+		Services []struct {
+			Name      string `json:"name"`
+			SetupMode bool   `json:"setup_mode,omitempty"`
+		} `json:"services"`
+	}
+	json.NewDecoder(rec.Body).Decode(&resp)
+
+	if len(resp.Services) == 0 {
+		t.Fatal("expected at least one service")
+	}
+	if !resp.Services[0].SetupMode {
+		t.Fatal("expected setup_mode to be true for auth service")
+	}
+}
+
 func TestHandler_SPAFallback(t *testing.T) {
 	fsys := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},
