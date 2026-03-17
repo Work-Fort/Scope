@@ -77,6 +77,8 @@ func rewriteCookiePaths(resp *http.Response, path string) {
 	resp.Header.Del("Set-Cookie")
 	for _, c := range cookies {
 		c.Path = path
+		c.HttpOnly = true
+		c.SameSite = http.SameSiteLaxMode
 		if v := c.String(); v != "" {
 			resp.Header.Add("Set-Cookie", v)
 		}
