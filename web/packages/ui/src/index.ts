@@ -2,7 +2,7 @@
 export { initials, formatTime, formatDateLabel, isSameDay, throttle } from './utils/index.js';
 
 // Core classes
-export { IdleDetector } from './core/index.js';
+export { IdleDetector, PermissionSet } from './core/index.js';
 export type { IdleDetectorOptions } from './core/index.js';
 
 import './styles/primitives.css';

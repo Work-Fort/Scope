@@ -1,0 +1,80 @@
+/* hamburger.css -- Styles for wf-hamburger component */
+
+:root {
+  --wf-hamburger-size: 2.5rem;
+  --wf-hamburger-panel-width: 18rem;
+}
+
+.wf-hamburger {
+  display: block;
+}
+
+.wf-hamburger__button {
+  position: fixed;
+  z-index: calc(var(--wf-z-modal) + 2);
+  width: var(--wf-hamburger-size);
+  height: var(--wf-hamburger-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wf-color-bg-elevated);
+  border: 1px solid var(--wf-color-border);
+  border-radius: var(--wf-radius-md);
+  color: var(--wf-color-text);
+  font-size: var(--wf-text-lg);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  box-shadow: var(--wf-shadow-sm);
+}
+
+.wf-hamburger__button:hover {
+  background: var(--wf-color-bg-secondary);
+}
+
+.wf-hamburger__button--top-left {
+  top: var(--wf-space-sm);
+  left: var(--wf-space-sm);
+}
+
+.wf-hamburger__button--top-right {
+  top: var(--wf-space-sm);
+  right: var(--wf-space-sm);
+}
+
+.wf-hamburger__button--bottom-left {
+  bottom: var(--wf-space-sm);
+  left: var(--wf-space-sm);
+}
+
+.wf-hamburger__button--bottom-right {
+  bottom: var(--wf-space-sm);
+  right: var(--wf-space-sm);
+}
+
+.wf-hamburger__panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: var(--wf-hamburger-panel-width);
+  background: var(--wf-color-bg);
+  border: 1px solid var(--wf-color-border);
+  box-shadow: var(--wf-shadow-lg);
+  z-index: calc(var(--wf-z-modal) + 1);
+  overflow-y: auto;
+  font-family: var(--wf-font-sans);
+  color: var(--wf-color-text);
+  transition: transform var(--wf-duration-normal) var(--wf-ease-in-out);
+}
+
+.wf-hamburger__panel--left {
+  left: 0;
+}
+
+.wf-hamburger__panel--right {
+  right: 0;
+}
+
+.wf-hamburger__body {
+  padding: var(--wf-space-md);
+}
