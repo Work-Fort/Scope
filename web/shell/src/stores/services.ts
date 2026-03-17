@@ -11,11 +11,14 @@ const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
 const [currentFort, setCurrentFort] = createSignal('');
 const [setupMode, setSetupMode] = createSignal(false);
 
-function hasSessionCookie(): boolean {
-  return document.cookie.includes('better-auth.session_token');
-}
+// Auth state: starts true (assume unauthenticated), cleared after
+// successful sign-in or if a BFF-protected probe succeeds.
+const [needsAuth, setNeedsAuth] = createSignal(true);
 
-const [needsAuth, setNeedsAuth] = createSignal(!hasSessionCookie());
+/** Called by the sign-in/setup forms after successful authentication. */
+export function clearAuthRequired(): void {
+  setNeedsAuth(false);
+}
 
 let prevConnected = new Map<string, boolean>();
 
@@ -74,7 +77,11 @@ function handlePollResult(res: ServicesResponse): void {
   const authSvc = res.services.find((s) => s.name === 'auth');
   setSetupMode(authSvc?.setup_mode === true);
 
-  setNeedsAuth(!hasSessionCookie());
+  // If setup mode is active, auth is not needed yet (setup form handles it).
+  // Otherwise, probe a BFF-protected endpoint to detect session state.
+  if (authSvc?.setup_mode) {
+    setNeedsAuth(false);
+  }
 }
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -89,6 +96,7 @@ export function startPolling(fort: string): void {
     setConflictList([]);
   }
   activeFort = fort;
+
   fetchServices(fort).then(handlePollResult).catch(console.error);
   intervalId = setInterval(() => {
     fetchServices(fort).then(handlePollResult).catch(console.error);
