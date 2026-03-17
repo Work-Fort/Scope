@@ -75,6 +75,16 @@
   right: 0;
 }
 
+.wf-hamburger__panel[hidden] {
+  display: none;
+}
+
+/* Hide direct children that are not the button or panel (late-appended content
+   before the MutationObserver moves them into the panel body). */
+.wf-hamburger > :not(.wf-hamburger__button):not(.wf-hamburger__panel) {
+  display: none;
+}
+
 .wf-hamburger__body {
   padding: var(--wf-space-md);
 }

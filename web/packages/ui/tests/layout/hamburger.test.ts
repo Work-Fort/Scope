@@ -148,4 +148,91 @@ describe('WfHamburger', () => {
     const panel = el.querySelector('.wf-hamburger__panel');
     expect(panel!.classList.contains('wf-hamburger__panel--right')).toBe(true);
   });
+
+  it('hides slotted content when panel is closed', async () => {
+    const el = document.createElement('wf-hamburger') as WfHamburger;
+    const item = document.createElement('div');
+    item.textContent = 'Menu Item';
+    item.classList.add('test-menu-item');
+    el.appendChild(item);
+    document.body.appendChild(el);
+    await el.updateComplete;
+
+    expect(el.open).toBe(false);
+
+    // The menu item must live inside the panel, not as a bare child
+    const panel = el.querySelector('.wf-hamburger__panel') as HTMLElement;
+    expect(panel).not.toBeNull();
+
+    // Panel must not be visible when closed
+    expect(panel.hidden).toBe(true);
+
+    // The menu item should be inside the panel body
+    const body = panel.querySelector('.wf-hamburger__body');
+    expect(body).not.toBeNull();
+    expect(body!.contains(item)).toBe(true);
+
+    // The menu item must NOT be visible outside the panel
+    // (i.e. it should not be a direct child of the host element)
+    const directChild = el.querySelector(':scope > .test-menu-item');
+    expect(directChild).toBeNull();
+  });
+
+  it('shows slotted content when panel is opened then hides on close', async () => {
+    const el = document.createElement('wf-hamburger') as WfHamburger;
+    const item = document.createElement('div');
+    item.textContent = 'Menu Item';
+    item.classList.add('test-menu-item');
+    el.appendChild(item);
+    document.body.appendChild(el);
+    await el.updateComplete;
+
+    // Open the panel
+    el.open = true;
+    await el.updateComplete;
+
+    const panel = el.querySelector('.wf-hamburger__panel') as HTMLElement;
+    expect(panel.hidden).toBe(false);
+
+    const body = panel.querySelector('.wf-hamburger__body');
+    expect(body!.contains(item)).toBe(true);
+
+    // Close the panel
+    el.open = false;
+    await el.updateComplete;
+
+    const panelAfter = el.querySelector('.wf-hamburger__panel') as HTMLElement;
+    expect(panelAfter.hidden).toBe(true);
+
+    // Content must still be inside the panel body, not leaking out
+    const bodyAfter = panelAfter.querySelector('.wf-hamburger__body');
+    expect(bodyAfter!.contains(item)).toBe(true);
+
+    // Must not appear as a direct child of the host
+    const directChild = el.querySelector(':scope > .test-menu-item');
+    expect(directChild).toBeNull();
+  });
+
+  it('moves dynamically-added children into the panel body', async () => {
+    // Simulates wf-nav-bar appending menu content after initial render
+    const el = await fixture<WfHamburger>('wf-hamburger');
+
+    // Append a child AFTER the component has already rendered
+    const item = document.createElement('div');
+    item.textContent = 'Late Menu Item';
+    item.classList.add('test-late-item');
+    el.appendChild(item);
+
+    // MutationObserver fires asynchronously; flush microtasks
+    await new Promise((r) => setTimeout(r, 0));
+
+    // The late child must be inside .wf-hamburger__body, not a bare child
+    const body = el.querySelector('.wf-hamburger__panel .wf-hamburger__body');
+    expect(body).not.toBeNull();
+    expect(body!.contains(item)).toBe(true);
+
+    // Must NOT be a direct child of the host element
+    const directChild = el.querySelector(':scope > .test-late-item');
+    expect(directChild).toBeNull();
+  });
 });

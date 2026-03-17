@@ -21,6 +21,7 @@ export class WfHamburger extends WfElement {
   private _cleanupEscape: (() => void) | null = null;
   private _userContent: Node[] = [];
   private _didSetup = false;
+  private _childObserver: MutationObserver | null = null;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -34,6 +35,10 @@ export class WfHamburger extends WfElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this._teardown();
+    if (this._childObserver) {
+      this._childObserver.disconnect();
+      this._childObserver = null;
+    }
   }
 
   protected override updated(changed: Map<string, unknown>): void {
@@ -47,6 +52,7 @@ export class WfHamburger extends WfElement {
           body.appendChild(node);
         }
       }
+      this._observeChildren();
     }
 
     if (changed.has('open')) {
@@ -95,6 +101,28 @@ export class WfHamburger extends WfElement {
       this._cleanupEscape();
       this._cleanupEscape = null;
     }
+  }
+
+  /** Watch for children appended directly to the host and adopt them into the panel body. */
+  private _observeChildren(): void {
+    const body = this.querySelector('.wf-hamburger__body');
+    if (!body) return;
+
+    this._childObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node instanceof Element && (
+            node.classList.contains('wf-hamburger__button') ||
+            node.classList.contains('wf-hamburger__panel')
+          )) continue;
+          // Skip Lit's own template marker nodes (comments)
+          if (node.nodeType === Node.COMMENT_NODE) continue;
+          body.appendChild(node);
+        }
+      }
+    });
+
+    this._childObserver.observe(this, { childList: true });
   }
 
   /** Determine the panel slide direction from position. */
