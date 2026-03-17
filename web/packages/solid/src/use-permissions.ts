@@ -6,6 +6,7 @@ export function usePermissions(initial: string[] = []) {
   const [permissions, setPermissions] = createSignal<string[]>(initial);
 
   function can(permission: string): boolean {
+    permissions(); // Read signal to create reactive dependency.
     return core.can(permission);
   }
 
