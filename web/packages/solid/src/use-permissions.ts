@@ -1,19 +1,17 @@
 import { createSignal } from 'solid-js';
-import { PermissionSet } from '@workfort/ui';
 
 export function usePermissions(initial: string[] = []) {
-  const core = new PermissionSet(initial);
-  const [permissions, setPermissions] = createSignal<string[]>(initial);
+  const [permsSet, setPermsSet] = createSignal<Set<string>>(new Set(initial));
 
   function can(permission: string): boolean {
-    permissions(); // Read signal to create reactive dependency.
-    return core.can(permission);
+    return permsSet().has(permission);
   }
 
   function update(perms: string[]): void {
-    core.update(perms);
-    setPermissions(perms);
+    setPermsSet(new Set(perms));
   }
+
+  const permissions = () => [...permsSet()];
 
   return { can, update, permissions };
 }
