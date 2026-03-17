@@ -325,6 +325,64 @@ func TestHandler_ServicesIncludesSetupMode(t *testing.T) {
 	}
 }
 
+func TestHandler_SessionEndpoint_Authenticated(t *testing.T) {
+	// Set up a mock auth server that accepts "valid-session" cookie
+	// and returns a JWT — same pattern as TestHandler_BFFProxyRouting.
+	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/ui/health" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]any{
+				"status": "unavailable",
+				"name":   "auth",
+				"label":  "Auth",
+				"route":  "/auth",
+			})
+			return
+		}
+		// Token conversion: accept "valid-session", reject everything else.
+		cookie, err := r.Cookie("better-auth.session_token")
+		if err != nil || cookie.Value != "valid-session" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"token": "jwt-for-session-check"})
+	}))
+	defer authServer.Close()
+
+	tracker := httpapi.NewServiceTracker([]string{authServer.URL})
+	tracker.InitialProbe(context.Background())
+
+	fort := domain.Fort{
+		Name:     "local",
+		Local:    true,
+		Services: []domain.ConfigService{{URL: authServer.URL}},
+	}
+
+	tc := httpapi.NewTokenConverter(authServer.URL)
+	handler := httpapi.NewHandler(fort, tracker, tc, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+	req.AddCookie(&http.Cookie{Name: "better-auth.session_token", Value: "valid-session"})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Authenticated bool `json:"authenticated"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !resp.Authenticated {
+		t.Fatal("expected authenticated: true with valid session cookie")
+	}
+}
+
 func TestHandler_SPAFallback(t *testing.T) {
 	fsys := fstest.MapFS{
 		"index.html": &fstest.MapFile{Data: []byte("<html>shell</html>")},

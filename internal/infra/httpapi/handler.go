@@ -22,6 +22,7 @@ func NewHandler(fort domain.Fort, tracker *ServiceTracker, tc *TokenConverter, s
 	// Shell endpoints.
 	mux.HandleFunc("GET /api/services", servicesHandler(fort.Name, tracker))
 	mux.HandleFunc("GET /api/config", configHandler(fort.Name))
+	mux.HandleFunc("GET /api/session", sessionHandler(tc))
 
 	// Register routes for all currently discovered services.
 	registerServiceRoutes(mux, tracker, tc, fort)
@@ -168,6 +169,22 @@ func servicesHandler(fortName string, tracker *ServiceTracker) http.HandlerFunc 
 			"fort":      fortName,
 			"services":  tracker.Services(),
 			"conflicts": tracker.Conflicts(),
+		})
+	}
+}
+
+func sessionHandler(tc *TokenConverter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		authenticated := false
+		if tc != nil {
+			_, err := tc.Token(r)
+			authenticated = err == nil
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]bool{
+			"authenticated": authenticated,
 		})
 	}
 }
