@@ -3,13 +3,13 @@
 .wf-nav-bar {
   display: flex;
   align-items: center;
-  gap: var(--wf-space-sm);
-  padding: var(--wf-space-xs) var(--wf-space-md);
+  gap: var(--wf-space-md);
+  padding: var(--wf-space-sm) var(--wf-space-lg);
   background: var(--wf-color-bg);
   border-bottom: 1px solid var(--wf-color-border);
   font-family: var(--wf-font-sans);
   color: var(--wf-color-text);
-  min-height: 3rem;
+  height: 48px;
 }
 
 .wf-nav-bar__brand {

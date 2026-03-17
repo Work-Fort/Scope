@@ -88,3 +88,10 @@
 .wf-hamburger__body {
   padding: var(--wf-space-md);
 }
+
+/* When inside a nav bar, the button flows inline instead of fixed. */
+.wf-nav-bar .wf-hamburger__button {
+  position: static;
+  box-shadow: none;
+  margin-left: auto;
+}
