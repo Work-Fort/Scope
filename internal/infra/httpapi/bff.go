@@ -60,6 +60,13 @@ func NewTokenConverterForTest(authServiceURL string, ttl, refresh time.Duration)
 	}
 }
 
+// CacheLen returns the number of cached tokens (for testing).
+func (tc *TokenConverter) CacheLen() int {
+	tc.mu.RLock()
+	defer tc.mu.RUnlock()
+	return len(tc.tokens)
+}
+
 // Token extracts the session cookie from the request and returns a JWT.
 func (tc *TokenConverter) Token(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(sessionCookieName)
@@ -71,8 +78,15 @@ func (tc *TokenConverter) Token(r *http.Request) (string, error) {
 	tc.mu.RLock()
 	cached, ok := tc.tokens[sessionVal]
 	tc.mu.RUnlock()
-	if ok && time.Until(cached.expiry) > tc.refreshBefore {
-		return cached.jwt, nil
+	if ok {
+		if time.Until(cached.expiry) <= 0 {
+			// Expired — evict and proceed to re-fetch.
+			tc.mu.Lock()
+			delete(tc.tokens, sessionVal)
+			tc.mu.Unlock()
+		} else if time.Until(cached.expiry) > tc.refreshBefore {
+			return cached.jwt, nil
+		}
 	}
 
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, tc.authURL, nil)
