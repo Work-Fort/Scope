@@ -48,4 +48,37 @@ describe('WfButton', () => {
     const el = await fixture<WfButton>('wf-button');
     expect(el.classList.contains('wf-button--filled')).toBe(false);
   });
+
+  it('submits parent form when type="submit"', async () => {
+    const form = document.createElement('form');
+    const handler = vi.fn((e: Event) => e.preventDefault());
+    form.addEventListener('submit', handler);
+    document.body.appendChild(form);
+
+    const el = document.createElement('wf-button') as WfButton;
+    el.setAttribute('type', 'submit');
+    form.appendChild(el);
+    await el.updateComplete;
+
+    el.click();
+    expect(handler).toHaveBeenCalledOnce();
+
+    document.body.removeChild(form);
+  });
+
+  it('defaults type to button (no form submission)', async () => {
+    const form = document.createElement('form');
+    const handler = vi.fn((e: Event) => e.preventDefault());
+    form.addEventListener('submit', handler);
+    document.body.appendChild(form);
+
+    const el = document.createElement('wf-button') as WfButton;
+    form.appendChild(el);
+    await el.updateComplete;
+
+    el.click();
+    expect(handler).not.toHaveBeenCalled();
+
+    document.body.removeChild(form);
+  });
 });

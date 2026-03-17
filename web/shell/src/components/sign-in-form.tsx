@@ -67,9 +67,9 @@ const SignInForm: Component<SignInFormProps> = (props) => {
           Password
           <input type="password" required value={password()} on:input={(e: Event) => setPassword((e.target as HTMLInputElement).value)} style={inputStyle} />
         </label>
-        <button type="submit" disabled={loading()} style={`margin-top: var(--wf-space-sm); padding: var(--wf-space-sm) var(--wf-space-md); border-radius: var(--wf-radius-sm); border: 1px solid var(--wf-color-border); background: var(--wf-color-bg-elevated); color: var(--wf-color-text); font-family: inherit; font-size: var(--wf-text-sm); cursor: pointer;`}>
+        <wf-button type="submit" disabled={loading()} style="margin-top: var(--wf-space-sm);">
           {loading() ? 'Signing in...' : 'Sign In'}
-        </button>
+        </wf-button>
       </form>
     </div>
   );

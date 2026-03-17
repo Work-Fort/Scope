@@ -101,9 +101,9 @@ const SetupForm: Component<SetupFormProps> = (props) => {
           Confirm Password
           <input type="password" required value={confirm()} on:input={(e: Event) => setConfirm((e.target as HTMLInputElement).value)} style={inputStyle} />
         </label>
-        <button type="submit" disabled={loading()} style={`margin-top: var(--wf-space-sm); padding: var(--wf-space-sm) var(--wf-space-md); border-radius: var(--wf-radius-sm); border: 1px solid var(--wf-color-border); background: var(--wf-color-bg-elevated); color: var(--wf-color-text); font-family: inherit; font-size: var(--wf-text-sm); cursor: pointer;`}>
+        <wf-button type="submit" disabled={loading()} style="margin-top: var(--wf-space-sm);">
           {loading() ? 'Creating...' : 'Create Account'}
-        </button>
+        </wf-button>
       </form>
     </div>
   );

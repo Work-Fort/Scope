@@ -2,11 +2,29 @@ import { property } from 'lit/decorators.js';
 import { WfElement } from '../base.js';
 
 export class WfButton extends WfElement {
+  static formAssociated = true;
+
   @property({ type: String, reflect: true }) variant: 'outline' | 'filled' = 'outline';
   @property({ type: String, reflect: true }) color: 'default' | 'red' | 'blue' | 'green' | 'yellow' | 'purple' = 'default';
   @property({ type: Boolean, reflect: true }) disabled = false;
+  @property({ type: String, reflect: true }) type: 'button' | 'submit' | 'reset' = 'button';
 
   private static _colorClasses = ['wf-button--red', 'wf-button--blue', 'wf-button--green', 'wf-button--yellow', 'wf-button--purple'];
+  private _internals: ElementInternals | null = null;
+
+  constructor() {
+    super();
+    try {
+      this._internals = this.attachInternals();
+    } catch {
+      // attachInternals not supported (e.g., happy-dom).
+    }
+  }
+
+  /** Return the associated form, via ElementInternals or DOM traversal. */
+  private get _form(): HTMLFormElement | null {
+    return this._internals?.form ?? this.closest('form');
+  }
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -44,13 +62,19 @@ export class WfButton extends WfElement {
       e.stopImmediatePropagation();
       return;
     }
+    // Submit or reset the parent form based on type.
+    if (this.type === 'submit') {
+      this._form?.requestSubmit();
+    } else if (this.type === 'reset') {
+      this._form?.reset();
+    }
     this.dispatchEvent(new CustomEvent('wf-click', { bubbles: true, composed: true }));
   };
 
   private _handleKeydown = (e: KeyboardEvent): void => {
     if ((e.key === 'Enter' || e.key === ' ') && !this.disabled) {
       e.preventDefault();
-      this.dispatchEvent(new CustomEvent('wf-click', { bubbles: true, composed: true }));
+      this._handleClick(e);
     }
   };
 }
