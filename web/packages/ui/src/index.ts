@@ -1,3 +1,6 @@
+// Utilities
+export { initials, formatTime, formatDateLabel, isSameDay, throttle } from './utils/index.js';
+
 import './styles/primitives.css';
 import './styles/tokens.css';
 import './styles/components.css';
