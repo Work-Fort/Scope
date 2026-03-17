@@ -14,7 +14,8 @@ import './wf-hamburger.js';
  * @element wf-nav-bar
  * @slot brand - Left-aligned brand content.
  * @slot - Default slot for tab items.
- * @slot actions - Right-aligned action buttons.
+ * @slot actions - Right-aligned action buttons (hidden on mobile).
+ * @slot menu - Content shown inside the hamburger panel when collapsed.
  */
 export class WfNavBar extends WfElement {
   @property({ type: Number, reflect: true }) breakpoint = 640;
@@ -72,6 +73,7 @@ export class WfNavBar extends WfElement {
     const brandSlot = this.querySelector('.wf-nav-bar__brand');
     const tabsSlot = this.querySelector('.wf-nav-bar__tabs');
     const actionsSlot = this.querySelector('.wf-nav-bar__actions');
+    const hamburger = this.querySelector('wf-hamburger');
 
     for (const node of this._userContent) {
       if (node instanceof Element) {
@@ -80,6 +82,8 @@ export class WfNavBar extends WfElement {
           brandSlot.appendChild(node);
         } else if (slot === 'actions' && actionsSlot) {
           actionsSlot.appendChild(node);
+        } else if (slot === 'menu' && hamburger) {
+          hamburger.appendChild(node);
         } else if (tabsSlot) {
           tabsSlot.appendChild(node);
         }

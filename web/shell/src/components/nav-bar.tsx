@@ -30,12 +30,20 @@ const NavBar: Component = () => {
       </For>
 
       <div slot="actions">
-        <wf-button variant="text" on:wf-click={() => toggleHandedness()}>
-          {handedness() === 'right' ? '\u21E4 Left' : 'Right \u21E5'}
-        </wf-button>
         <wf-button variant="text" on:wf-click={() => toggleTheme()}>
-          {theme() === 'dark' ? 'Light' : 'Dark'}
+          {theme() === 'dark' ? '☀' : '☾'}
         </wf-button>
+      </div>
+
+      <div slot="menu">
+        <wf-list>
+          <wf-list-item on:wf-select={() => toggleTheme()}>
+            {theme() === 'dark' ? '☀ Light mode' : '☾ Dark mode'}
+          </wf-list-item>
+          <wf-list-item on:wf-select={() => toggleHandedness()}>
+            {handedness() === 'right' ? '← Left-handed' : '→ Right-handed'}
+          </wf-list-item>
+        </wf-list>
       </div>
     </wf-nav-bar>
   );
