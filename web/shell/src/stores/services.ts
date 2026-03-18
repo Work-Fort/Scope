@@ -17,6 +17,9 @@ const [setupMode, setSetupMode] = createSignal(false);
 // successful sign-in or if a BFF-protected probe succeeds.
 const [needsAuth, setNeedsAuth] = createSignal(true);
 
+// Gate: false until initial session check finishes (prevents sign-in form flash).
+const [sessionChecked, setSessionChecked] = createSignal(false);
+
 /** Called by the sign-in/setup forms after successful authentication. */
 export function clearAuthRequired(): void {
   setNeedsAuth(false);
@@ -172,6 +175,7 @@ export function startPolling(fort: string): void {
     setServiceList([]);
     setConflictList([]);
     setNeedsAuth(true);
+    setSessionChecked(false);
   }
   activeFort = fort;
 
@@ -183,9 +187,17 @@ export function startPolling(fort: string): void {
     if (!setupMode()) {
       checkSession(fort).then((authenticated) => {
         if (authenticated) setNeedsAuth(false);
+        setSessionChecked(true);
+      }).catch(() => {
+        setSessionChecked(true);
       });
+    } else {
+      setSessionChecked(true);
     }
-  }).catch(console.error);
+  }).catch((err) => {
+    console.error(err);
+    setSessionChecked(true);
+  });
 
   // Fetch initial notifications
   fetchNotifications().catch(() => {});
@@ -215,3 +227,4 @@ export const fortName = currentFort;
 export const isSetupMode = setupMode;
 export function clearSetupMode(): void { setSetupMode(false); }
 export const isAuthRequired = needsAuth;
+export const isSessionChecked = sessionChecked;

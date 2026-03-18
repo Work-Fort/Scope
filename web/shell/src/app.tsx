@@ -9,7 +9,7 @@ import {
   useContext,
 } from 'solid-js';
 import { Navigate, Route, Router, useParams } from '@solidjs/router';
-import { services, startPolling, stopPolling, isSetupMode, isAuthRequired, clearAuthRequired, clearSetupMode } from './stores/services';
+import { services, startPolling, stopPolling, isSetupMode, isAuthRequired, isSessionChecked, clearAuthRequired, clearSetupMode } from './stores/services';
 import './stores/theme';
 import ShellLayout from './components/shell-layout';
 import ServiceMount from './components/service-mount';
@@ -52,10 +52,14 @@ const FortShell: Component = (props: { children?: any }) => {
       <Show when={!isSetupMode()} fallback={
         <SetupForm fort={params.fort} onComplete={() => { clearSetupMode(); clearAuthRequired(); }} />
       }>
-        <Show when={!isAuthRequired()} fallback={
-          <SignInForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
+        <Show when={isSessionChecked()} fallback={
+          <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--wf-color-text-secondary)">Loading…</div>
         }>
-          <ShellLayout sidebar={sidebarMount()}>{props.children}</ShellLayout>
+          <Show when={!isAuthRequired()} fallback={
+            <SignInForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
+          }>
+            <ShellLayout sidebar={sidebarMount()}>{props.children}</ShellLayout>
+          </Show>
         </Show>
       </Show>
     </FortShellContext.Provider>

@@ -10,6 +10,10 @@
   display: block;
 }
 
+.wf-hamburger[hidden] {
+  display: none;
+}
+
 .wf-hamburger__button {
   position: fixed;
   z-index: calc(var(--wf-z-modal) + 2);
