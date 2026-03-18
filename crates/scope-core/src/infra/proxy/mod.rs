@@ -79,9 +79,16 @@ impl ProxyHandler {
                 req = req.header("origin", &target_origin);
                 continue;
             }
-            // Never forward cookies to backend services. The BFF manages auth
-            // via JWT tokens — cookies are between the browser and scope-server only.
+            // Forward session token cookie but strip session_data (contains origin info
+            // that causes CSRF rejection). Other cookies are also stripped.
             if name.eq_ignore_ascii_case("cookie") {
+                let filtered: Vec<&str> = value.split(';')
+                    .map(|c| c.trim())
+                    .filter(|c| c.starts_with("better-auth.session_token="))
+                    .collect();
+                if !filtered.is_empty() {
+                    req = req.header("cookie", filtered.join("; "));
+                }
                 continue;
             }
             req = req.header(name.as_str(), value.as_str());
