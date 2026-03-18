@@ -17,6 +17,8 @@ url = "2"
 directories = "6"
 thiserror = "2"
 log = "0.4"
+futures-util = "0.3"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util", "macros"] }
+axum = "0.8"
