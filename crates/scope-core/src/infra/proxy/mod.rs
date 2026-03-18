@@ -53,16 +53,26 @@ impl ProxyHandler {
 
         let mut req = self.client.request(method, &target);
 
-        // Copy headers, skipping headers that leak client origin to backend services.
+        // Rewrite headers for proxying. The BFF is the trust boundary —
+        // backend services see scope-server as the client, not the browser.
+        //
         // Host: reqwest sets from target URL.
-        // Origin/Referer: would expose the browser's real origin (e.g. 10.0.0.64)
-        //   to backend services that validate origins (like Passport/Better Auth).
-        //   The proxy is the trust boundary — backends trust scope-server, not the browser.
+        // Origin: rewritten to the target service's origin (required by Better Auth CSRF).
+        // Referer: stripped (leaks browser URL, not useful for backend).
+        let target_origin = {
+            let u = url::Url::parse(&target).unwrap_or_else(|_| url::Url::parse(service_url).unwrap());
+            format!("{}://{}", u.scheme(), u.host_str().unwrap_or("localhost"))
+                + &u.port().map(|p| format!(":{p}")).unwrap_or_default()
+        };
+
         for (name, value) in headers {
             if name.eq_ignore_ascii_case("host")
-                || name.eq_ignore_ascii_case("origin")
                 || name.eq_ignore_ascii_case("referer")
             {
+                continue;
+            }
+            if name.eq_ignore_ascii_case("origin") {
+                req = req.header("origin", &target_origin);
                 continue;
             }
             req = req.header(name.as_str(), value.as_str());
