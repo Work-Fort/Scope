@@ -1,17 +1,11 @@
-use reqwest::Client;
+use scope_core::domain::session::FortTokens;
+use scope_core::domain::Store;
+use scope_core::infra::proxy::ProxyHandler;
+use scope_core::infra::discovery::ServiceDiscovery;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use url::Url;
-
-/// Per-fort token data. Each fort has its own passport instance.
-#[derive(Clone, Debug)]
-pub struct FortTokens {
-    pub jwt: String,
-    pub refresh_token: String,
-    pub expiry: Instant,
-    pub auth_url: String, // e.g. "https://acme.example.com/auth"
-}
 
 /// In-memory token store. Keyed by fort name. Cleared when app is killed.
 /// JWTs and refresh tokens live here — never in the webview.
@@ -28,7 +22,15 @@ impl TokenStore {
     }
 
     pub fn get(&self, fort: &str) -> Option<FortTokens> {
-        self.forts.lock().unwrap().get(fort).cloned()
+        let map = self.forts.lock().unwrap();
+        let t = map.get(fort)?;
+        // FortTokens doesn't derive Clone, so reconstruct
+        Some(FortTokens {
+            jwt: t.jwt.clone(),
+            refresh_token: t.refresh_token.clone(),
+            expiry: t.expiry,
+            auth_url: t.auth_url.clone(),
+        })
     }
 
     pub fn set(&self, fort: &str, tokens: FortTokens) {
@@ -41,28 +43,50 @@ impl TokenStore {
 
     /// Returns a snapshot of all fort names and their tokens.
     pub fn all(&self) -> Vec<(String, FortTokens)> {
-        self.forts.lock().unwrap().iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+        self.forts
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    FortTokens {
+                        jwt: v.jwt.clone(),
+                        refresh_token: v.refresh_token.clone(),
+                        expiry: v.expiry,
+                        auth_url: v.auth_url.clone(),
+                    },
+                )
+            })
+            .collect()
     }
 }
 
-/// State shared across the Tauri app: HTTP client, token store, API base URL.
+/// State shared across the Tauri app.
+/// Uses scope-core's ProxyHandler for HTTP forwarding and Store for persistence.
 #[derive(Clone)]
 pub struct AppState {
-    pub client: Client,
+    pub client: reqwest::Client,
+    pub proxy: Arc<ProxyHandler>,
     pub tokens: TokenStore,
+    pub store: Arc<dyn Store>,
+    pub discovery: Arc<ServiceDiscovery>,
     pub api_base: Url,
 }
 
 impl AppState {
-    pub fn new(api_base_url: &str) -> Self {
-        let client = Client::builder()
+    pub fn new(api_base_url: &str, store: Arc<dyn Store>) -> Self {
+        let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
             .build()
             .expect("Failed to build HTTP client");
 
         Self {
             client,
+            proxy: Arc::new(ProxyHandler::new()),
             tokens: TokenStore::new(),
+            store,
+            discovery: Arc::new(ServiceDiscovery::new()),
             api_base: Url::parse(api_base_url).expect("Invalid API base URL"),
         }
     }
@@ -80,7 +104,8 @@ pub fn extract_fort_name(path: &str) -> Option<&str> {
     path.split('/').next().filter(|s| !s.is_empty())
 }
 
-/// Proxies a request to the API backend, attaching the per-fort JWT if available.
+/// Proxies a request to the API backend using scope-core's ProxyHandler.
+/// Attaches the per-fort JWT if available.
 /// Returns the response body bytes, status code, and content-type.
 pub async fn proxy_request(
     state: &AppState,
@@ -90,49 +115,46 @@ pub async fn proxy_request(
     body: Option<Vec<u8>>,
     content_type: Option<&str>,
 ) -> Result<(Vec<u8>, u16, String), String> {
-    // Build target URL
-    let mut target = state.api_base.clone();
-    target.set_path(path);
-    if let Some(q) = query {
-        target.set_query(Some(q));
+    let service_url = state.api_base.as_str().trim_end_matches('/');
+
+    // Build headers to forward
+    let mut headers = Vec::new();
+    if let Some(ct) = content_type {
+        headers.push(("Content-Type".to_string(), ct.to_string()));
     }
 
-    // Build request
-    let reqwest_method = method.parse::<reqwest::Method>()
-        .map_err(|e| format!("Invalid method: {e}"))?;
-    let mut req = state.client.request(reqwest_method, target);
+    // Get per-fort JWT if this is a fort-scoped request
+    let token = extract_fort_name(path)
+        .and_then(|fort_name| state.tokens.get(fort_name))
+        .map(|t| t.jwt);
 
-    // Attach per-fort JWT if this is a fort-scoped request
-    if let Some(fort_name) = extract_fort_name(path) {
-        if let Some(tokens) = state.tokens.get(fort_name) {
-            req = req.header("Authorization", format!("Bearer {}", tokens.jwt));
-        }
-    }
-    // /api/forts and other /api/* paths pass through without auth
+    let resp = state
+        .proxy
+        .forward_http(
+            service_url,
+            method,
+            path,
+            query,
+            &headers,
+            body,
+            token.as_deref(),
+        )
+        .await
+        .map_err(|e| format!("Proxy error: {e}"))?;
 
-    // Attach body and content-type
-    if let Some(b) = body {
-        if let Some(ct) = content_type {
-            req = req.header("Content-Type", ct);
-        }
-        req = req.body(b);
-    }
+    let ct = resp
+        .headers
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.clone())
+        .unwrap_or_else(|| "application/octet-stream".to_string());
 
-    // Execute
-    let resp = req.send().await.map_err(|e| format!("Proxy error: {e}"))?;
-    let status = resp.status().as_u16();
-    let ct = resp.headers()
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("application/octet-stream")
-        .to_string();
-    let bytes = resp.bytes().await.map_err(|e| format!("Read body: {e}"))?;
-
-    Ok((bytes.to_vec(), status, ct))
+    Ok((resp.body, resp.status, ct))
 }
 
 /// Attempts to refresh the JWT for a specific fort using its stored refresh token.
 /// Returns true if refresh succeeded, false otherwise.
+// TODO: unify with scope-core session management when available
 pub async fn try_refresh(state: &AppState, fort_name: &str) -> bool {
     let tokens = match state.tokens.get(fort_name) {
         Some(t) => t,
@@ -140,7 +162,8 @@ pub async fn try_refresh(state: &AppState, fort_name: &str) -> bool {
     };
 
     let target = format!("{}/v1/auth/refresh", tokens.auth_url);
-    let resp = state.client
+    let resp = state
+        .client
         .post(&target)
         .json(&serde_json::json!({ "refresh_token": tokens.refresh_token }))
         .send()
@@ -155,12 +178,15 @@ pub async fn try_refresh(state: &AppState, fort_name: &str) -> bool {
 
                 if let (Some(jwt), Some(rt)) = (jwt, rt) {
                     let expiry = Instant::now() + Duration::from_secs(exp.unwrap_or(900));
-                    state.tokens.set(fort_name, FortTokens {
-                        jwt: jwt.to_string(),
-                        refresh_token: rt.to_string(),
-                        expiry,
-                        auth_url: tokens.auth_url.clone(),
-                    });
+                    state.tokens.set(
+                        fort_name,
+                        FortTokens {
+                            jwt: jwt.to_string(),
+                            refresh_token: rt.to_string(),
+                            expiry,
+                            auth_url: tokens.auth_url.clone(),
+                        },
+                    );
                     return true;
                 }
             }

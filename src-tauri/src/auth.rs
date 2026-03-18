@@ -1,8 +1,9 @@
+use scope_core::domain::session::FortTokens;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tauri::State;
 
-use crate::proxy::{AppState, FortTokens};
+use crate::proxy::AppState;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserInfo {
@@ -32,7 +33,8 @@ pub async fn login(
 ) -> Result<UserInfo, String> {
     let target = format!("{}/v1/auth/login", auth_url);
 
-    let resp = state.client
+    let resp = state
+        .client
         .post(&target)
         .json(&serde_json::json!({
             "email": email,
@@ -48,26 +50,28 @@ pub async fn login(
         return Err(format!("Login failed ({status}): {body}"));
     }
 
-    let auth: AuthResponse = resp.json().await
+    let auth: AuthResponse = resp
+        .json()
+        .await
         .map_err(|e| format!("Invalid auth response: {e}"))?;
 
     let expiry = Instant::now() + Duration::from_secs(auth.expires_in.unwrap_or(900));
-    state.tokens.set(&fort, FortTokens {
-        jwt: auth.token,
-        refresh_token: auth.refresh_token,
-        expiry,
-        auth_url,
-    });
+    state.tokens.set(
+        &fort,
+        FortTokens {
+            jwt: auth.token,
+            refresh_token: auth.refresh_token,
+            expiry,
+            auth_url,
+        },
+    );
 
     Ok(auth.user)
 }
 
 /// Tauri command: logout from a specific fort. Removes that fort's tokens.
 #[tauri::command]
-pub async fn logout(
-    state: State<'_, AppState>,
-    fort: String,
-) -> Result<(), String> {
+pub async fn logout(state: State<'_, AppState>, fort: String) -> Result<(), String> {
     state.tokens.remove(&fort);
     Ok(())
 }
@@ -86,7 +90,8 @@ pub async fn get_user(
 
     let target = format!("{}/v1/auth/me", tokens.auth_url);
 
-    let resp = state.client
+    let resp = state
+        .client
         .get(&target)
         .header("Authorization", format!("Bearer {}", tokens.jwt))
         .send()
@@ -99,7 +104,8 @@ pub async fn get_user(
             // Retry with new JWT
             let new_tokens = state.tokens.get(&fort).unwrap();
             let target = format!("{}/v1/auth/me", new_tokens.auth_url);
-            let resp = state.client
+            let resp = state
+                .client
                 .get(&target)
                 .header("Authorization", format!("Bearer {}", new_tokens.jwt))
                 .send()
@@ -107,7 +113,9 @@ pub async fn get_user(
                 .map_err(|e| format!("Get user retry failed: {e}"))?;
 
             if resp.status().is_success() {
-                let user: UserInfo = resp.json().await
+                let user: UserInfo = resp
+                    .json()
+                    .await
                     .map_err(|e| format!("Invalid user response: {e}"))?;
                 return Ok(Some(user));
             }
@@ -121,7 +129,9 @@ pub async fn get_user(
         return Err(format!("Get user failed: {}", resp.status()));
     }
 
-    let user: UserInfo = resp.json().await
+    let user: UserInfo = resp
+        .json()
+        .await
         .map_err(|e| format!("Invalid user response: {e}"))?;
     Ok(Some(user))
 }
