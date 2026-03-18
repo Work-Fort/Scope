@@ -53,9 +53,16 @@ impl ProxyHandler {
 
         let mut req = self.client.request(method, &target);
 
-        // Copy headers, skipping Host (reqwest sets it from the URL)
+        // Copy headers, skipping headers that leak client origin to backend services.
+        // Host: reqwest sets from target URL.
+        // Origin/Referer: would expose the browser's real origin (e.g. 10.0.0.64)
+        //   to backend services that validate origins (like Passport/Better Auth).
+        //   The proxy is the trust boundary — backends trust scope-server, not the browser.
         for (name, value) in headers {
-            if name.eq_ignore_ascii_case("host") {
+            if name.eq_ignore_ascii_case("host")
+                || name.eq_ignore_ascii_case("origin")
+                || name.eq_ignore_ascii_case("referer")
+            {
                 continue;
             }
             req = req.header(name.as_str(), value.as_str());
