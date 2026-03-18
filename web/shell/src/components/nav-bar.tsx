@@ -43,7 +43,7 @@ const NavBar: Component = () => {
         )}
       </For>
 
-      <span slot="controls">
+      <span slot="controls" class="shell-nav-controls">
         <button
           class="shell-sidebar-toggle"
           aria-label="Toggle sidebar"

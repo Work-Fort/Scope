@@ -57,11 +57,13 @@
   color: var(--wf-color-text);
 }
 
-/* Controls -- always visible, pushed to far edge with hamburger */
+/* Controls -- always visible, pushed to far edge with hamburger.
+   Gap matches the nav bar's own gap so spacing between controls
+   and the hamburger button is consistent. */
 .wf-nav-bar__controls {
   display: flex;
   align-items: center;
-  gap: var(--wf-space-sm);
+  gap: var(--wf-space-md);
   flex-shrink: 0;
   margin-left: auto;
 }
