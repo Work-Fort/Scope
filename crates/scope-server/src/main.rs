@@ -1,10 +1,12 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{
-    routing::{get, post},
+    routing::{any, get, post},
     Router,
 };
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, Mutex};
+use tower_http::services::{ServeDir, ServeFile};
 
 mod routes;
 mod state;
@@ -42,11 +44,19 @@ async fn main() {
     let discovery = Arc::new(scope_core::infra::discovery::ServiceDiscovery::new());
     let (notify_tx, _) = broadcast::channel(256);
 
+    let proxy = scope_core::infra::proxy::ProxyHandler::new();
+
     let state = Arc::new(AppState {
         store,
         discovery,
         notify_tx,
+        proxy,
+        tokens: Mutex::new(HashMap::new()),
     });
+
+    // SPA fallback: serve static files, fall back to index.html for client-side routing
+    let spa = ServeDir::new("web/shell/dist")
+        .not_found_service(ServeFile::new("web/shell/dist/index.html"));
 
     // Build router
     let app = Router::new()
@@ -65,6 +75,17 @@ async fn main() {
             "/api/preferences/{service}",
             get(routes::api::get_preference).put(routes::api::set_preference),
         )
+        // Proxy routes
+        .route(
+            "/forts/{fort}/api/{*rest}",
+            any(routes::proxy::proxy_handler),
+        )
+        .route(
+            "/forts/{fort}/ws/{*rest}",
+            any(routes::proxy::ws_proxy_handler),
+        )
+        // SPA fallback (must be last)
+        .fallback_service(spa)
         .with_state(state);
 
     // Start server
