@@ -85,14 +85,15 @@ async fn main() {
             "/forts/{fort}/api/session",
             get(routes::api::fort_session),
         )
-        // Proxy routes (catch-all for everything else under /forts)
-        .route(
-            "/forts/{fort}/api/{*rest}",
-            any(routes::proxy::proxy_handler),
-        )
         .route(
             "/forts/{fort}/ws/{*rest}",
             any(routes::proxy::ws_proxy_handler),
+        )
+        // HTTP proxy (catch-all for everything else under /forts)
+        // WS upgrades are detected inside the handler
+        .route(
+            "/forts/{fort}/api/{*rest}",
+            any(routes::proxy::proxy_handler),
         )
         // SPA fallback (must be last)
         .fallback_service(spa)
