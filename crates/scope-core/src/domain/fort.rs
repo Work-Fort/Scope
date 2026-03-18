@@ -20,6 +20,8 @@ pub struct TrackedService {
     pub name: String,
     pub label: String,
     pub route: String,
+    /// The original base URL used to probe this service.
+    pub base_url: String,
     pub ui: bool,
     pub connected: bool,
     #[serde(default)]
