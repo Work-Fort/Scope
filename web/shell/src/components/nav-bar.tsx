@@ -1,7 +1,7 @@
 import { For, Show, type Component } from 'solid-js';
 import { useNavigate, useLocation, useParams } from '@solidjs/router';
 import { services, fortName, clearAuthRequired } from '../stores/services';
-import { toggleTheme, toggleHandedness, handedness } from '../stores/theme';
+import { toggleTheme, toggleHandedness, handedness, toggleSidebar } from '../stores/theme';
 import { useTheme } from '@workfort/ui-solid';
 import NotificationBell from './notification-bell';
 

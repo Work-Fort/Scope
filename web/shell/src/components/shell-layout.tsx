@@ -2,6 +2,7 @@ import { type Component, type JSX, Show, For, onCleanup, createEffect } from 'so
 import NavBar from './nav-bar';
 import { sortedBanners, dismissBanner } from '../stores/banners';
 import { toasts, dismissToast } from '../stores/toasts';
+import { sidebarOpen, closeSidebar, toggleSidebar, handedness } from '../stores/theme';
 
 export interface SidebarMount {
   mount(el: HTMLElement): void;
@@ -48,9 +49,30 @@ const ShellLayout: Component<{
       </div>
       <NavBar />
       <Show when={props.sidebar}>
-        <aside class="shell-sidebar">
+        <button
+          class="shell-sidebar-toggle"
+          classList={{
+            'shell-sidebar-toggle--left': handedness() === 'right',
+            'shell-sidebar-toggle--right': handedness() === 'left',
+          }}
+          aria-label="Toggle sidebar"
+          onClick={() => toggleSidebar()}
+        >
+          {sidebarOpen() ? '✕' : '☰'}
+        </button>
+        <aside
+          class="shell-sidebar"
+          classList={{
+            'shell-sidebar--open': sidebarOpen(),
+            'shell-sidebar--left': handedness() === 'right',
+            'shell-sidebar--right': handedness() === 'left',
+          }}
+        >
           <div ref={sidebarRef} style="display:contents" />
         </aside>
+        <Show when={sidebarOpen()}>
+          <div class="shell-sidebar-backdrop" onClick={() => closeSidebar()} />
+        </Show>
       </Show>
       <main class="shell-content">{props.children}</main>
       <wf-toast-container position="top-right">

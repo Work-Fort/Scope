@@ -37,5 +37,15 @@ export function toggleHandedness(): void {
 
 export { handedness };
 
+// --- Mobile sidebar toggle ---
+const [sidebarOpen, setSidebarOpen] = createSignal(false);
+export function toggleSidebar(): void {
+  setSidebarOpen(!sidebarOpen());
+}
+export function closeSidebar(): void {
+  setSidebarOpen(false);
+}
+export { sidebarOpen };
+
 // Apply saved theme on load (overrides the static "dark" in index.html if user chose light).
 applyTheme(getInitialTheme());
