@@ -60,6 +60,7 @@ async fn main() {
 
     // Build router
     let app = Router::new()
+        .route("/ws/shell", get(routes::shell_ws::shell_ws_handler))
         .route("/api/forts", get(routes::api::list_forts))
         .route("/api/session", get(routes::api::session))
         .route("/api/services", get(routes::api::list_services))
@@ -86,7 +87,69 @@ async fn main() {
         )
         // SPA fallback (must be last)
         .fallback_service(spa)
-        .with_state(state);
+        .with_state(Arc::clone(&state));
+
+    // Start discovery polling for the first fort (if any)
+    {
+        let forts = state.store.list_forts().await.unwrap_or_default();
+        if let Some(fort) = forts.first() {
+            let discovery = Arc::clone(&state.discovery);
+            let fort_clone = fort.clone();
+            tokio::spawn(async move {
+                loop {
+                    discovery.probe_all(&fort_clone).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                }
+            });
+        }
+    }
+
+    // Start notification subscriber for services that support it
+    {
+        let state_clone = Arc::clone(&state);
+        tokio::spawn(async move {
+            // Wait for initial discovery probe to complete
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            let services = state_clone.discovery.services().await;
+            for svc in services {
+                if let Some(notif_path) = &svc.notification_path {
+                    let ws_url = format!(
+                        "{}{}",
+                        svc.base_url
+                            .replace("http://", "ws://")
+                            .replace("https://", "wss://"),
+                        notif_path
+                    );
+                    let subscriber =
+                        scope_core::infra::discovery::notifications::NotificationSubscriber::new(
+                            Arc::clone(&state_clone.store),
+                        );
+                    let tx = state_clone.notify_tx.clone();
+                    let svc_name = svc.name.clone();
+                    tokio::spawn(async move {
+                        log::info!(
+                            "subscribing to notifications from {svc_name} at {ws_url}"
+                        );
+                        if let Err(e) = subscriber
+                            .subscribe(
+                                &svc_name,
+                                &ws_url,
+                                None, // TODO: attach fort token
+                                move |notif| {
+                                    let _ = tx.send(notif);
+                                },
+                            )
+                            .await
+                        {
+                            log::warn!(
+                                "notification subscriber for {svc_name} failed: {e}"
+                            );
+                        }
+                    });
+                }
+            }
+        });
+    }
 
     // Start server
     log::info!("scope-server listening on {listen_addr}");
