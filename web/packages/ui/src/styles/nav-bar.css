@@ -57,18 +57,19 @@
   color: var(--wf-color-text);
 }
 
-/* Controls -- always visible, adjacent to hamburger */
+/* Controls -- always visible, pushed to far edge with hamburger */
 .wf-nav-bar__controls {
   display: flex;
   align-items: center;
   gap: var(--wf-space-xs);
   flex-shrink: 0;
+  margin-left: auto;
 }
 
-/* Collapsed mode -- hide bar, show only hamburger + controls */
+/* Collapsed mode -- hide bar background, show only controls + hamburger */
 .wf-nav-bar--collapsed {
   background: transparent;
   border-bottom: none;
-  padding: 0;
+  padding: var(--wf-space-sm) var(--wf-space-sm);
   min-height: 0;
 }

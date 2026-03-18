@@ -39,8 +39,12 @@ html, body, #app {
   grid-area: banners;
 }
 
-.shell-nav {
+.shell-nav,
+wf-nav-bar {
   grid-area: nav;
+}
+
+.shell-nav {
   display: flex;
   align-items: center;
   gap: var(--wf-space-lg);
