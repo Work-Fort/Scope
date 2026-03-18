@@ -213,4 +213,5 @@ export const services = serviceList;
 export const conflicts = conflictList;
 export const fortName = currentFort;
 export const isSetupMode = setupMode;
+export function clearSetupMode(): void { setSetupMode(false); }
 export const isAuthRequired = needsAuth;

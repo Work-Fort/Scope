@@ -9,7 +9,7 @@ import {
   useContext,
 } from 'solid-js';
 import { Navigate, Route, Router, useParams } from '@solidjs/router';
-import { services, startPolling, stopPolling, isSetupMode, isAuthRequired, clearAuthRequired } from './stores/services';
+import { services, startPolling, stopPolling, isSetupMode, isAuthRequired, clearAuthRequired, clearSetupMode } from './stores/services';
 import './stores/theme';
 import ShellLayout from './components/shell-layout';
 import ServiceMount from './components/service-mount';
@@ -50,7 +50,7 @@ const FortShell: Component = (props: { children?: any }) => {
   return (
     <FortShellContext.Provider value={{ setSidebarMount }}>
       <Show when={!isSetupMode()} fallback={
-        <SetupForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
+        <SetupForm fort={params.fort} onComplete={() => { clearSetupMode(); clearAuthRequired(); }} />
       }>
         <Show when={!isAuthRequired()} fallback={
           <SignInForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
