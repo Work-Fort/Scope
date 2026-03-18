@@ -140,6 +140,13 @@ pub async fn proxy_handler(
         .iter()
         .map(|(k, v)| (k.to_string(), v.to_str().unwrap_or("").to_string()))
         .collect();
+    // Debug: log cookie header for proxy requests
+    for (k, v) in &headers {
+        if k == "cookie" {
+            log::debug!("proxy {service_name}{service_path}: cookie={}", &v[..v.len().min(60)]);
+        }
+    }
+
     let body = axum::body::to_bytes(req.into_body(), 10 * 1024 * 1024) // 10MB limit
         .await
         .ok()

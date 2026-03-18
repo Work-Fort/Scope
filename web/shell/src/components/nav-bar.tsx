@@ -20,6 +20,13 @@ const NavBar: Component = () => {
   const menuServices = () =>
     services().filter((s) => s.enabled && s.ui && s.display === 'menu');
 
+  function closeHamburger() {
+    const hamburger = document.querySelector('wf-hamburger') as any;
+    if (hamburger?.open) {
+      hamburger.open = false;
+    }
+  }
+
   async function handleLogout() {
     // Clear the session cookie via the auth proxy.
     await fetch(`/forts/${params.fort}/api/auth/v1/sign-out`, { method: 'POST' }).catch(() => {});
@@ -61,7 +68,7 @@ const NavBar: Component = () => {
         <wf-list>
           <For each={menuServices()}>
             {(svc) => (
-              <wf-list-item on:wf-select={() => navigate(`/forts/${params.fort}${svc.route}`)}>
+              <wf-list-item on:wf-select={() => { closeHamburger(); navigate(`/forts/${params.fort}${svc.route}`); }}>
                 {svc.label}
               </wf-list-item>
             )}

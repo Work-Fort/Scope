@@ -19,26 +19,33 @@ const ServiceMount: Component<{
     },
   );
 
-  let mounted = false;
+  let currentMod: ServiceModule | null = null;
 
-  // Mount once when the module loads. Use untrack for props.connected
-  // so this effect only re-runs when the module changes, not on every
-  // connected state change. The mounted app handles prop updates internally.
+  // Mount/unmount when the module changes (triggered by props.name changing).
+  // Unmounts the previous service before mounting the new one.
   createEffect(() => {
     const m = mod();
-    if (m && containerRef && !mounted) {
+
+    // Unmount previous if different
+    if (currentMod && currentMod !== m && containerRef) {
+      currentMod.unmount(containerRef);
+      containerRef.innerHTML = '';
+      currentMod = null;
+    }
+
+    // Mount new
+    if (m && containerRef && currentMod !== m) {
       const connected = untrack(() => props.connected);
       m.mount(containerRef, { connected });
-      mounted = true;
+      currentMod = m;
     }
   });
 
-  // Cleanup on unmount
+  // Cleanup on component unmount
   onCleanup(() => {
-    const m = mod();
-    if (m && containerRef && mounted) {
-      m.unmount(containerRef);
-      mounted = false;
+    if (currentMod && containerRef) {
+      currentMod.unmount(containerRef);
+      currentMod = null;
     }
   });
 
