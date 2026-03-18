@@ -1,4 +1,4 @@
-import { createResource, Suspense, ErrorBoundary, Show, onCleanup, createEffect, type Component } from 'solid-js';
+import { createResource, Suspense, ErrorBoundary, Show, onCleanup, createEffect, untrack, type Component } from 'solid-js';
 import { loadServiceModule, type ServiceModule } from '../lib/remotes';
 import Unavailable from './unavailable';
 
@@ -19,19 +19,26 @@ const ServiceMount: Component<{
     },
   );
 
-  // Mount/unmount the service when the module loads
+  let mounted = false;
+
+  // Mount once when the module loads. Use untrack for props.connected
+  // so this effect only re-runs when the module changes, not on every
+  // connected state change. The mounted app handles prop updates internally.
   createEffect(() => {
     const m = mod();
-    if (m && containerRef) {
-      m.mount(containerRef, { connected: props.connected });
+    if (m && containerRef && !mounted) {
+      const connected = untrack(() => props.connected);
+      m.mount(containerRef, { connected });
+      mounted = true;
     }
   });
 
   // Cleanup on unmount
   onCleanup(() => {
     const m = mod();
-    if (m && containerRef) {
+    if (m && containerRef && mounted) {
       m.unmount(containerRef);
+      mounted = false;
     }
   });
 
