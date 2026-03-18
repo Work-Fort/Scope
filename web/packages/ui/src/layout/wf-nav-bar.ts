@@ -29,6 +29,7 @@ export class WfNavBar extends WfElement {
   @property({ type: Boolean }) hasOverflow = false;
 
   private _resizeObserver: ResizeObserver | null = null;
+  private _childObserver: MutationObserver | null = null;
   private _userContent: Node[] = [];
   private _didSetup = false;
   private _hamburgerOpen = false;
@@ -48,6 +49,10 @@ export class WfNavBar extends WfElement {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;
     }
+    if (this._childObserver) {
+      this._childObserver.disconnect();
+      this._childObserver = null;
+    }
   }
 
   protected override updated(changed: Map<string, unknown>): void {
@@ -57,6 +62,7 @@ export class WfNavBar extends WfElement {
       this._didSetup = true;
       this._distributeSlots();
       this._setupResizeObserver();
+      this._observeChildren();
     }
 
     if (changed.has('collapsed')) {
@@ -117,6 +123,45 @@ export class WfNavBar extends WfElement {
     });
 
     this._resizeObserver.observe(tabs);
+  }
+
+  /** Watch for children appended after initial setup (e.g. SolidJS reactive rendering). */
+  private _observeChildren(): void {
+    const brandSlot = this.querySelector('.wf-nav-bar__brand');
+    const tabsSlot = this.querySelector('.wf-nav-bar__tabs');
+    const actionsSlot = this.querySelector('.wf-nav-bar__actions');
+    const hamburger = this.querySelector('wf-hamburger');
+
+    this._childObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          // Skip internal structure nodes
+          if (node instanceof Element && (
+            node.classList.contains('wf-nav-bar__brand') ||
+            node.classList.contains('wf-nav-bar__tabs') ||
+            node.classList.contains('wf-nav-bar__actions') ||
+            node.classList.contains('wf-nav-bar__overflow') ||
+            node.tagName === 'WF-HAMBURGER'
+          )) continue;
+
+          if (node instanceof Element) {
+            const slot = node.getAttribute('slot');
+            if (slot === 'brand' && brandSlot) {
+              brandSlot.appendChild(node);
+            } else if (slot === 'actions' && actionsSlot) {
+              actionsSlot.appendChild(node);
+            } else if (slot === 'menu' && hamburger) {
+              const body = hamburger.querySelector('.wf-hamburger__body');
+              (body || hamburger).appendChild(node);
+            } else if (!slot && tabsSlot) {
+              tabsSlot.appendChild(node);
+            }
+          }
+        }
+      }
+    });
+
+    this._childObserver.observe(this, { childList: true });
   }
 
   private _onHamburgerToggle(e: CustomEvent<{ open: boolean }>): void {

@@ -55,6 +55,9 @@ export class WfHamburger extends WfElement {
       this._observeChildren();
     }
 
+    // Adopt any stranded children (appended by parent after setup).
+    this._adoptStrandedChildren();
+
     if (changed.has('open')) {
       if (this.open) {
         this._setup();
@@ -103,6 +106,19 @@ export class WfHamburger extends WfElement {
     }
   }
 
+  /** Move any direct children that aren't button/panel into the body. */
+  private _adoptStrandedChildren(): void {
+    const body = this.querySelector('.wf-hamburger__body');
+    if (!body) return;
+    for (const child of Array.from(this.children)) {
+      if (
+        child.classList.contains('wf-hamburger__button') ||
+        child.classList.contains('wf-hamburger__panel')
+      ) continue;
+      body.appendChild(child);
+    }
+  }
+
   /** Watch for children appended directly to the host and adopt them into the panel body. */
   private _observeChildren(): void {
     const body = this.querySelector('.wf-hamburger__body');
@@ -115,7 +131,6 @@ export class WfHamburger extends WfElement {
             node.classList.contains('wf-hamburger__button') ||
             node.classList.contains('wf-hamburger__panel')
           )) continue;
-          // Skip Lit's own template marker nodes (comments)
           if (node.nodeType === Node.COMMENT_NODE) continue;
           body.appendChild(node);
         }

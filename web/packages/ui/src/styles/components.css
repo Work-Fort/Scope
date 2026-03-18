@@ -91,6 +91,7 @@
   border-radius: 50%;
   background: transparent;
   border: 1.5px solid var(--wf-color-text-secondary);
+  margin-right: var(--wf-space-xs);
 }
 .wf-status-dot--online { background: var(--wf-color-success); border-color: var(--wf-color-success); }
 .wf-status-dot--away { background: var(--wf-color-warning); border-color: var(--wf-color-warning); }
