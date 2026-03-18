@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-#MISE description="Build all Rust crates (release)"
+#MISE description="Build all Rust crates (dev)"
 #MISE sources=["crates/**/*.rs", "src-tauri/**/*.rs", "Cargo.toml", "Cargo.lock"]
 set -euo pipefail
 
-cargo build --workspace --release
-echo "Built all workspace crates (release)"
+cargo build --workspace
+echo "Built all workspace crates (dev)"

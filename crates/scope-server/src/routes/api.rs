@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -11,23 +11,94 @@ use crate::state::AppState;
 /// GET /api/forts
 pub async fn list_forts(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     match state.store.list_forts().await {
-        Ok(forts) => Json(serde_json::json!({ "forts": forts })).into_response(),
+        Ok(forts) => Json(forts).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
 }
 
-/// GET /api/session
-/// For now returns a minimal response. Full session validation comes with token management.
-pub async fn session(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    // TODO: validate session cookie/token, return user info + role
-    Json(serde_json::json!({ "authenticated": false }))
+/// Validate session by forwarding the cookie to the auth service's /v1/session endpoint.
+async fn check_auth_session(state: &AppState, headers: &HeaderMap) -> serde_json::Value {
+    // Find the auth service URL from discovery
+    let services = state.discovery.services().await;
+    let auth_svc = services.iter().find(|s| s.name == "auth");
+    let auth_url = match auth_svc {
+        Some(svc) => &svc.base_url,
+        None => return serde_json::json!({ "authenticated": false }),
+    };
+
+    // Extract cookie header from the incoming request
+    let cookie = match headers.get("cookie").and_then(|v| v.to_str().ok()) {
+        Some(c) => c.to_string(),
+        None => return serde_json::json!({ "authenticated": false }),
+    };
+
+    // Forward to Passport's /v1/session
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{auth_url}/v1/session"))
+        .header("cookie", &cookie)
+        .send()
+        .await;
+
+    match resp {
+        Ok(r) if r.status().is_success() => {
+            if let Ok(body) = r.json::<serde_json::Value>().await {
+                // Better Auth returns { session: {...}, user: {...} }
+                let has_session = body.get("session").is_some();
+                let has_user = body.get("user").is_some();
+                if has_session && has_user {
+                    let user = &body["user"];
+                    let role = user
+                        .get("role")
+                        .and_then(|r| r.as_str())
+                        .unwrap_or("user");
+                    return serde_json::json!({
+                        "authenticated": true,
+                        "role": role,
+                    });
+                }
+            }
+            serde_json::json!({ "authenticated": false })
+        }
+        _ => serde_json::json!({ "authenticated": false }),
+    }
 }
 
-/// GET /api/services
+/// GET /api/session
+pub async fn session(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    Json(check_auth_session(&state, &headers).await)
+}
+
+/// GET /api/services or GET /forts/{fort}/api/services
 pub async fn list_services(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let services = state.discovery.services().await;
     // TODO: filter admin_only based on session role (Task 2 from passport plan)
     Json(serde_json::json!({ "services": services }))
+}
+
+/// GET /forts/{fort}/api/services — fort-scoped wrapper
+pub async fn fort_services(
+    State(state): State<Arc<AppState>>,
+    Path(fort): Path<String>,
+) -> impl IntoResponse {
+    let services = state.discovery.services().await;
+    Json(serde_json::json!({
+        "fort": fort,
+        "services": services,
+        "conflicts": [],
+    }))
+}
+
+/// GET /forts/{fort}/api/session — fort-scoped session check
+pub async fn fort_session(
+    State(state): State<Arc<AppState>>,
+    Path(_fort): Path<String>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    Json(check_auth_session(&state, &headers).await)
 }
 
 /// GET /api/notifications?limit=20&before_id=123

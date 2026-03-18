@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
-#MISE description="Build the Android debug APK"
-set -euo pipefail
-
-eval "$(mise activate bash 2>/dev/null || true)"
-npx @tauri-apps/cli android build --debug

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-#MISE description="Run tests with race detection and coverage"
+#MISE description="Run all Rust tests"
+#MISE sources=["crates/**/*.rs", "src-tauri/**/*.rs", "Cargo.toml", "Cargo.lock"]
 set -euo pipefail
 
-mkdir -p build
-go test -v -race -coverprofile=build/coverage.out ./...
+cargo test --workspace

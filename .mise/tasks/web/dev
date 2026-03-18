@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-#MISE description="Run all CI checks"
-#MISE depends=["lint", "test"]
+#MISE description="Start shell Vite dev server"
 set -euo pipefail
+
+cd web/shell
+pnpm dev

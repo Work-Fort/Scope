@@ -76,7 +76,16 @@ async fn main() {
             "/api/preferences/{service}",
             get(routes::api::get_preference).put(routes::api::set_preference),
         )
-        // Proxy routes
+        // Fort-scoped scope-server endpoints (must be before proxy catch-all)
+        .route(
+            "/forts/{fort}/api/services",
+            get(routes::api::fort_services),
+        )
+        .route(
+            "/forts/{fort}/api/session",
+            get(routes::api::fort_session),
+        )
+        // Proxy routes (catch-all for everything else under /forts)
         .route(
             "/forts/{fort}/api/{*rest}",
             any(routes::proxy::proxy_handler),

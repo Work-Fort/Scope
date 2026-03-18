@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-#MISE description="Run all CI checks"
-#MISE depends=["lint", "test"]
+#MISE description="Format Rust code"
 set -euo pipefail
+
+cargo fmt --all

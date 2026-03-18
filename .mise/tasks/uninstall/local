@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
-#MISE description="Remove locally installed binary"
-set -euo pipefail
-
-rm -f "$HOME/.local/bin/workfort"
-echo "✓ Removed workfort from ~/.local/bin"

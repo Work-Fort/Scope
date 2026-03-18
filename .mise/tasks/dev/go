@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
-#MISE description="Start Go backend in dev mode (proxies SPA to Vite)"
-set -euo pipefail
-
-go run . web --dev "$@"

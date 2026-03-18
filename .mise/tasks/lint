@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-#MISE description="Run formatting check and vet"
+#MISE description="Run clippy linter and format check"
 set -euo pipefail
 
-UNFORMATTED=$(gofmt -l .)
-if [ -n "$UNFORMATTED" ]; then
-    echo "Files not formatted:"
-    echo "$UNFORMATTED"
-    exit 1
-fi
-go vet ./...
+cargo fmt --all -- --check
+cargo clippy --workspace -- -D warnings

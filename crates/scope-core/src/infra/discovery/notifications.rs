@@ -180,7 +180,9 @@ mod tests {
         });
 
         // Open an in-memory SQLite store.
-        let store = crate::open_store("sqlite::memory:").await.unwrap();
+        let store: Arc<dyn Store> = Arc::new(
+            crate::infra::sqlite::SqliteStore::open(":memory:").await.unwrap()
+        );
 
         let subscriber = NotificationSubscriber::new(store.clone());
 
