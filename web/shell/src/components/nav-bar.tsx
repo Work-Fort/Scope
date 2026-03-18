@@ -42,7 +42,7 @@ const NavBar: Component = () => {
         )}
       </For>
 
-      <span slot="actions">
+      <span slot="controls">
         <NotificationBell />
       </span>
 

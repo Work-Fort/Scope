@@ -79,6 +79,7 @@ export class WfNavBar extends WfElement {
     const brandSlot = this.querySelector('.wf-nav-bar__brand');
     const tabsSlot = this.querySelector('.wf-nav-bar__tabs');
     const actionsSlot = this.querySelector('.wf-nav-bar__actions');
+    const controlsSlot = this.querySelector('.wf-nav-bar__controls');
     const hamburger = this.querySelector('wf-hamburger');
 
     for (const node of this._userContent) {
@@ -88,6 +89,8 @@ export class WfNavBar extends WfElement {
           brandSlot.appendChild(node);
         } else if (slot === 'actions' && actionsSlot) {
           actionsSlot.appendChild(node);
+        } else if (slot === 'controls' && controlsSlot) {
+          controlsSlot.appendChild(node);
         } else if (slot === 'menu' && hamburger) {
           hamburger.appendChild(node);
         } else if (tabsSlot) {
@@ -130,6 +133,7 @@ export class WfNavBar extends WfElement {
     const brandSlot = this.querySelector('.wf-nav-bar__brand');
     const tabsSlot = this.querySelector('.wf-nav-bar__tabs');
     const actionsSlot = this.querySelector('.wf-nav-bar__actions');
+    const controlsSlot = this.querySelector('.wf-nav-bar__controls');
     const hamburger = this.querySelector('wf-hamburger');
 
     this._childObserver = new MutationObserver((mutations) => {
@@ -140,6 +144,7 @@ export class WfNavBar extends WfElement {
             node.classList.contains('wf-nav-bar__brand') ||
             node.classList.contains('wf-nav-bar__tabs') ||
             node.classList.contains('wf-nav-bar__actions') ||
+            node.classList.contains('wf-nav-bar__controls') ||
             node.classList.contains('wf-nav-bar__overflow') ||
             node.tagName === 'WF-HAMBURGER'
           )) continue;
@@ -150,9 +155,10 @@ export class WfNavBar extends WfElement {
               brandSlot.appendChild(node);
             } else if (slot === 'actions' && actionsSlot) {
               actionsSlot.appendChild(node);
+            } else if (slot === 'controls' && controlsSlot) {
+              controlsSlot.appendChild(node);
             } else if (slot === 'menu' && hamburger) {
-              const body = hamburger.querySelector('.wf-hamburger__body');
-              (body || hamburger).appendChild(node);
+              hamburger.appendChild(node);
             } else if (!slot && tabsSlot) {
               tabsSlot.appendChild(node);
             }
@@ -179,6 +185,7 @@ export class WfNavBar extends WfElement {
         </button>
       </div>
       <div class="wf-nav-bar__actions" ?hidden=${this.collapsed}></div>
+      <div class="wf-nav-bar__controls"></div>
       <wf-hamburger
         position=${this.hamburgerPosition}
         ?open=${this._hamburgerOpen}

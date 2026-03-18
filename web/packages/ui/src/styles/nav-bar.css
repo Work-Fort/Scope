@@ -57,7 +57,15 @@
   color: var(--wf-color-text);
 }
 
-/* Collapsed mode -- hide bar, show only hamburger */
+/* Controls -- always visible, adjacent to hamburger */
+.wf-nav-bar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+  flex-shrink: 0;
+}
+
+/* Collapsed mode -- hide bar, show only hamburger + controls */
 .wf-nav-bar--collapsed {
   background: transparent;
   border-bottom: none;
