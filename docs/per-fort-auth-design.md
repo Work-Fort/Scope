@@ -78,11 +78,11 @@ for each (fort_name, tokens) in store.forts:
 
 When the user logs into a fort, the proxy needs to know that fort's auth service URL. Two approaches:
 
-**Option A (recommended):** The `/api/forts` response includes the gateway URL for each fort. The auth service is at `{gateway}/auth`. The proxy stores this when the fort list is fetched.
+**Option A (recommended):** The `/api/forts` response includes the pylon URL for each fort. The auth service is at `{pylon}/auth`. The proxy stores this when the fort list is fetched.
 
 **Option B:** After login, the proxy calls the fort's service tracker to discover the auth service URL (like the Go BFF does with `tracker.ServiceByName("auth")`).
 
-Option A is simpler — the gateway URL is already in the fort list response.
+Option A is simpler — the pylon URL is already in the fort list response.
 
 ---
 

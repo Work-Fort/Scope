@@ -1,8 +1,8 @@
 # Tauri Fort Configuration — Design Spec
 
-**Goal:** Let Tauri app users create and configure forts by manually entering service URLs. This replicates the Go BFF's config file approach through a UI. The design supports a future transition to gateway-based service discovery.
+**Goal:** Let Tauri app users create and configure forts by manually entering service URLs. This replicates the BFF's config file approach through a UI. The design supports a transition to Pylon-based service discovery.
 
-**Key Principle:** The BFF is the source of truth for how forts work. The Tauri app replicates the same `Fort` model (name, local flag, gateway, services list) but stores it in a JSON file instead of a viper config. The fort config UI is the Tauri equivalent of editing the BFF's config file.
+**Key Principle:** The BFF is the source of truth for how forts work. The Tauri app replicates the same `Fort` model (name, local flag, pylon, services list) but stores it in a JSON file instead of a YAML config. The fort config UI is the Tauri equivalent of editing the BFF's config file.
 
 ---
 
@@ -11,8 +11,8 @@
 ```rust
 struct FortConfig {
     name: String,
-    local: bool,              // true = direct service URLs, false = gateway
-    gateway: Option<String>,  // single origin URL when local=false
+    local: bool,              // true = direct service URLs, false = pylon
+    pylon: Option<String>,    // Pylon URL when local=false
     services: Vec<ServiceConfig>,
 }
 
@@ -42,17 +42,17 @@ Fort "home-lab"
 
 The Rust proxy probes each service URL (like the Go `ServiceTracker` does) to discover the service name, check connectivity, and find the auth service.
 
-### Gateway Mode (future)
+### Pylon Mode
 
-`local: false` — the user enters one gateway URL. The gateway handles routing to all services behind it.
+`local: false` — the user enters a Pylon URL. Pylon provides the service listing; the proxy connects to each service directly.
 
 ```
 Fort "acme-corp"
   local: false
-  gateway: https://acme.workfort.dev
+  pylon: https://pylon.acme.workfort.dev
 ```
 
-The Rust proxy sends all requests through the gateway. Service discovery happens via the gateway's `/api/services` endpoint.
+Service discovery happens via Pylon's `GET /api/services` endpoint. The proxy still connects to each service's `base_url` directly — Pylon is not in the request path.
 
 ---
 
@@ -80,7 +80,7 @@ The Rust proxy sends all requests through the gateway. Service discovery happens
 │                                 │
 │  Connection type                │
 │  ○ Direct (enter service URLs)  │
-│  ○ Gateway (single URL)         │
+│  ○ Pylon (single URL)           │
 │                                 │
 │  ─── Services ───               │
 │                                 │
@@ -103,7 +103,7 @@ The Rust proxy sends all requests through the gateway. Service discovery happens
 └─────────────────────────────────┘
 ```
 
-When "Gateway" is selected, the services list disappears and a single gateway URL input appears instead.
+When "Pylon" is selected, the services list disappears and a single Pylon URL input appears instead.
 
 ### Fort List (has forts)
 
@@ -119,10 +119,10 @@ The QR/deep link format encodes the full fort config:
 workfort://fort?name=home-lab&local=true&services=http://192.168.1.50:16000,http://192.168.1.50:9600
 ```
 
-Or for gateway mode:
+Or for Pylon mode:
 
 ```
-workfort://fort?name=acme-corp&gateway=https://acme.workfort.dev
+workfort://fort?name=acme-corp&pylon=https://pylon.acme.workfort.dev
 ```
 
 This replaces the simpler `workfort://connect?server=URL` from the previous design. The URL pre-populates the fort creation form so the user just reviews and taps "Create Fort."
@@ -175,19 +175,20 @@ When a fort is active, the Rust proxy uses its config to route requests:
 - Routes `/forts/{fort}/api/{service}/*` to the matching service URL
 - Finds the auth service for per-fort JWT management
 
-**Gateway fort (future):** All requests go through the single gateway URL:
-- Routes `/forts/{fort}/api/*` to `{gateway}/api/*`
-- Gateway handles internal service routing
+**Pylon fort:** Pylon provides the service listing; the proxy connects directly:
+- Fetches service list from `{pylon}/api/services`
+- Routes `/forts/{fort}/api/{service}/*` to each service's `base_url`
+- Pylon is not in the request path
 
 ---
 
 ## Transition Path
 
-The UI supports both modes from day one. The "Gateway" radio option works as soon as a gateway is available — no UI changes needed. The transition is:
+The UI supports both modes from day one. The "Pylon" radio option works as soon as a Pylon server is available — no UI changes needed. The transition is:
 
 1. **Now:** Users create local forts with manual service URLs
-2. **When gateways ship:** Users create gateway forts with a single URL
-3. **Migration:** Users can edit existing local forts to switch to gateway mode, or create new gateway forts alongside local ones
+2. **With Pylon:** Users create Pylon forts with a single URL
+3. **Migration:** Users can edit existing local forts to switch to Pylon mode, or create new Pylon forts alongside local ones
 
 No breaking changes, no migration scripts. Both modes coexist.
 

@@ -64,7 +64,7 @@ fn str_to_level(s: &str) -> NotificationLevel {
 #[async_trait]
 impl Store for PostgresStore {
     async fn list_forts(&self) -> crate::domain::ports::Result<Vec<Fort>> {
-        let rows = sqlx::query("SELECT name, local, gateway, active FROM forts")
+        let rows = sqlx::query("SELECT name, local, pylon, active FROM forts")
             .fetch_all(&self.pool)
             .await?;
 
@@ -85,7 +85,7 @@ impl Store for PostgresStore {
             forts.push(Fort {
                 name,
                 local: row.get("local"),
-                gateway: row.get("gateway"),
+                pylon: row.get("pylon"),
                 services,
             });
         }
@@ -94,7 +94,7 @@ impl Store for PostgresStore {
 
     async fn get_fort(&self, name: &str) -> crate::domain::ports::Result<Fort> {
         let row =
-            sqlx::query("SELECT name, local, gateway, active FROM forts WHERE name = $1")
+            sqlx::query("SELECT name, local, pylon, active FROM forts WHERE name = $1")
                 .bind(name)
                 .fetch_optional(&self.pool)
                 .await?
@@ -115,19 +115,19 @@ impl Store for PostgresStore {
         Ok(Fort {
             name: row.get("name"),
             local: row.get("local"),
-            gateway: row.get("gateway"),
+            pylon: row.get("pylon"),
             services,
         })
     }
 
     async fn upsert_fort(&self, fort: &Fort) -> crate::domain::ports::Result<()> {
         sqlx::query(
-            "INSERT INTO forts (name, local, gateway) VALUES ($1, $2, $3) \
-             ON CONFLICT (name) DO UPDATE SET local = EXCLUDED.local, gateway = EXCLUDED.gateway",
+            "INSERT INTO forts (name, local, pylon) VALUES ($1, $2, $3) \
+             ON CONFLICT (name) DO UPDATE SET local = EXCLUDED.local, pylon = EXCLUDED.pylon",
         )
         .bind(&fort.name)
         .bind(fort.local)
-        .bind(&fort.gateway)
+        .bind(&fort.pylon)
         .execute(&self.pool)
         .await?;
 

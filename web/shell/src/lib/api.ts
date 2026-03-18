@@ -1,7 +1,7 @@
 export interface FortInfo {
   name: string;
   local: boolean;
-  gateway?: string;
+  pylon?: string;
 }
 
 export interface ServiceInfo {

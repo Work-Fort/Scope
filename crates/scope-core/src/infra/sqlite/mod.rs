@@ -82,7 +82,7 @@ fn str_to_level(s: &str) -> NotificationLevel {
 #[async_trait]
 impl Store for SqliteStore {
     async fn list_forts(&self) -> crate::domain::ports::Result<Vec<Fort>> {
-        let rows = sqlx::query("SELECT name, local, gateway, active FROM forts")
+        let rows = sqlx::query("SELECT name, local, pylon, active FROM forts")
             .fetch_all(&self.pool)
             .await?;
 
@@ -103,7 +103,7 @@ impl Store for SqliteStore {
             forts.push(Fort {
                 name,
                 local: row.get::<i32, _>("local") != 0,
-                gateway: row.get("gateway"),
+                pylon: row.get("pylon"),
                 services,
             });
         }
@@ -112,7 +112,7 @@ impl Store for SqliteStore {
 
     async fn get_fort(&self, name: &str) -> crate::domain::ports::Result<Fort> {
         let row =
-            sqlx::query("SELECT name, local, gateway, active FROM forts WHERE name = ?")
+            sqlx::query("SELECT name, local, pylon, active FROM forts WHERE name = ?")
                 .bind(name)
                 .fetch_optional(&self.pool)
                 .await?
@@ -133,18 +133,18 @@ impl Store for SqliteStore {
         Ok(Fort {
             name: row.get("name"),
             local: row.get::<i32, _>("local") != 0,
-            gateway: row.get("gateway"),
+            pylon: row.get("pylon"),
             services,
         })
     }
 
     async fn upsert_fort(&self, fort: &Fort) -> crate::domain::ports::Result<()> {
         sqlx::query(
-            "INSERT OR REPLACE INTO forts (name, local, gateway) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO forts (name, local, pylon) VALUES (?, ?, ?)",
         )
         .bind(&fort.name)
         .bind(fort.local as i32)
-        .bind(&fort.gateway)
+        .bind(&fort.pylon)
         .execute(&self.pool)
         .await?;
 

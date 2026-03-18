@@ -5,7 +5,7 @@ pub struct Fort {
     pub name: String,
     pub local: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub gateway: Option<String>,
+    pub pylon: Option<String>,
     pub services: Vec<ServiceConfig>,
 }
 

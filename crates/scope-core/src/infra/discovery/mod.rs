@@ -154,7 +154,7 @@ mod tests {
         let fort = Fort {
             name: "test".into(),
             local: true,
-            gateway: None,
+            pylon: None,
             services: vec![ServiceConfig {
                 url: format!("http://{}", addr),
             }],
@@ -187,7 +187,7 @@ mod tests {
         let fort = Fort {
             name: "test".into(),
             local: true,
-            gateway: None,
+            pylon: None,
             services: vec![ServiceConfig {
                 url: "http://127.0.0.1:1".into(), // nothing listening
             }],

@@ -18,7 +18,7 @@ pub struct Config {
 pub struct FortYaml {
     #[serde(default = "default_true")]
     pub local: bool,
-    pub gateway: Option<String>,
+    pub pylon: Option<String>,
     #[serde(default)]
     pub services: Vec<ServiceYaml>,
 }
@@ -93,7 +93,7 @@ impl Config {
             .map(|(name, f)| Fort {
                 name,
                 local: f.local,
-                gateway: f.gateway,
+                pylon: f.pylon,
                 services: f
                     .services
                     .into_iter()
@@ -122,7 +122,7 @@ forts:
       - url: "http://localhost:3000"
   remote:
     local: false
-    gateway: "https://acme.workfort.dev"
+    pylon: "https://acme.workfort.dev"
 "#;
         let mut tmp = tempfile::NamedTempFile::new().unwrap();
         write!(tmp, "{}", yaml).unwrap();
@@ -140,7 +140,7 @@ forts:
 
         let remote = forts.iter().find(|f| f.name == "remote").unwrap();
         assert!(!remote.local);
-        assert_eq!(remote.gateway.as_deref(), Some("https://acme.workfort.dev"));
+        assert_eq!(remote.pylon.as_deref(), Some("https://acme.workfort.dev"));
     }
 
     #[test]

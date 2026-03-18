@@ -22,7 +22,7 @@ async fn fort_crud() {
     let fort = Fort {
         name: "local".into(),
         local: true,
-        gateway: None,
+        pylon: None,
         services: vec![
             ServiceConfig { url: "http://localhost:8080".into() },
             ServiceConfig { url: "http://localhost:9090".into() },
@@ -42,16 +42,16 @@ async fn fort_crud() {
     assert_eq!(f.name, "local");
     assert_eq!(f.services.len(), 2);
 
-    // Update — change gateway and services
+    // Update — change pylon and services
     let updated = Fort {
         name: "local".into(),
         local: true,
-        gateway: Some("https://gw.example.com".into()),
+        pylon: Some("https://gw.example.com".into()),
         services: vec![ServiceConfig { url: "http://localhost:3000".into() }],
     };
     store.upsert_fort(&updated).await.unwrap();
     let f = store.get_fort("local").await.unwrap();
-    assert_eq!(f.gateway.as_deref(), Some("https://gw.example.com"));
+    assert_eq!(f.pylon.as_deref(), Some("https://gw.example.com"));
     assert_eq!(f.services.len(), 1);
     assert_eq!(f.services[0].url, "http://localhost:3000");
 
@@ -73,7 +73,7 @@ async fn active_fort() {
         .upsert_fort(&Fort {
             name: "a".into(),
             local: true,
-            gateway: None,
+            pylon: None,
             services: vec![],
         })
         .await
@@ -82,7 +82,7 @@ async fn active_fort() {
         .upsert_fort(&Fort {
             name: "b".into(),
             local: false,
-            gateway: Some("https://b.example.com".into()),
+            pylon: Some("https://b.example.com".into()),
             services: vec![],
         })
         .await
@@ -112,7 +112,7 @@ async fn fort_delete_cascades_services() {
         .upsert_fort(&Fort {
             name: "x".into(),
             local: true,
-            gateway: None,
+            pylon: None,
             services: vec![
                 ServiceConfig { url: "http://a".into() },
                 ServiceConfig { url: "http://b".into() },

@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS forts (
     name TEXT PRIMARY KEY,
     local BOOLEAN NOT NULL DEFAULT true,
-    gateway TEXT,
+    pylon TEXT,
     active BOOLEAN NOT NULL DEFAULT false
 );
 

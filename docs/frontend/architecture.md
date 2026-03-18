@@ -27,7 +27,7 @@ A `remoteEntry.js` request travels this path:
 
 4. **`NewServiceProxy`** (`internal/infra/httpapi/proxy.go`) rewrites the path based on fort type:
    - **Local fort** (`local=true`): strips `/api/{serviceName}` prefix and proxies to `targetURL`. Example: `/api/nexus/ui/remoteEntry.js` becomes `/ui/remoteEntry.js` at `http://target`.
-   - **Gateway fort** (`local=false`): preserves the prefix and proxies to `gatewayURL` as-is.
+   - **Pylon fort** (`local=false`): discovers services via Pylon, proxies to each service's `base_url` directly.
 
 5. **`pkg/frontend.Handler`** (`pkg/frontend/frontend.go`) serves the file from the embedded FS. It registers `/ui/remoteEntry.js` under the catch-all `/ui/` handler with `Cache-Control: no-cache`. Content-hashed assets under `/ui/assets/` get `Cache-Control: public, max-age=31536000, immutable`.
 
