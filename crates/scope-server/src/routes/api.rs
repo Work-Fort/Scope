@@ -28,39 +28,51 @@ async fn check_auth_session(state: &AppState, headers: &HeaderMap) -> serde_json
 
     // Extract cookie header from the incoming request
     let cookie = match headers.get("cookie").and_then(|v| v.to_str().ok()) {
-        Some(c) => c.to_string(),
-        None => return serde_json::json!({ "authenticated": false }),
+        Some(c) => {
+            log::debug!("session check: got cookie header ({} bytes)", c.len());
+            c.to_string()
+        }
+        None => {
+            log::debug!("session check: no cookie header in request");
+            return serde_json::json!({ "authenticated": false });
+        }
     };
 
     // Forward to Passport's /v1/session
     let client = reqwest::Client::new();
     let resp = client
-        .get(format!("{auth_url}/v1/session"))
+        .get(format!("{auth_url}/v1/get-session"))
         .header("cookie", &cookie)
         .send()
         .await;
 
-    match resp {
-        Ok(r) if r.status().is_success() => {
-            if let Ok(body) = r.json::<serde_json::Value>().await {
-                // Better Auth returns { session: {...}, user: {...} }
-                let has_session = body.get("session").is_some();
-                let has_user = body.get("user").is_some();
-                if has_session && has_user {
-                    let user = &body["user"];
-                    let role = user
-                        .get("role")
-                        .and_then(|r| r.as_str())
-                        .unwrap_or("user");
-                    return serde_json::json!({
-                        "authenticated": true,
-                        "role": role,
-                    });
-                }
-            }
-            serde_json::json!({ "authenticated": false })
+    let r = match resp {
+        Ok(r) => r,
+        Err(e) => {
+            log::debug!("session check: passport request failed: {e}");
+            return serde_json::json!({ "authenticated": false });
         }
-        _ => serde_json::json!({ "authenticated": false }),
+    };
+
+    let status = r.status();
+    let body_text = r.text().await.unwrap_or_default();
+    log::debug!("session check: passport {} — {}", status, &body_text[..body_text.len().min(200)]);
+
+    if !status.is_success() {
+        return serde_json::json!({ "authenticated": false });
+    }
+
+    let body: serde_json::Value = match serde_json::from_str(&body_text) {
+        Ok(v) => v,
+        Err(_) => return serde_json::json!({ "authenticated": false }),
+    };
+
+    if body.get("session").is_some() && body.get("user").is_some() {
+        let user = &body["user"];
+        let role = user.get("role").and_then(|r| r.as_str()).unwrap_or("user");
+        serde_json::json!({ "authenticated": true, "role": role })
+    } else {
+        serde_json::json!({ "authenticated": false })
     }
 }
 
