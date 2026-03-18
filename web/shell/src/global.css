@@ -114,10 +114,10 @@ wf-nav-bar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border: none;
+  border: 1px solid var(--wf-color-border);
   border-radius: var(--wf-radius-sm);
   background: transparent;
   color: var(--wf-color-text-secondary);
@@ -163,6 +163,17 @@ wf-nav-bar {
   border-radius: var(--wf-radius-md);
   background: var(--wf-color-bg);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 640px) {
+  .notification-dropdown {
+    position: fixed;
+    top: 48px;
+    left: var(--wf-space-sm);
+    right: var(--wf-space-sm);
+    width: auto;
+    max-height: 60vh;
+  }
 }
 
 .notification-dropdown__header {

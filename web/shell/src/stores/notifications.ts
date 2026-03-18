@@ -13,6 +13,12 @@ export interface ShellNotification {
 
 const [notificationList, setNotificationList] = createSignal<ShellNotification[]>([]);
 const [unreadTotal, setUnreadTotal] = createSignal(0);
+const [panelOpen, setPanelOpen] = createSignal(false);
+
+export const notificationPanelOpen = panelOpen;
+export function openNotificationPanel(): void { setPanelOpen(true); }
+export function closeNotificationPanel(): void { setPanelOpen(false); }
+export function toggleNotificationPanel(): void { setPanelOpen(!panelOpen()); }
 
 export const notifications = notificationList;
 export const unreadCount = unreadTotal;

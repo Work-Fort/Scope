@@ -1,9 +1,9 @@
-import { Show, For, createSignal, type Component } from 'solid-js';
-import { notifications, unreadCount, markAllRead } from '../stores/notifications';
+import { Show, For, type Component } from 'solid-js';
+import { notifications, unreadCount, markAllRead, notificationPanelOpen, toggleNotificationPanel, closeNotificationPanel } from '../stores/notifications';
+import { closeSidebar } from '../stores/theme';
 import { useNavigate, useParams } from '@solidjs/router';
 
 const NotificationBell: Component = () => {
-  const [open, setOpen] = createSignal(false);
   const navigate = useNavigate();
   const params = useParams<{ fort: string }>();
 
@@ -11,13 +11,13 @@ const NotificationBell: Component = () => {
     if (route && params.fort) {
       navigate(`/forts/${params.fort}${route}`);
     }
-    setOpen(false);
+    closeNotificationPanel();
   };
 
   const toggleDropdown = () => {
-    const willOpen = !open();
-    setOpen(willOpen);
-    if (willOpen) {
+    toggleNotificationPanel();
+    if (notificationPanelOpen()) {
+      closeSidebar();
       markAllRead();
     }
   };
@@ -28,9 +28,9 @@ const NotificationBell: Component = () => {
         class="notification-bell"
         onClick={toggleDropdown}
         aria-label="Notifications"
-        aria-expanded={open()}
+        aria-expanded={notificationPanelOpen()}
       >
-        <svg class="notification-bell__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="notification-bell__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
@@ -41,7 +41,7 @@ const NotificationBell: Component = () => {
         </Show>
       </button>
 
-      <Show when={open()}>
+      <Show when={notificationPanelOpen()}>
         <div class="notification-dropdown">
           <div class="notification-dropdown__header">Notifications</div>
           <Show
