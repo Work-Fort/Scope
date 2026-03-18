@@ -21,20 +21,28 @@ export function registerNewRemotes(fort: string, services: ServiceInfo[]): void 
   }
 }
 
+export interface ServiceManifest {
+  name: string;
+  label: string;
+  route: string;
+  display: 'nav' | 'menu';
+}
+
 export interface ServiceModule {
-  default: (props: { connected: boolean }) => any;
-  manifest: { name: string; label: string; route: string; minWidth?: number };
-  SidebarContent?: () => any;
-  HeaderActions?: () => any;
+  mount(el: HTMLElement, props: { connected: boolean }): void;
+  unmount(el: HTMLElement): void;
+  manifest: ServiceManifest;
+  mountSidebar?(el: HTMLElement): void;
+  unmountSidebar?(el: HTMLElement): void;
 }
 
 export async function loadServiceModule(
   serviceName: string,
 ): Promise<ServiceModule> {
   const mod = await loadRemote<ServiceModule>(`${serviceName}/index`);
-  if (!mod || !mod.default || !mod.manifest) {
+  if (!mod || !mod.mount || !mod.unmount || !mod.manifest) {
     throw new Error(
-      `Remote "${serviceName}" did not export required fields (default, manifest)`,
+      `Remote "${serviceName}" must export mount, unmount, and manifest`,
     );
   }
   return mod;

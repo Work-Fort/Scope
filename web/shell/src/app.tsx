@@ -18,11 +18,12 @@ import FortPicker from './components/fort-picker';
 import SetupForm from './components/setup-form';
 import SignInForm from './components/sign-in-form';
 import type { ServiceModule } from './lib/remotes';
+import type { SidebarMount } from './components/shell-layout';
 
 // Context to pass sidebar setter from FortShell to ServicePage.
 const FortShellContext = createContext<{
-  setSidebarComponent: (v: (() => any) | undefined) => void;
-}>({ setSidebarComponent: () => {} });
+  setSidebarMount: (v: SidebarMount | undefined) => void;
+}>({ setSidebarMount: () => {} });
 
 const App: Component = () => {
   return (
@@ -38,7 +39,7 @@ const App: Component = () => {
 
 const FortShell: Component = (props: { children?: any }) => {
   const params = useParams<{ fort: string }>();
-  const [sidebarComponent, setSidebarComponent] = createSignal<(() => any) | undefined>();
+  const [sidebarMount, setSidebarMount] = createSignal<SidebarMount | undefined>();
 
   createEffect(() => {
     const fort = params.fort;
@@ -47,14 +48,14 @@ const FortShell: Component = (props: { children?: any }) => {
   onCleanup(() => stopPolling());
 
   return (
-    <FortShellContext.Provider value={{ setSidebarComponent }}>
+    <FortShellContext.Provider value={{ setSidebarMount }}>
       <Show when={!isSetupMode()} fallback={
         <SetupForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
       }>
         <Show when={!isAuthRequired()} fallback={
           <SignInForm fort={params.fort} onComplete={() => { clearAuthRequired(); startPolling(params.fort); }} />
         }>
-          <ShellLayout sidebar={sidebarComponent()}>{props.children}</ShellLayout>
+          <ShellLayout sidebar={sidebarMount()}>{props.children}</ShellLayout>
         </Show>
       </Show>
     </FortShellContext.Provider>
@@ -66,8 +67,10 @@ const ServicePage: Component = () => {
   const ctx = useContext(FortShellContext);
 
   const handleModule = (mod: ServiceModule | null) => {
-    ctx.setSidebarComponent(
-      mod?.SidebarContent ? () => mod.SidebarContent! : undefined,
+    ctx.setSidebarMount(
+      mod?.mountSidebar && mod?.unmountSidebar
+        ? { mount: mod.mountSidebar.bind(mod), unmount: mod.unmountSidebar.bind(mod) }
+        : undefined,
     );
   };
 

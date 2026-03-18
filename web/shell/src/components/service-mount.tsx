@@ -1,5 +1,4 @@
-import { createResource, Suspense, ErrorBoundary, Show, type Component } from 'solid-js';
-import { Dynamic } from 'solid-js/web';
+import { createResource, Suspense, ErrorBoundary, Show, onCleanup, createEffect, type Component } from 'solid-js';
 import { loadServiceModule, type ServiceModule } from '../lib/remotes';
 import Unavailable from './unavailable';
 
@@ -9,6 +8,8 @@ const ServiceMount: Component<{
   connected: boolean;
   onModule?: (mod: ServiceModule | null) => void;
 }> = (props) => {
+  let containerRef!: HTMLDivElement;
+
   const [mod] = createResource(
     () => props.name,
     async (name) => {
@@ -17,6 +18,22 @@ const ServiceMount: Component<{
       return m;
     },
   );
+
+  // Mount/unmount the service when the module loads
+  createEffect(() => {
+    const m = mod();
+    if (m && containerRef) {
+      m.mount(containerRef, { connected: props.connected });
+    }
+  });
+
+  // Cleanup on unmount
+  onCleanup(() => {
+    const m = mod();
+    if (m && containerRef) {
+      m.unmount(containerRef);
+    }
+  });
 
   return (
     <ErrorBoundary fallback={<Unavailable label={props.label} />}>
@@ -30,9 +47,7 @@ const ServiceMount: Component<{
             />
           }
         >
-          <Show when={mod()}>
-            <Dynamic component={mod()!.default} connected={props.connected} />
-          </Show>
+          <div ref={containerRef} style="display:contents" />
         </Show>
       </Suspense>
     </ErrorBoundary>
