@@ -114,8 +114,8 @@ wf-nav-bar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--wf-nav-control-size);
+  height: var(--wf-nav-control-size);
   padding: 0;
   border: 1px solid var(--wf-color-border);
   border-radius: var(--wf-radius-sm);
@@ -247,13 +247,16 @@ wf-nav-bar {
 /* --- Mobile sidebar toggle button (hidden on desktop, inline on mobile) --- */
 .shell-sidebar-toggle {
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--wf-nav-control-size);
+  height: var(--wf-nav-control-size);
+  padding: 0;
   background: transparent;
   border: 1px solid var(--wf-color-border);
   border-radius: var(--wf-radius-sm);
   color: var(--wf-color-text);
-  font-size: var(--wf-text-lg);
   cursor: pointer;
-  padding: var(--wf-space-xs) var(--wf-space-sm);
   line-height: 1;
 }
 
@@ -274,7 +277,7 @@ wf-nav-bar {
   }
 
   .shell-sidebar-toggle {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   .shell-sidebar {

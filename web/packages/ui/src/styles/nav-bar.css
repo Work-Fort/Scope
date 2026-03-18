@@ -61,7 +61,7 @@
 .wf-nav-bar__controls {
   display: flex;
   align-items: center;
-  gap: var(--wf-space-xs);
+  gap: var(--wf-space-sm);
   flex-shrink: 0;
   margin-left: auto;
 }
