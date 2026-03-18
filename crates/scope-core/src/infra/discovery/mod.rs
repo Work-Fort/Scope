@@ -8,6 +8,10 @@ use tokio::sync::RwLock;
 
 use crate::domain::{Fort, TrackedService};
 
+fn default_display() -> String {
+    "nav".to_string()
+}
+
 pub struct ServiceDiscovery {
     client: Client,
     services: Arc<RwLock<Vec<TrackedService>>>,
@@ -53,6 +57,8 @@ impl ServiceDiscovery {
             setup_mode: bool,
             #[serde(default)]
             admin_only: bool,
+            #[serde(default = "default_display")]
+            display: String,
             #[serde(default)]
             ws_paths: Vec<String>,
             #[serde(default)]
@@ -71,6 +77,7 @@ impl ServiceDiscovery {
             connected: true,
             setup_mode: manifest.setup_mode,
             admin_only: manifest.admin_only,
+            display: manifest.display,
             ws_paths: manifest.ws_paths,
             notification_path: manifest.notification_path,
         })
@@ -205,6 +212,7 @@ mod tests {
                 connected: true,
                 setup_mode: false,
                 admin_only: false,
+                display: "nav".into(),
                 ws_paths: vec![],
                 notification_path: Some("/notifications/subscribe".into()),
             });
@@ -217,6 +225,7 @@ mod tests {
                 connected: true,
                 setup_mode: false,
                 admin_only: false,
+                display: "nav".into(),
                 ws_paths: vec![],
                 notification_path: None,
             });

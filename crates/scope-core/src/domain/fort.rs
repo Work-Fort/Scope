@@ -28,8 +28,14 @@ pub struct TrackedService {
     pub setup_mode: bool,
     #[serde(default)]
     pub admin_only: bool,
+    #[serde(default = "default_display")]
+    pub display: String,
     #[serde(default)]
     pub ws_paths: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notification_path: Option<String>,
+}
+
+fn default_display() -> String {
+    "nav".to_string()
 }

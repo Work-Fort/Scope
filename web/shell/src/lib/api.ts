@@ -12,6 +12,7 @@ export interface ServiceInfo {
   ui: boolean;
   connected: boolean;
   setup_mode?: boolean;
+  display?: 'nav' | 'menu';
 }
 
 export interface Conflict {

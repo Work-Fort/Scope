@@ -1,8 +1,9 @@
-import { For, type Component } from 'solid-js';
+import { For, Show, type Component } from 'solid-js';
 import { useNavigate, useLocation, useParams } from '@solidjs/router';
 import { services, fortName, clearAuthRequired } from '../stores/services';
 import { toggleTheme, toggleHandedness, handedness } from '../stores/theme';
 import { useTheme } from '@workfort/ui-solid';
+import NotificationBell from './notification-bell';
 
 const NavBar: Component = () => {
   const navigate = useNavigate();
@@ -10,7 +11,13 @@ const NavBar: Component = () => {
   const params = useParams<{ fort: string }>();
   const theme = useTheme();
 
-  const visibleServices = () => services().filter((s) => s.enabled && s.ui);
+  /** Services that show as tabs in the nav bar. */
+  const navServices = () =>
+    services().filter((s) => s.enabled && s.ui && (s.display ?? 'nav') === 'nav');
+
+  /** Services that show as links in the hamburger menu. */
+  const menuServices = () =>
+    services().filter((s) => s.enabled && s.ui && s.display === 'menu');
 
   async function handleLogout() {
     // Clear the session cookie via the auth proxy.
@@ -23,7 +30,7 @@ const NavBar: Component = () => {
     <wf-nav-bar hamburger-position={handedness() === 'left' ? 'top-left' : 'top-right'}>
       <span slot="brand" class="shell-nav__brand">{fortName() || 'WorkFort'}</span>
 
-      <For each={visibleServices()}>
+      <For each={navServices()}>
         {(svc) => (
           <wf-list-item
             active={location.pathname.includes(svc.route)}
@@ -35,8 +42,22 @@ const NavBar: Component = () => {
         )}
       </For>
 
+      <span slot="actions">
+        <NotificationBell />
+      </span>
+
       <div slot="menu">
         <wf-list>
+          <For each={menuServices()}>
+            {(svc) => (
+              <wf-list-item on:wf-select={() => navigate(`/forts/${params.fort}${svc.route}`)}>
+                {svc.label}
+              </wf-list-item>
+            )}
+          </For>
+          <Show when={menuServices().length > 0}>
+            <wf-divider />
+          </Show>
           <wf-list-item on:wf-select={() => toggleTheme()}>
             {theme() === 'dark' ? '☀ Light mode' : '☾ Dark mode'}
           </wf-list-item>

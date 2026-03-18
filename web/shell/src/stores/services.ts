@@ -3,8 +3,10 @@ import { fetchServices, checkSession, type ServiceInfo, type Conflict, type Serv
 import { registerNewRemotes } from '../lib/remotes';
 import { addBanner, removeBanner, banners } from './banners';
 import { addToast } from './toasts';
+import { addNotification, fetchNotifications } from './notifications';
 
 const POLL_INTERVAL = 30_000;
+const WS_RECONNECT_DELAY = 5_000;
 
 const [serviceList, setServiceList] = createSignal<ServiceInfo[]>([]);
 const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
@@ -22,12 +24,11 @@ export function clearAuthRequired(): void {
 
 let prevConnected = new Map<string, boolean>();
 
-function handlePollResult(res: ServicesResponse): void {
-  setCurrentFort(res.fort);
-  setConflictList(res.conflicts ?? []);
+function handleServiceUpdate(services: ServiceInfo[], fort?: string): void {
+  if (fort) setCurrentFort(fort);
 
   const nextConnected = new Map<string, boolean>();
-  for (const svc of res.services) {
+  for (const svc of services) {
     nextConnected.set(svc.name, svc.connected);
     const was = prevConnected.get(svc.name);
     if (was !== undefined && was !== svc.connected) {
@@ -48,7 +49,24 @@ function handlePollResult(res: ServicesResponse): void {
   }
   prevConnected = nextConnected;
 
-  registerNewRemotes(res.fort, res.services);
+  for (const svc of services) {
+    if (svc.connected) {
+      removeBanner(`disconnected:${svc.name}`);
+    }
+  }
+
+  setServiceList(services);
+
+  const authSvc = services.find((s) => s.name === 'auth');
+  setSetupMode(authSvc?.setup_mode === true);
+
+  if (authSvc?.setup_mode) {
+    setNeedsAuth(false);
+  }
+}
+
+function handlePollResult(res: ServicesResponse): void {
+  setConflictList(res.conflicts ?? []);
 
   const activeConflictKeys = new Set((res.conflicts ?? []).map((c) => `conflict:${c.name}`));
   for (const conflict of res.conflicts ?? []) {
@@ -66,23 +84,82 @@ function handlePollResult(res: ServicesResponse): void {
     }
   }
 
-  for (const svc of res.services) {
-    if (svc.connected) {
-      removeBanner(`disconnected:${svc.name}`);
-    }
+  // Map TrackedService fields to ServiceInfo shape
+  const services: ServiceInfo[] = res.services.map((s) => ({
+    ...s,
+    enabled: s.connected || s.ui,
+  }));
+
+  registerNewRemotes(res.fort, services);
+  handleServiceUpdate(services, res.fort);
+}
+
+// --- Shell WebSocket ---
+
+let shellWs: WebSocket | null = null;
+let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let wsActiveFort: string | null = null;
+
+function connectShellWs(fort: string): void {
+  if (shellWs) {
+    shellWs.onclose = null;
+    shellWs.close();
   }
 
-  setServiceList(res.services);
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws/shell`;
 
-  const authSvc = res.services.find((s) => s.name === 'auth');
-  setSetupMode(authSvc?.setup_mode === true);
+  shellWs = new WebSocket(wsUrl);
 
-  // If setup mode is active, auth is not needed yet (setup form handles it).
-  // Otherwise, probe a BFF-protected endpoint to detect session state.
-  if (authSvc?.setup_mode) {
-    setNeedsAuth(false);
+  shellWs.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+
+      switch (msg.type) {
+        case 'services_changed': {
+          const services: ServiceInfo[] = (msg.data ?? []).map((s: any) => ({
+            ...s,
+            enabled: s.connected || s.ui,
+          }));
+          registerNewRemotes(fort, services);
+          handleServiceUpdate(services);
+          break;
+        }
+        case 'notification':
+          addNotification(msg.data);
+          break;
+      }
+    } catch {
+      // Ignore malformed messages.
+    }
+  };
+
+  shellWs.onclose = () => {
+    shellWs = null;
+    if (wsActiveFort === fort) {
+      wsReconnectTimer = setTimeout(() => connectShellWs(fort), WS_RECONNECT_DELAY);
+    }
+  };
+
+  shellWs.onerror = () => {
+    // onclose fires after onerror, reconnect handled there.
+  };
+}
+
+function disconnectShellWs(): void {
+  wsActiveFort = null;
+  if (wsReconnectTimer) {
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = null;
+  }
+  if (shellWs) {
+    shellWs.onclose = null;
+    shellWs.close();
+    shellWs = null;
   }
 }
+
+// --- Polling (fallback for initial load + conflict detection) ---
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let activeFort: string | null = null;
@@ -98,6 +175,7 @@ export function startPolling(fort: string): void {
   }
   activeFort = fort;
 
+  // Initial HTTP fetch for services + conflicts
   fetchServices(fort).then((res) => {
     handlePollResult(res);
 
@@ -109,6 +187,14 @@ export function startPolling(fort: string): void {
     }
   }).catch(console.error);
 
+  // Fetch initial notifications
+  fetchNotifications().catch(() => {});
+
+  // Connect the shell WebSocket for live updates
+  wsActiveFort = fort;
+  connectShellWs(fort);
+
+  // Keep HTTP polling at a slower interval as fallback for conflict detection
   intervalId = setInterval(() => {
     fetchServices(fort).then(handlePollResult).catch(console.error);
   }, POLL_INTERVAL);
@@ -120,6 +206,7 @@ export function stopPolling(): void {
     intervalId = null;
   }
   activeFort = null;
+  disconnectShellWs();
 }
 
 export const services = serviceList;

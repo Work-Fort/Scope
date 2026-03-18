@@ -8,6 +8,10 @@ declare module 'solid-js' {
       'wf-list': { class?: string; children?: JSX.Element };
       'wf-list-item': { active?: boolean; class?: string; 'on:wf-select'?: (e: CustomEvent) => void; children?: JSX.Element };
       'wf-skeleton': { width?: string; height?: string; class?: string };
+      'wf-nav-bar': { 'hamburger-position'?: string; class?: string; children?: JSX.Element };
+      'wf-divider': { class?: string };
+      'wf-status-dot': { status?: string; class?: string };
+      'wf-banner': { variant?: string; headline?: string; class?: string; children?: JSX.Element };
     }
   }
 }
