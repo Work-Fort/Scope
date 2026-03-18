@@ -65,17 +65,42 @@ impl ProxyHandler {
                 + &u.port().map(|p| format!(":{p}")).unwrap_or_default()
         };
 
+        let mut has_origin = false;
         for (name, value) in headers {
             if name.eq_ignore_ascii_case("host")
                 || name.eq_ignore_ascii_case("referer")
+                || name.starts_with("sec-")
             {
                 continue;
             }
             if name.eq_ignore_ascii_case("origin") {
+                log::debug!("proxy: rewriting Origin from '{}' to '{}'", value, target_origin);
+                has_origin = true;
                 req = req.header("origin", &target_origin);
                 continue;
             }
+            // Never forward cookies to backend services. The BFF manages auth
+            // via JWT tokens — cookies are between the browser and scope-server only.
+            if name.eq_ignore_ascii_case("cookie") {
+                continue;
+            }
             req = req.header(name.as_str(), value.as_str());
+        }
+        // If browser didn't send Origin (e.g. same-origin navigation), add it
+        // for backend services that require it (like Better Auth CSRF).
+        if !has_origin {
+            log::debug!("proxy: adding Origin header: {}", target_origin);
+            req = req.header("origin", &target_origin);
+        }
+
+        // Debug: log all outgoing headers
+        if let Some(built) = req.try_clone() {
+            let built = built.build().ok();
+            if let Some(r) = built {
+                for (k, v) in r.headers() {
+                    log::debug!("proxy outgoing: {} = {}", k, v.to_str().unwrap_or("?"));
+                }
+            }
         }
 
         // Attach auth token
