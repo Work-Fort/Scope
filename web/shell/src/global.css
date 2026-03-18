@@ -233,9 +233,17 @@ wf-nav-bar {
   color: var(--wf-color-text-tertiary);
 }
 
-/* --- Mobile sidebar toggle button (hidden on desktop) --- */
+/* --- Mobile sidebar toggle button (hidden on desktop, inline on mobile) --- */
 .shell-sidebar-toggle {
   display: none;
+  background: transparent;
+  border: 1px solid var(--wf-color-border);
+  border-radius: var(--wf-radius-sm);
+  color: var(--wf-color-text);
+  font-size: var(--wf-text-lg);
+  cursor: pointer;
+  padding: var(--wf-space-xs) var(--wf-space-sm);
+  line-height: 1;
 }
 
 /* --- Mobile sidebar backdrop --- */
@@ -255,29 +263,7 @@ wf-nav-bar {
   }
 
   .shell-sidebar-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    bottom: var(--wf-space-lg);
-    z-index: 110;
-    width: 3rem;
-    height: 3rem;
-    border-radius: var(--wf-radius-full, 50%);
-    background: var(--wf-color-bg-elevated);
-    border: 1px solid var(--wf-color-border);
-    color: var(--wf-color-text);
-    font-size: var(--wf-text-lg);
-    cursor: pointer;
-    box-shadow: var(--wf-shadow-md);
-    line-height: 1;
-    padding: 0;
-  }
-  .shell-sidebar-toggle--left {
-    left: var(--wf-space-md);
-  }
-  .shell-sidebar-toggle--right {
-    right: var(--wf-space-md);
+    display: inline-flex;
   }
 
   .shell-sidebar {

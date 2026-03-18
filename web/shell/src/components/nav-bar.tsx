@@ -1,7 +1,7 @@
 import { For, Show, type Component } from 'solid-js';
 import { useNavigate, useLocation, useParams } from '@solidjs/router';
 import { services, fortName, clearAuthRequired } from '../stores/services';
-import { toggleTheme, toggleHandedness, handedness, toggleSidebar } from '../stores/theme';
+import { toggleTheme, toggleHandedness, handedness, toggleSidebar, sidebarOpen } from '../stores/theme';
 import { useTheme } from '@workfort/ui-solid';
 import NotificationBell from './notification-bell';
 
@@ -43,6 +43,16 @@ const NavBar: Component = () => {
       </For>
 
       <span slot="controls">
+        <button
+          class="shell-sidebar-toggle"
+          aria-label="Toggle sidebar"
+          onClick={() => toggleSidebar()}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <rect x="1" y="1" width="16" height="16" rx="2" />
+            <line x1="7" y1="1" x2="7" y2="17" />
+          </svg>
+        </button>
         <NotificationBell />
       </span>
 

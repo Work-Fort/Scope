@@ -49,17 +49,6 @@ const ShellLayout: Component<{
       </div>
       <NavBar />
       <Show when={props.sidebar}>
-        <button
-          class="shell-sidebar-toggle"
-          classList={{
-            'shell-sidebar-toggle--left': handedness() === 'right',
-            'shell-sidebar-toggle--right': handedness() === 'left',
-          }}
-          aria-label="Toggle sidebar"
-          onClick={() => toggleSidebar()}
-        >
-          {sidebarOpen() ? '✕' : '☰'}
-        </button>
         <aside
           class="shell-sidebar"
           classList={{
