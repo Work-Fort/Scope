@@ -67,7 +67,8 @@ const SignInForm: Component<SignInFormProps> = (props) => {
           Password
           <input type="password" required value={password()} on:input={(e: Event) => setPassword((e.target as HTMLInputElement).value)} style={inputStyle} />
         </label>
-        <wf-button type="submit" disabled={loading()} style="margin-top: var(--wf-space-sm);">
+        <button type="submit" hidden>Submit</button>
+        <wf-button type="submit" disabled={loading()} style="margin-top: var(--wf-space-sm);" on:click={handleSubmit}>
           {loading() ? 'Signing in...' : 'Sign In'}
         </wf-button>
       </form>
