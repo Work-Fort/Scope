@@ -1,0 +1,93 @@
+/* Nav Section */
+.wf-nav-section {
+  display: block;
+}
+
+.wf-nav-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wf-space-sm) var(--wf-space-md);
+  cursor: pointer;
+  user-select: none;
+}
+
+.wf-nav-section__heading {
+  font-size: var(--wf-text-xs);
+  font-weight: var(--wf-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wf-color-text-secondary);
+}
+
+.wf-nav-section__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+}
+
+.wf-nav-section__body[hidden] {
+  display: none;
+}
+
+/* Nav Sidebar */
+.wf-nav-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--wf-color-border);
+  background: var(--wf-color-bg);
+  font-family: var(--wf-font-sans);
+  color: var(--wf-color-text);
+}
+
+.wf-nav-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wf-space-md) var(--wf-space-md) var(--wf-space-sm);
+}
+
+.wf-nav-sidebar__title {
+  font-size: var(--wf-text-sm);
+  font-weight: var(--wf-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--wf-color-text-secondary);
+}
+
+.wf-nav-sidebar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+}
+
+.wf-nav-sidebar__search {
+  padding: 0 var(--wf-space-sm) var(--wf-space-sm);
+}
+
+.wf-nav-sidebar__search-input {
+  width: 100%;
+  padding: var(--wf-space-xs) var(--wf-space-sm);
+  border-radius: var(--wf-radius-sm);
+  border: 1px solid var(--wf-color-border);
+  background: var(--wf-color-bg);
+  color: var(--wf-color-text);
+  font-family: inherit;
+  font-size: var(--wf-text-xs);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.wf-nav-sidebar__search-input::placeholder {
+  color: var(--wf-color-text-muted);
+}
+
+.wf-nav-sidebar__search-input:focus {
+  border-color: var(--wf-color-border-focus);
+}
+
+.wf-nav-sidebar__body {
+  flex: 1;
+  overflow-y: auto;
+}

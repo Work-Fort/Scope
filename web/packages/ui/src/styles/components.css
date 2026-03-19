@@ -6,6 +6,7 @@
 @import './navigation.css';
 @import './hamburger.css';
 @import './nav-bar.css';
+@import './nav-sidebar.css';
 
 /* Component-level tokens */
 :root {

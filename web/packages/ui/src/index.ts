@@ -58,6 +58,7 @@ import './layout/wf-popover.js';
 import './layout/wf-table.js';
 import './layout/wf-hamburger.js';
 import './layout/wf-nav-bar.js';
+import './layout/wf-nav-sidebar.js';
 
 export { WfAvatar } from './components/avatar.js';
 export { WfPanel } from './components/panel.js';
@@ -116,3 +117,5 @@ export type { WfTableColumn } from './layout/wf-table.js';
 export { WfHamburger } from './layout/wf-hamburger.js';
 export type { HamburgerPosition } from './layout/wf-hamburger.js';
 export { WfNavBar } from './layout/wf-nav-bar.js';
+export { WfNavSection } from './layout/wf-nav-section.js';
+export { WfNavSidebar } from './layout/wf-nav-sidebar.js';
