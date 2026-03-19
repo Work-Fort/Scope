@@ -78,6 +78,10 @@ const ServicePage: Component = () => {
   const params = useParams<{ fort: string; service: string }>();
   const ctx = useContext(FortShellContext);
 
+  onCleanup(() => {
+    ctx.setSidebarMount(undefined);
+  });
+
   const handleModule = (mod: ServiceModule | null) => {
     ctx.setSidebarMount(
       mod?.mountSidebar && mod?.unmountSidebar

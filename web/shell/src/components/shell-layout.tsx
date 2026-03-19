@@ -15,17 +15,22 @@ const ShellLayout: Component<{
 }> = (props) => {
   let sidebarRef!: HTMLDivElement;
 
+  let prevSidebar: SidebarMount | undefined;
   createEffect(() => {
     const sb = props.sidebar;
-    if (sb && sidebarRef) {
+    if (prevSidebar && prevSidebar !== sb && sidebarRef) {
+      prevSidebar.unmount(sidebarRef);
+    }
+    if (sb && sidebarRef && sb !== prevSidebar) {
       sb.mount(sidebarRef);
     }
+    prevSidebar = sb;
   });
 
   onCleanup(() => {
-    const sb = props.sidebar;
-    if (sb && sidebarRef) {
-      sb.unmount(sidebarRef);
+    if (prevSidebar && sidebarRef) {
+      prevSidebar.unmount(sidebarRef);
+      prevSidebar = undefined;
     }
   });
 
