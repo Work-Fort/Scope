@@ -19,6 +19,7 @@ import FortPicker from './components/fort-picker';
 import SetupForm from './components/setup-form';
 import SignInForm from './components/sign-in-form';
 import type { ServiceModule } from './lib/remotes';
+import ServiceStatus from './components/service-status';
 import type { SidebarMount } from './components/shell-layout';
 
 // Context to pass sidebar setter from FortShell to ServicePage.
@@ -31,6 +32,7 @@ const App: Component = () => {
     <Router>
       <Route path="/" component={FortPicker} />
       <Route path="/forts/:fort" component={FortShell}>
+        <Route path="/status" component={ServiceStatus} />
         <Route path="/:service/*rest" component={ServicePage} />
         <Route path="/" component={FortIndex} />
       </Route>

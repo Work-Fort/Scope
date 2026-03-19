@@ -83,6 +83,9 @@ const NavBar: Component = () => {
             {handedness() === 'right' ? '← Left-handed' : '→ Right-handed'}
           </wf-list-item>
           <wf-divider />
+          <wf-list-item on:wf-select={() => { closeHamburger(); navigate(`/forts/${params.fort}/status`); }}>
+            Service status
+          </wf-list-item>
           <wf-list-item on:wf-select={handleLogout}>
             Sign out
           </wf-list-item>
