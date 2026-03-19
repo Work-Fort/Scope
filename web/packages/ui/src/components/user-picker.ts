@@ -1,6 +1,5 @@
 import { property } from 'lit/decorators.js';
 import { WfElement } from '../base.js';
-import { initials } from '../utils/initials.js';
 
 export interface UserPickerUser {
   username: string;
@@ -54,15 +53,15 @@ export class WfUserPicker extends WfElement {
     for (const user of filtered) {
       const item = document.createElement('wf-list-item');
 
-      const avatar = document.createElement('div');
-      avatar.style.cssText = 'width:1.5rem;height:1.5rem;border-radius:var(--wf-radius-full);background:var(--wf-color-bg-elevated);display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:var(--wf-weight-semibold);color:var(--wf-color-text-secondary);flex-shrink:0;position:relative;margin-right:var(--wf-space-sm);';
-      avatar.textContent = initials(user.username);
-
-      const dot = document.createElement('wf-status-dot');
-      const status = !user.online ? 'offline' : user.state === 'idle' ? 'away' : 'online';
-      dot.setAttribute('status', status);
-      dot.style.cssText = 'position:absolute;bottom:-1px;right:-1px;';
-      avatar.appendChild(dot);
+      const avatar = document.createElement('wf-avatar');
+      avatar.setAttribute('username', user.username);
+      avatar.setAttribute('size', 'sm');
+      if (user.online) {
+        avatar.setAttribute('status', user.state === 'idle' ? 'away' : 'online');
+      } else {
+        avatar.setAttribute('status', 'offline');
+      }
+      avatar.style.marginRight = 'var(--wf-space-sm)';
 
       const name = document.createElement('span');
       name.textContent = user.username;
