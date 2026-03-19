@@ -161,6 +161,22 @@ impl ServiceDiscovery {
         self.services.read().await.clone()
     }
 
+    /// Check if services have changed since the given snapshot.
+    pub async fn has_changed_since(&self, prev: &[TrackedService]) -> bool {
+        let current = self.services.read().await;
+        if current.len() != prev.len() {
+            return true;
+        }
+        for (a, b) in current.iter().zip(prev.iter()) {
+            if a.name != b.name || a.connected != b.connected || a.ui != b.ui
+                || a.base_url != b.base_url || a.setup_mode != b.setup_mode
+            {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Get services that have notification_path set.
     /// Returns (service_name, base_url, notification_path) tuples.
     pub async fn notification_services(&self) -> Vec<(String, String, String)> {
@@ -396,6 +412,63 @@ mod tests {
         assert_eq!(services[0].name, "sharkfin");
         assert_eq!(services[0].base_url, "http://10.0.0.1:16000");
         assert!(services[0].ui);
+    }
+
+    #[tokio::test]
+    async fn has_changed_since_detects_differences() {
+        let discovery = ServiceDiscovery::new();
+
+        let svc = TrackedService {
+            name: "chat".into(),
+            label: "Chat".into(),
+            route: "/chat".into(),
+            base_url: "http://localhost:3000".into(),
+            ui: true,
+            connected: true,
+            setup_mode: false,
+            admin_only: false,
+            display: "nav".into(),
+            ws_paths: vec![],
+            notification_path: None,
+        };
+
+        // Set initial state
+        {
+            let mut svcs = discovery.services.write().await;
+            svcs.push(svc.clone());
+        }
+
+        let snapshot = discovery.services().await;
+
+        // Same state — no change
+        assert!(!discovery.has_changed_since(&snapshot).await);
+
+        // Change connected status
+        {
+            let mut svcs = discovery.services.write().await;
+            svcs[0].connected = false;
+        }
+        assert!(discovery.has_changed_since(&snapshot).await);
+
+        // Different length
+        {
+            let mut svcs = discovery.services.write().await;
+            svcs[0].connected = true; // restore
+            svcs.push(TrackedService {
+                name: "wiki".into(),
+                label: "Wiki".into(),
+                route: "/wiki".into(),
+                base_url: "http://localhost:4000".into(),
+                ui: true,
+                connected: true,
+                setup_mode: false,
+                admin_only: false,
+                display: "nav".into(),
+                ws_paths: vec![],
+                notification_path: None,
+            });
+        }
+        assert!(discovery.has_changed_since(&snapshot).await);
     }
 
     #[tokio::test]

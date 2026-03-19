@@ -43,6 +43,7 @@ async fn main() {
     // Create discovery and notification broadcast
     let discovery = Arc::new(scope_core::infra::discovery::ServiceDiscovery::new());
     let (notify_tx, _) = broadcast::channel(256);
+    let (services_tx, _) = broadcast::channel::<Vec<scope_core::domain::TrackedService>>(16);
 
     let proxy = scope_core::infra::proxy::ProxyHandler::new();
 
@@ -50,6 +51,7 @@ async fn main() {
         store,
         discovery,
         notify_tx,
+        services_tx,
         proxy,
         tokens: Mutex::new(HashMap::new()),
     });

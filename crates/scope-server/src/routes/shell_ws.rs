@@ -17,8 +17,8 @@ pub async fn shell_ws_handler(
 }
 
 async fn handle_shell_ws(mut socket: WebSocket, state: Arc<AppState>) {
-    // Subscribe to the notification broadcast channel
     let mut notify_rx = state.notify_tx.subscribe();
+    let mut services_rx = state.services_tx.subscribe();
 
     // Send initial service list
     let services = state.discovery.services().await;
@@ -34,10 +34,8 @@ async fn handle_shell_ws(mut socket: WebSocket, state: Arc<AppState>) {
         return;
     }
 
-    // Event loop: forward notifications and handle client messages
     loop {
         tokio::select! {
-            // Notification from broadcast channel
             Ok(notification) = notify_rx.recv() => {
                 let event = serde_json::json!({
                     "type": "notification",
@@ -47,7 +45,15 @@ async fn handle_shell_ws(mut socket: WebSocket, state: Arc<AppState>) {
                     break;
                 }
             }
-            // Message from client (ping/pong, or close)
+            Ok(services) = services_rx.recv() => {
+                let event = serde_json::json!({
+                    "type": "services_changed",
+                    "data": services,
+                });
+                if socket.send(Message::Text(event.to_string().into())).await.is_err() {
+                    break;
+                }
+            }
             msg = socket.recv() => {
                 match msg {
                     Some(Ok(Message::Ping(data))) => {
@@ -56,7 +62,7 @@ async fn handle_shell_ws(mut socket: WebSocket, state: Arc<AppState>) {
                         }
                     }
                     Some(Ok(Message::Close(_))) | None => break,
-                    _ => {} // Ignore other messages for now
+                    _ => {}
                 }
             }
         }
