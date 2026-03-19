@@ -22,35 +22,35 @@ const ServiceStatus: Component = () => {
         </thead>
         <tbody>
           <For each={services()}>
-            {(svc) => {
-              const isHttps = svc.base_url?.startsWith('https://');
-              return (
-                <tr>
-                  <td>
-                    <strong>{svc.label}</strong>
-                    <br />
-                    <small class="service-status__name">{svc.name}</small>
-                  </td>
-                  <td>
-                    <wf-badge color={svc.connected ? 'green' : 'red'}>
-                      {svc.connected ? 'Connected' : 'Disconnected'}
-                    </wf-badge>
-                  </td>
-                  <td>
-                    <wf-badge color={svc.ui ? 'blue' : 'yellow'}>
-                      {svc.ui ? 'Available' : 'No UI'}
-                    </wf-badge>
-                  </td>
-                  <td>
-                    <wf-badge color={isHttps ? 'green' : 'yellow'}>
-                      {isHttps ? 'HTTPS' : 'HTTP'}
-                    </wf-badge>
-                  </td>
-                  <td><code>{svc.route}</code></td>
-                  <td>{svc.display ?? 'nav'}</td>
-                </tr>
-              );
-            }}
+            {(svc) => (
+              <tr>
+                <td>
+                  <strong>{svc.label}</strong>
+                  <br />
+                  <small class="service-status__name">{svc.name}</small>
+                </td>
+                <td>
+                  <span class="service-status__indicator">
+                    <wf-status-dot status={svc.connected ? 'online' : 'offline'} />
+                    {svc.connected ? 'Connected' : 'Disconnected'}
+                  </span>
+                </td>
+                <td>
+                  <span class="service-status__indicator">
+                    <wf-status-dot status={svc.ui ? 'online' : 'away'} />
+                    {svc.ui ? 'Available' : 'No UI'}
+                  </span>
+                </td>
+                <td>
+                  <span class="service-status__indicator">
+                    <wf-status-dot status={svc.base_url?.startsWith('https://') ? 'online' : 'away'} />
+                    {svc.base_url?.startsWith('https://') ? 'HTTPS' : 'HTTP'}
+                  </span>
+                </td>
+                <td><code>{svc.route}</code></td>
+                <td>{svc.display ?? 'nav'}</td>
+              </tr>
+            )}
           </For>
         </tbody>
       </table>

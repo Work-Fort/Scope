@@ -361,3 +361,8 @@ wf-nav-bar {
   color: var(--wf-color-text-muted);
   font-family: monospace;
 }
+.service-status__indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wf-space-xs);
+}
