@@ -9,6 +9,7 @@ import './styles/primitives.css';
 import './styles/tokens.css';
 import './styles/components.css';
 
+import './components/avatar.js';
 import './components/panel.js';
 import './components/button.js';
 import './components/badge.js';
@@ -58,6 +59,7 @@ import './layout/wf-table.js';
 import './layout/wf-hamburger.js';
 import './layout/wf-nav-bar.js';
 
+export { WfAvatar } from './components/avatar.js';
 export { WfPanel } from './components/panel.js';
 export { WfButton } from './components/button.js';
 export { WfBadge } from './components/badge.js';

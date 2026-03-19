@@ -117,6 +117,54 @@
   margin: var(--wf-space-sm) 0;
 }
 
+.wf-divider:has(.wf-divider__text) {
+  display: flex;
+  align-items: center;
+  gap: var(--wf-space-sm);
+  height: auto;
+  background: none;
+}
+
+.wf-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--wf-color-border);
+}
+
+.wf-divider__text {
+  font-size: var(--wf-text-xs);
+  color: var(--wf-color-text-muted);
+  white-space: nowrap;
+}
+
+/* Avatar */
+.wf-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--wf-radius-full);
+  background: var(--wf-color-bg-elevated);
+  font-weight: var(--wf-weight-semibold);
+  color: var(--wf-color-text-secondary);
+  flex-shrink: 0;
+  position: relative;
+  width: var(--wf-space-8);
+  height: var(--wf-space-8);
+  font-size: var(--wf-text-xs);
+}
+
+.wf-avatar[size="sm"] {
+  width: var(--wf-space-6);
+  height: var(--wf-space-6);
+  font-size: var(--wf-text-2xs);
+}
+
+.wf-avatar__dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+}
+
 /* TextInput */
 .wf-text-input { display: block; }
 .wf-text-input__input {
