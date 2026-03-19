@@ -101,16 +101,62 @@ async fn main() {
         .fallback_service(spa)
         .with_state(Arc::clone(&state));
 
-    // Start discovery polling for the first fort (if any)
+    // Start discovery polling
     {
         let forts = state.store.list_forts().await.unwrap_or_default();
-        if let Some(fort) = forts.first() {
-            let discovery = Arc::clone(&state.discovery);
-            let fort_clone = fort.clone();
+        if forts.len() > 1 {
+            log::warn!(
+                "scope-server supports one fort, but {} are configured. Using '{}'.",
+                forts.len(),
+                forts[0].name
+            );
+        }
+        let fort = match forts.into_iter().next() {
+            Some(f) => f,
+            None => {
+                log::error!("no forts configured");
+                std::process::exit(1);
+            }
+        };
+
+        let state_clone = Arc::clone(&state);
+        let fort_clone = fort.clone();
+
+        if fort.local {
             tokio::spawn(async move {
                 loop {
-                    discovery.probe_all(&fort_clone).await;
+                    let prev = state_clone.discovery.services().await;
+                    state_clone.discovery.probe_all(&fort_clone).await;
+                    if state_clone.discovery.has_changed_since(&prev).await {
+                        let _ = state_clone.services_tx.send(state_clone.discovery.services().await);
+                    }
                     tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                }
+            });
+        } else {
+            tokio::spawn(async move {
+                loop {
+                    let prev = state_clone.discovery.services().await;
+                    let token = {
+                        let t = state_clone.tokens.lock().await;
+                        t.get(&fort_clone.name).map(|ft| ft.jwt.clone())
+                    };
+                    let result = state_clone
+                        .discovery
+                        .fetch_from_pylon(&fort_clone, token.as_deref())
+                        .await;
+                    if let Some(url) = result {
+                        if url == "__expired__" {
+                            state_clone.tokens.lock().await.remove(&fort_clone.name);
+                            log::info!("cleared expired pylon token for '{}'", fort_clone.name);
+                        } else {
+                            log::info!("pylon requires auth via {url} for fort '{}'", fort_clone.name);
+                        }
+                    }
+                    if state_clone.discovery.has_changed_since(&prev).await {
+                        let _ = state_clone.services_tx.send(state_clone.discovery.services().await);
+                    }
+                    tokio::time::sleep(std::time::Duration::from_secs(120)).await;
                 }
             });
         }
