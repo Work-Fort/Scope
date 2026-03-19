@@ -10,6 +10,7 @@ import {
 } from 'solid-js';
 import { Navigate, Route, Router, useParams } from '@solidjs/router';
 import { services, startPolling, stopPolling, isSetupMode, isAuthRequired, isSessionChecked, clearAuthRequired, clearSetupMode } from './stores/services';
+import { fetchForts } from './lib/api';
 import './stores/theme';
 import ShellLayout from './components/shell-layout';
 import ServiceMount from './components/service-mount';
@@ -43,7 +44,12 @@ const FortShell: Component = (props: { children?: any }) => {
 
   createEffect(() => {
     const fort = params.fort;
-    startPolling(fort);
+    fetchForts().then((forts) => {
+      const info = forts.find((f) => f.name === fort);
+      startPolling(fort, info);
+    }).catch(() => {
+      startPolling(fort);
+    });
   });
   onCleanup(() => stopPolling());
 

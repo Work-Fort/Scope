@@ -13,6 +13,7 @@ export interface ServiceInfo {
   connected: boolean;
   setup_mode?: boolean;
   display?: 'nav' | 'menu';
+  base_url?: string;
 }
 
 export interface Conflict {
@@ -47,6 +48,15 @@ export async function fetchConfig(fort: string): Promise<ConfigResponse> {
   const res = await fetch(`/forts/${fort}/api/config`);
   if (!res.ok) throw new Error(`/forts/${fort}/api/config: ${res.status}`);
   return res.json();
+}
+
+export async function checkFortServices(fort: string): Promise<ServiceInfo[]> {
+  try {
+    const res = await fetchServices(fort);
+    return res.services;
+  } catch {
+    return [];
+  }
 }
 
 export async function checkSession(fort: string): Promise<boolean> {

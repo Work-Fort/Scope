@@ -1,17 +1,20 @@
 import { createSignal } from 'solid-js';
-import { fetchServices, checkSession, type ServiceInfo, type Conflict, type ServicesResponse } from '../lib/api';
+import { fetchServices, checkSession, type ServiceInfo, type Conflict, type ServicesResponse, type FortInfo } from '../lib/api';
 import { registerNewRemotes } from '../lib/remotes';
 import { addBanner, removeBanner, banners } from './banners';
 import { addToast } from './toasts';
 import { addNotification, fetchNotifications } from './notifications';
 
-const POLL_INTERVAL = 30_000;
+const LOCAL_POLL_INTERVAL = 30_000;
+const PYLON_POLL_INTERVAL = 120_000;
 const WS_RECONNECT_DELAY = 5_000;
 
 const [serviceList, setServiceList] = createSignal<ServiceInfo[]>([]);
 const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
 const [currentFort, setCurrentFort] = createSignal('');
 const [setupMode, setSetupMode] = createSignal(false);
+const [fortInfo, setFortInfo] = createSignal<FortInfo | null>(null);
+export const isPylonFort = () => !!fortInfo()?.pylon;
 
 // Auth state: starts true (assume unauthenticated), cleared after
 // successful sign-in or if a BFF-protected probe succeeds.
@@ -167,7 +170,7 @@ function disconnectShellWs(): void {
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let activeFort: string | null = null;
 
-export function startPolling(fort: string): void {
+export function startPolling(fort: string, info?: FortInfo): void {
   // If fort changed, reset state.
   if (activeFort !== fort) {
     stopPolling();
@@ -178,6 +181,8 @@ export function startPolling(fort: string): void {
     setSessionChecked(false);
   }
   activeFort = fort;
+  if (info) setFortInfo(info);
+  const pollInterval = info?.pylon ? PYLON_POLL_INTERVAL : LOCAL_POLL_INTERVAL;
 
   // Initial HTTP fetch for services + conflicts
   fetchServices(fort).then((res) => {
@@ -209,7 +214,7 @@ export function startPolling(fort: string): void {
   // Keep HTTP polling at a slower interval as fallback for conflict detection
   intervalId = setInterval(() => {
     fetchServices(fort).then(handlePollResult).catch(console.error);
-  }, POLL_INTERVAL);
+  }, pollInterval);
 }
 
 export function stopPolling(): void {
