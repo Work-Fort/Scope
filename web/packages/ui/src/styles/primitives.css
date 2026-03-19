@@ -94,6 +94,7 @@
   --wf-space-24: 6rem;
 
   /* ── Typography — sizes ── */
+  --wf-text-2xs: 0.625rem;
   --wf-text-xs: 0.75rem;
   --wf-text-sm: 0.8125rem;
   --wf-text-base: 0.875rem;
