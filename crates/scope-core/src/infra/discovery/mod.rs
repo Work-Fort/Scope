@@ -73,7 +73,7 @@ impl ServiceDiscovery {
             label: manifest.label,
             route: manifest.route,
             base_url: base.to_string(),
-            ui: status.is_success(),
+            ui: status.as_u16() == 200,
             connected: true,
             setup_mode: manifest.setup_mode,
             admin_only: manifest.admin_only,
@@ -236,5 +236,48 @@ mod tests {
         assert_eq!(notif_services[0].0, "chat");
         assert_eq!(notif_services[0].1, "http://localhost:3000");
         assert_eq!(notif_services[0].2, "/notifications/subscribe");
+    }
+
+    #[tokio::test]
+    async fn discovery_267_sets_ui_false() {
+        let manifest = serde_json::json!({
+            "name": "nexus",
+            "label": "VMs",
+            "route": "/vms",
+        });
+
+        let app = Router::new().route(
+            "/ui/health",
+            get(move || {
+                let m = manifest.clone();
+                async move {
+                    (axum::http::StatusCode::from_u16(267).unwrap(), Json(m))
+                }
+            }),
+        );
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+
+        let fort = Fort {
+            name: "test".into(),
+            local: true,
+            pylon: None,
+            services: vec![ServiceConfig {
+                url: format!("http://{}", addr),
+            }],
+        };
+
+        let discovery = ServiceDiscovery::new();
+        discovery.probe_all(&fort).await;
+
+        let services = discovery.services().await;
+        assert_eq!(services.len(), 1);
+        assert_eq!(services[0].name, "nexus");
+        assert!(services[0].connected);
+        assert!(!services[0].ui); // 267 means no UI
     }
 }
