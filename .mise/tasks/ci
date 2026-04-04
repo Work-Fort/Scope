@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
 #MISE description="Run all CI checks"
-#MISE depends=["lint", "test"]
+#MISE depends=["lint", "test", "sdk:go:test"]
 set -euo pipefail

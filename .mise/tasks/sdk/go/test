@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
+#MISE description="Run Go frontend SDK tests"
+set -euo pipefail
+
+cd go/frontend
+go test -v ./...
