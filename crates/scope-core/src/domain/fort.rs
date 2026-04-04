@@ -1,4 +1,13 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+/// Deserializes a field that may be `null` as the type's Default value.
+fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Default + Deserialize<'de>,
+{
+    Ok(Option::<T>::deserialize(deserializer)?.unwrap_or_default())
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fort {
@@ -30,7 +39,7 @@ pub struct TrackedService {
     pub admin_only: bool,
     #[serde(default = "default_display")]
     pub display: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_null_default")]
     pub ws_paths: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notification_path: Option<String>,

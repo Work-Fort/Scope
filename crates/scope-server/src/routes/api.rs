@@ -18,12 +18,16 @@ pub async fn list_forts(State(state): State<Arc<AppState>>) -> impl IntoResponse
 
 /// Validate session by forwarding the cookie to the auth service's /v1/session endpoint.
 async fn check_auth_session(state: &AppState, headers: &HeaderMap) -> serde_json::Value {
-    // Find the auth service URL from discovery
+    // Find the auth service URL from discovery, falling back to passport_url
     let services = state.discovery.services().await;
-    let auth_svc = services.iter().find(|s| s.name == "auth");
-    let auth_url = match auth_svc {
-        Some(svc) => &svc.base_url,
-        None => return serde_json::json!({ "authenticated": false }),
+    let auth_url = match services.iter().find(|s| s.name == "auth") {
+        Some(svc) => svc.base_url.clone(),
+        None => {
+            match state.passport_urls.lock().await.values().next().cloned() {
+                Some(url) => url,
+                None => return serde_json::json!({ "authenticated": false }),
+            }
+        }
     };
 
     // Extract cookie header from the incoming request
@@ -97,20 +101,46 @@ pub async fn fort_services(
     Path(fort): Path<String>,
 ) -> impl IntoResponse {
     let services = state.discovery.services().await;
-    Json(serde_json::json!({
+    let passport_url = state.passport_urls.lock().await.get(&fort).cloned();
+    let mut resp = serde_json::json!({
         "fort": fort,
         "services": services,
         "conflicts": [],
-    }))
+    });
+    if let Some(url) = passport_url {
+        resp["passport_url"] = serde_json::Value::String(url);
+    }
+    Json(resp)
 }
 
-/// GET /forts/{fort}/api/session — fort-scoped session check
+/// GET /forts/{fort}/api/session — fort-scoped session check.
+/// For Pylon forts, also exchanges the session cookie for a JWT so the
+/// Pylon polling loop can fetch services.
 pub async fn fort_session(
     State(state): State<Arc<AppState>>,
-    Path(_fort): Path<String>,
+    Path(fort): Path<String>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
-    Json(check_auth_session(&state, &headers).await)
+    let result = check_auth_session(&state, &headers).await;
+
+    // If authenticated and we don't have a Pylon token yet, exchange the cookie for a JWT
+    if result.get("authenticated") == Some(&serde_json::Value::Bool(true)) {
+        let has_token = state.tokens.lock().await.contains_key(&fort);
+        if !has_token {
+            if let Some(token) = super::proxy::exchange_cookie_for_token(&state, &fort, &headers).await {
+                log::info!("exchanged session cookie for pylon JWT for fort '{fort}'");
+                // Trigger an immediate Pylon fetch now that we have a token
+                let discovery = state.discovery.clone();
+                let forts = state.store.list_forts().await.unwrap_or_default();
+                if let Some(f) = forts.iter().find(|f| f.name == fort) {
+                    discovery.fetch_from_pylon(f, Some(&token)).await;
+                    let _ = state.services_tx.send(discovery.services().await);
+                }
+            }
+        }
+    }
+
+    Json(result)
 }
 
 /// GET /api/notifications?limit=20&before_id=123

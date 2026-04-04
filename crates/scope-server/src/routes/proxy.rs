@@ -9,6 +9,49 @@ use std::time::{Duration, Instant};
 
 use crate::state::AppState;
 
+/// Exchange a session cookie for a JWT via Passport's /v1/token endpoint,
+/// without checking the cache. Used by fort_session to bootstrap Pylon auth.
+pub async fn exchange_cookie_for_token(state: &AppState, fort: &str, headers: &HeaderMap) -> Option<String> {
+    let cookie = headers.get("cookie")?.to_str().ok()?;
+
+    let services = state.discovery.services().await;
+    let auth_url = match services.iter().find(|s| s.name == "auth") {
+        Some(svc) => svc.base_url.clone(),
+        None => state.passport_urls.lock().await.get(fort).cloned()?,
+    };
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{auth_url}/v1/token"))
+        .header("cookie", cookie)
+        .send()
+        .await
+        .ok()?;
+
+    if !resp.status().is_success() {
+        log::warn!("token exchange failed: {}", resp.status());
+        return None;
+    }
+
+    let body: serde_json::Value = resp.json().await.ok()?;
+    let jwt = body.get("token").and_then(|t| t.as_str())?.to_string();
+
+    {
+        let mut tokens = state.tokens.lock().await;
+        tokens.insert(
+            fort.to_string(),
+            scope_core::domain::session::FortTokens {
+                jwt: jwt.clone(),
+                refresh_token: String::new(),
+                expiry: std::time::Instant::now() + std::time::Duration::from_secs(15 * 60),
+                auth_url: auth_url.clone(),
+            },
+        );
+    }
+
+    Some(jwt)
+}
+
 /// Exchange a session cookie for a JWT via Passport's /v1/token endpoint.
 /// Caches the JWT in the tokens map for subsequent requests.
 async fn get_or_refresh_token(state: &AppState, fort: &str, headers: &HeaderMap) -> Option<String> {
@@ -88,11 +131,17 @@ pub async fn proxy_handler(
         "/".into()
     };
 
-    // Find service URL from discovery
+    // Find service URL from discovery, falling back to passport_url for auth
     let services = state.discovery.services().await;
     let service = services.iter().find(|s| s.name == service_name);
     let base_url = match service {
         Some(s) => s.base_url.clone(),
+        None if service_name == "auth" => {
+            match state.passport_urls.lock().await.get(&fort).cloned() {
+                Some(url) => url,
+                None => return (StatusCode::BAD_GATEWAY, "auth service not available").into_response(),
+            }
+        }
         None => {
             return (
                 StatusCode::BAD_GATEWAY,

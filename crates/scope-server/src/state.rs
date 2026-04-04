@@ -14,4 +14,6 @@ pub struct AppState {
     pub services_tx: broadcast::Sender<Vec<TrackedService>>,
     pub proxy: ProxyHandler,
     pub tokens: Mutex<HashMap<String, FortTokens>>,
+    /// Passport URL per fort, set when Pylon returns a passport_url redirect.
+    pub passport_urls: Mutex<HashMap<String, String>>,
 }

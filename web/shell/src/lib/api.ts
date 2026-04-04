@@ -26,6 +26,7 @@ export interface ServicesResponse {
   fort: string;
   services: ServiceInfo[];
   conflicts: Conflict[];
+  passport_url?: string;
 }
 
 export interface ConfigResponse {

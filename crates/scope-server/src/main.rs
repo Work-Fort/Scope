@@ -54,6 +54,7 @@ async fn main() {
         services_tx,
         proxy,
         tokens: Mutex::new(HashMap::new()),
+        passport_urls: Mutex::new(HashMap::new()),
     });
 
     // SPA fallback: serve static files, fall back to index.html for client-side routing
@@ -150,6 +151,7 @@ async fn main() {
                             state_clone.tokens.lock().await.remove(&fort_clone.name);
                             log::info!("cleared expired pylon token for '{}'", fort_clone.name);
                         } else {
+                            state_clone.passport_urls.lock().await.insert(fort_clone.name.clone(), url.clone());
                             log::info!("pylon requires auth via {url} for fort '{}'", fort_clone.name);
                         }
                     }

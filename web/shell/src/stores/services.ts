@@ -14,7 +14,10 @@ const [conflictList, setConflictList] = createSignal<Conflict[]>([]);
 const [currentFort, setCurrentFort] = createSignal('');
 const [setupMode, setSetupMode] = createSignal(false);
 const [fortInfo, setFortInfo] = createSignal<FortInfo | null>(null);
+const [passportUrl, setPassportUrl] = createSignal<string | null>(null);
 export const isPylonFort = () => !!fortInfo()?.pylon;
+export const getPassportUrl = passportUrl;
+
 
 // Auth state: starts true (assume unauthenticated), cleared after
 // successful sign-in or if a BFF-protected probe succeeds.
@@ -72,6 +75,7 @@ function handleServiceUpdate(services: ServiceInfo[], fort?: string): void {
 }
 
 function handlePollResult(res: ServicesResponse): void {
+  if (res.passport_url) setPassportUrl(res.passport_url);
   setConflictList(res.conflicts ?? []);
 
   const activeConflictKeys = new Set((res.conflicts ?? []).map((c) => `conflict:${c.name}`));
