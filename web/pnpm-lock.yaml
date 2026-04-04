@@ -20,8 +20,8 @@ importers:
   packages/react:
     dependencies:
       '@workfort/auth':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.1
     devDependencies:
       '@testing-library/react':
         specifier: ^16.0.0
@@ -60,8 +60,8 @@ importers:
   packages/solid:
     dependencies:
       '@workfort/auth':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.1
     devDependencies:
       '@workfort/ui':
         specifier: workspace:*
@@ -82,8 +82,8 @@ importers:
   packages/svelte:
     dependencies:
       '@workfort/auth':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.1
     devDependencies:
       '@workfort/ui':
         specifier: workspace:*
@@ -129,8 +129,8 @@ importers:
   packages/vue:
     dependencies:
       '@workfort/auth':
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.1.0
+        version: 0.1.1
     devDependencies:
       '@workfort/ui':
         specifier: workspace:*
@@ -1315,9 +1315,6 @@ packages:
 
   '@vue/shared@3.5.30':
     resolution: {integrity: sha512-YXgQ7JjaO18NeK2K9VTbDHaFy62WrObMa6XERNfNOkAhD1F1oDSf3ZJ7K6GqabZ0BvSDHajp8qfS5Sa2I9n8uQ==}
-
-  '@workfort/auth@0.0.1':
-    resolution: {integrity: sha512-YG8gKmoXVaZIMk3kxd1ajnz8VL1oZp63CQXwSeTyOhuDiQwkIlYg2OZWmcNsfxtboK0B4ne+IGcgvK6EuIeq7w==}
 
   '@workfort/auth@0.1.1':
     resolution: {integrity: sha512-mD65LQj9Jj8Evmt+o50tBy676Qc1oJAwce1ZXQ8Yt/UzVRMQZPlLky/IfQpfeCjefxMjL1JRmDRj3/JzJiWC0g==}
@@ -3602,8 +3599,6 @@ snapshots:
       vue: 3.5.30(typescript@5.9.3)
 
   '@vue/shared@3.5.30': {}
-
-  '@workfort/auth@0.0.1': {}
 
   '@workfort/auth@0.1.1': {}
 
