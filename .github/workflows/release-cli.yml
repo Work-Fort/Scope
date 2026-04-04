@@ -77,7 +77,7 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Build release binary
-        run: mise run build:release
+        run: cargo build --release --package scope-server
 
       - name: Compress and generate checksum
         env:
