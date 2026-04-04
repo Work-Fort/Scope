@@ -26,7 +26,7 @@
     "prepublishOnly": "tsc"
   },
   "dependencies": {
-    "@workfort/auth": "^0.0.1"
+    "@workfort/auth": "^0.1.0"
   },
   "peerDependencies": {
     "@workfort/ui": "^0.1.0",

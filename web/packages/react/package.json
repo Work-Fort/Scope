@@ -23,7 +23,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@workfort/auth": "^0.0.1"
+    "@workfort/auth": "^0.1.0"
   },
   "peerDependencies": {
     "@workfort/ui": "^0.1.0",
