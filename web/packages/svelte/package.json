@@ -1,6 +1,6 @@
 {
   "name": "@workfort/ui-svelte",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "@workfort/auth": "^0.0.1"
   },
   "peerDependencies": {
-    "@workfort/ui": "^0.0.1",
+    "@workfort/ui": "^0.1.0",
     "svelte": "^4.0.0 || ^5.0.0"
   },
   "devDependencies": {
