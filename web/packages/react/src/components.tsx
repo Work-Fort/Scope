@@ -7,6 +7,7 @@ import type {
   WfInput, WfTextarea, WfSelect, WfCheckbox, WfRadio, WfToggle,
   WfSlider, WfCombobox, WfDatePicker, WfFileUpload, WfForm,
   WfCheckboxGroup, WfRadioGroup,
+  WfAvatar, WfDivider, WfNavSidebar, WfNavSection,
 } from '@workfort/ui';
 
 type WfProps<E, P = {}> = P & React.HTMLAttributes<E> & {
@@ -81,7 +82,8 @@ export const Button = wrapWc<WfButton, { variant?: 'text' | 'filled'; disabled?:
 export const Badge = wrapWc<WfBadge, { count?: number }>('wf-badge', 'Badge');
 export const StatusDot = wrapWc<WfStatusDot, { status?: string }>('wf-status-dot', 'StatusDot');
 export const Skeleton = wrapWc<WfSkeleton, { width?: string; height?: string }>('wf-skeleton', 'Skeleton');
-export const Divider = wrapWc<HTMLElement, {}>('wf-divider', 'Divider');
+export const Avatar = wrapWc<WfAvatar, { username?: string; size?: 'sm' | 'md'; status?: string }>('wf-avatar', 'Avatar');
+export const Divider = wrapWc<WfDivider, { label?: string }>('wf-divider', 'Divider');
 export const TextInput = wrapWc<WfTextInput, { placeholder?: string; value?: string; disabled?: boolean }>('wf-text-input', 'TextInput');
 export const List = wrapWc<WfList, {}>('wf-list', 'List');
 export const ListItem = wrapWc<WfListItem, { active?: boolean }>('wf-list-item', 'ListItem');
@@ -123,3 +125,7 @@ export const Stepper = wrapWc<HTMLElement, {}>('wf-stepper', 'Stepper');
 export const Step = wrapWc<HTMLElement, { label?: string; status?: string }>('wf-step', 'Step');
 export const Progress = wrapWc<HTMLElement, { value?: number; min?: number; max?: number; size?: string; color?: string; label?: string; indeterminate?: boolean }>('wf-progress', 'Progress');
 export const AlertDialog = wrapWc<HTMLElement, {}>('wf-alert-dialog', 'AlertDialog');
+
+// Navigation components (extracted)
+export const NavSidebar = wrapWc<WfNavSidebar, { heading?: string; searchPlaceholder?: string }>('wf-nav-sidebar', 'NavSidebar');
+export const NavSection = wrapWc<WfNavSection, { heading?: string; collapsed?: boolean }>('wf-nav-section', 'NavSection');
