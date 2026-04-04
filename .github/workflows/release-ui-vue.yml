@@ -22,7 +22,7 @@ jobs:
       - uses: jdx/mise-action@v3
 
       - name: Install and build
-        run: cd web && pnpm install && pnpm --filter @workfort/ui-vue build
+        run: cd web && pnpm install && pnpm --filter @workfort/ui build && pnpm --filter @workfort/ui-vue build
 
       - name: Test
         run: cd web && pnpm --filter @workfort/ui-vue test
