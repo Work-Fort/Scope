@@ -188,6 +188,7 @@ export class WfNavBar extends WfElement {
       <div class="wf-nav-bar__controls"></div>
       <wf-hamburger
         position=${this.hamburgerPosition}
+        ?hidden=${!this.collapsed}
         ?open=${this._hamburgerOpen}
         @wf-toggle=${(e: CustomEvent) => this._onHamburgerToggle(e)}
       ></wf-hamburger>

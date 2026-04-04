@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: jdx/mise-action@v3
-      - run: mise run test
+      - run: mise run test-server
 
   tag:
     name: Create Version Tag
