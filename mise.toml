@@ -3,6 +3,7 @@ android-sdk = "latest"
 java = "21"
 node = "lts"
 "npm:pnpm" = "10"
+go = "1.25"
 rust = "1.94.0"
 
 [env]
