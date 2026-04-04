@@ -142,7 +142,7 @@ See [Service Frontend Contract](../service-contract.md) for the full `ServiceMod
 
 ## 5. Wire up the Go backend
 
-Create a simple Go handler that embeds your Vite build and registers it with `pkg/frontend.Handler`.
+Create a simple Go handler that embeds your Vite build and registers it with `go/frontend.Handler`.
 
 In your service's main file (e.g., `cmd/my-service/main.go`):
 
@@ -154,7 +154,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/Work-Fort/Scope/pkg/frontend"
+	"github.com/Work-Fort/Scope/go/frontend"
 )
 
 //go:embed web/dist

@@ -62,7 +62,7 @@ Remotes that do not use SolidJS should only declare `@workfort/ui` and `@workfor
 ### Manifest struct
 
 ```go
-// pkg/frontend/frontend.go
+// go/frontend/frontend.go
 type Manifest struct {
     Name    string   `json:"name"`
     Label   string   `json:"label"`

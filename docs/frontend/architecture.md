@@ -4,7 +4,7 @@ The shell is a Module Federation host. Service frontends are MF remotes — they
 
 ## How it works
 
-Each service that ships a frontend exposes a `remoteEntry.js` via its embedded `pkg/frontend.Handler`. The shell's JS-side polling loop fetches `/forts/{fort}/api/services` every 30 seconds. For each service returned with `ui: true`, `registerNewRemotes` calls `@module-federation/runtime`'s `registerRemotes` to make the remote available. Once registered, `loadRemote("{name}/index")` loads the module lazily.
+Each service that ships a frontend exposes a `remoteEntry.js` via its embedded `go/frontend.Handler`. The shell's JS-side polling loop fetches `/forts/{fort}/api/services` every 30 seconds. For each service returned with `ui: true`, `registerNewRemotes` calls `@module-federation/runtime`'s `registerRemotes` to make the remote available. Once registered, `loadRemote("{name}/index")` loads the module lazily.
 
 The MF runtime is initialized once at shell startup with no remotes:
 
@@ -29,7 +29,7 @@ A `remoteEntry.js` request travels this path:
    - **Local fort** (`local=true`): strips `/api/{serviceName}` prefix and proxies to `targetURL`. Example: `/api/nexus/ui/remoteEntry.js` becomes `/ui/remoteEntry.js` at `http://target`.
    - **Pylon fort** (`local=false`): discovers services via Pylon, proxies to each service's `base_url` directly.
 
-5. **`pkg/frontend.Handler`** (`pkg/frontend/frontend.go`) serves the file from the embedded FS. It registers `/ui/remoteEntry.js` under the catch-all `/ui/` handler with `Cache-Control: no-cache`. Content-hashed assets under `/ui/assets/` get `Cache-Control: public, max-age=31536000, immutable`.
+5. **`go/frontend.Handler`** (`go/frontend/frontend.go`) serves the file from the embedded FS. It registers `/ui/remoteEntry.js` under the catch-all `/ui/` handler with `Cache-Control: no-cache`. Content-hashed assets under `/ui/assets/` get `Cache-Control: public, max-age=31536000, immutable`.
 
 ## Service discovery
 

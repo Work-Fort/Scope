@@ -35,7 +35,7 @@ Table of contents with one-line descriptions linking to each doc. Suggested read
 How the shell loads service frontends at runtime:
 
 - The shell is a Module Federation host. Service frontends are remotes discovered at runtime, not built into the shell.
-- Request path: browser → `/forts/{fort}/api/{service}/ui/remoteEntry.js` → FortRouter strips fort prefix → ServiceProxy forwards to service backend → `pkg/frontend.Handler` serves the Vite build.
+- Request path: browser → `/forts/{fort}/api/{service}/ui/remoteEntry.js` → FortRouter strips fort prefix → ServiceProxy forwards to service backend → `go/frontend.Handler` serves the Vite build.
 - Service discovery: two polling loops. The Go backend probes each service's `/ui/health` every 10 seconds, updating connectivity and `ui: true/false` state. The shell JS fetches `/forts/{fort}/api/services` every 30 seconds, picks up new services, and registers MF remotes. The 30-second interval is why a newly started service can take up to 30s to appear in the shell.
 - Fort-scoped routing: each fort gets its own isolated instance (lazy-initialized, singleflight-guarded). Services are proxied per-fort. Cookies are scoped to `/forts/{fort}/`.
 
@@ -55,7 +55,7 @@ The spec a service frontend must satisfy. Two sides: TypeScript and Go.
 - MF shared singletons: the shell currently shares `solid-js`, `@workfort/ui`, `@workfort/ui-solid`, and `@workfort/auth`. A remote should only declare `import: false` for singletons the shell actually provides. For non-SolidJS remotes: `solid-js` and `@workfort/ui-solid` are irrelevant — only mark `@workfort/ui` and `@workfort/auth` as shared. The framework-specific adapter (e.g. `@workfort/ui-react`) is bundled by the remote, not shared by the shell.
 - `@solidjs/router` is NOT shared. Remotes that need routing must use their own instance.
 
-**Go (`pkg/frontend`):**
+**Go (`go/frontend`):**
 
 - `Manifest` struct: `{ Name, Label, Route, WSPaths }`
 - `Handler(fsys fs.FS, m Manifest) http.Handler` — mounts under `/ui/`
@@ -90,7 +90,7 @@ Step-by-step guide for each framework. Same logical steps, framework-specific co
 2. Install dependencies (`@workfort/ui`, the relevant adapter, `@workfort/auth`, `@module-federation/vite`)
 3. Configure the MF plugin in `vite.config` — name, exposes `./index`, shared singletons with `import: false`
 4. Create the entry module: export `default` component + `manifest` object (+ optional `SidebarContent`, `HeaderActions`)
-5. Wire `pkg/frontend.Handler` in the Go service — embed the Vite build, register the handler on the service's HTTP mux
+5. Wire `go/frontend.Handler` in the Go service — embed the Vite build, register the handler on the service's HTTP mux
 6. Add the service URL to a fort's config
 7. Start the shell + service, see it load in the browser
 
