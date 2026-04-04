@@ -82,6 +82,7 @@ jobs:
           VERSION=$(echo "$TAG" | sed 's|^ui-solid-v||')
           cd web
           pnpm install
+          pnpm --filter @workfort/ui build
           cd packages/solid
           npm pkg set version="$VERSION"
           pnpm run build

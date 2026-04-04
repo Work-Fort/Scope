@@ -82,6 +82,7 @@ jobs:
           VERSION=$(echo "$TAG" | sed 's|^ui-vue-v||')
           cd web
           pnpm install
+          pnpm --filter @workfort/ui build
           cd packages/vue
           npm pkg set version="$VERSION"
           pnpm run build
